@@ -934,6 +934,38 @@ export default function App() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
+              {/* Panneau étroit : le menu devient une liste déroulante. */}
+              <select
+                className="ds-nav-select"
+                aria-label="Section du Design System"
+                value={`${selection.kind}:${selection.id}`}
+                onChange={(e) => {
+                  const [kind, id] = e.target.value.split(':');
+                  select({ kind, id } as Selection);
+                }}
+              >
+                <optgroup label="Tokens">
+                  {tokenGroups.map((g) => (
+                    <option key={g.id} value={`tokens:${g.id}`}>
+                      {g.label}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="Composants">
+                  {components.map((c) => (
+                    <option key={c.id} value={`component:${c.id}`}>
+                      {c.label}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="Écrans">
+                  {screens.map((sc) => (
+                    <option key={sc.id} value={`screen:${sc.id}`}>
+                      {sc.label}
+                    </option>
+                  ))}
+                </optgroup>
+              </select>
               <p className="side-group">Tokens</p>
               {tokenGroups.map((g) => {
                 const changed = g.keys.filter((k) => k in drafts.drafts).length;

@@ -1638,30 +1638,33 @@ dialog.drawer {
 }
 /* Panneau Design System étroit : le menu passe en ligne au-dessus. */
 @container ds (max-width: 620px) {
-  .ds-layout {
+  .ds-pane .ds-layout {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto minmax(0, 1fr);
   }
-  .ds-sidebar {
+  .ds-pane .ds-sidebar {
     flex-direction: row;
     flex-wrap: nowrap;
-    overflow-x: auto;
+    overflow: visible;
     align-items: center;
+    gap: 8px;
     border-right: 0;
     border-bottom: 1px solid var(--border);
-    padding: 6px 14px 10px;
+    padding: 4px 18px 12px;
   }
-  .sidebar-search {
-    min-width: 130px;
-    margin: 0 6px 0 0;
+  .ds-pane .ds-sidebar .side-group,
+  .ds-pane .ds-sidebar .side-item {
+    display: none;
   }
-  .side-group {
-    margin: 0 4px 0 10px;
-    white-space: nowrap;
+  .ds-pane .sidebar-search {
+    flex: 1 1 50%;
+    min-width: 0;
+    margin: 0;
   }
-  .side-item {
-    white-space: nowrap;
-    flex: none;
+  .ds-pane .ds-nav-select {
+    display: block;
+    flex: 1 1 50%;
+    min-width: 0;
   }
 }
 /* Lignes étroites : le réglage passe sous le nom. */
@@ -1731,6 +1734,16 @@ select,
   padding: 0 14px 0 34px;
   font-size: 13px;
   color: var(--text);
+}
+.ds-nav-select {
+  display: none;
+  height: 36px;
+  border-radius: 999px;
+  padding: 0 34px 0 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  background-color: var(--surface);
 }
 .sidebar-search::placeholder {
   color: var(--text-2);

@@ -204,3 +204,13 @@ seule fenêtre) ; si Claude répond sans limites, la jauge l’explique et propo
 la mise à jour. Titre « Format » devant les tailles d’écran.
 Preuves : 41 tests unitaires/API (dont ancien format) et 14 tests navigateur
 réussis ; jauge vérifiée sur mon Mac après redémarrage ; audit sans anomalie.
+
+## 27/10/2026 · Navigation du Design System en panneau étroit
+
+Problème : panneau réduit, le menu passait en ligne horizontale coupée
+(recherche tronquée, sections hors champ).
+Décision : sous 620 px de large, le menu devient une liste déroulante (Tokens,
+Composants, Écrans) à côté de la recherche, chacune sur la moitié de la ligne ;
+en panneau large, le menu latéral ne change pas.
+Preuves : 14 tests navigateur réussis (dont choix d’une section par la liste à
+375 px) ; audit de mise en page sans anomalie ; captures relues.

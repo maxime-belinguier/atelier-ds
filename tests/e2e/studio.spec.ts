@@ -371,6 +371,13 @@ test('clavier, mobile 375 px et absence de stockage navigateur', async ({
   expect(
     await page.locator('body').evaluate((el) => el.scrollWidth <= innerWidth),
   ).toBe(true);
+  // Panneau étroit : la navigation passe par une liste déroulante.
+  await page
+    .getByLabel('Section du Design System')
+    .selectOption('component:logement');
+  await expect(
+    page.getByRole('heading', { name: 'Fiche logement', level: 3 }),
+  ).toBeVisible();
 });
 
 test('historique : panneau latéral modal, fermeture Échap et fond', async ({
