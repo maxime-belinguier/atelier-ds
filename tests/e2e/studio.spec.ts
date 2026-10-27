@@ -582,6 +582,20 @@ test('sélecteur de couleur : HEX d’abord, zone, palette du DS, récentes', as
   await expect(
     page.getByLabel('Couleur de marque', { exact: true }),
   ).toHaveValue(before.tokens['color.danger'].$value);
+  // Formats d'affichage : HEX → RGB → HSL, la valeur reste en HEX.
+  await page.getByRole('button', { name: /^Format HEX/ }).click();
+  await page.getByLabel('Rouge').fill('255');
+  await page.getByLabel('Vert').fill('0');
+  await page.getByLabel('Bleu').fill('0');
+  await page.getByLabel('Bleu').press('Enter');
+  await expect(
+    page.getByLabel('Couleur de marque', { exact: true }),
+  ).toHaveValue('#FF0000');
+  await page.getByRole('button', { name: /^Format RGB/ }).click();
+  await expect(page.getByLabel('Teinte (degrés)')).toHaveValue('0');
+  await expect(page.getByLabel('Saturation (%)')).toHaveValue('100');
+  await page.getByRole('button', { name: /^Format HSL/ }).click();
+  await expect(hex).toHaveValue('#FF0000');
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog', { name: /^Couleur :/ })).toHaveCount(0);
   expect((await state(page)).revision).toBe(before.revision);

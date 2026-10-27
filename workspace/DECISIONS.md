@@ -232,3 +232,18 @@ Preuves : 15 tests navigateur (dont HEX court, clavier, palette du DS, récentes
 aucune écriture) et 41 tests unitaires/API réussis ; fenêtre vérifiée dans le
 panneau à 375, 1280 (panneau étroit) et 1440 px ; audit sans anomalie.
 Limite : pipette absente sur Safari.
+
+## 27/10/2026 · Formats HEX, RGB et HSL dans le sélecteur
+
+Décision : un clic sur l’étiquette « HEX » passe à RGB puis HSL (trois champs
+chacun) ; le format choisi est mémorisé. Affichage seulement : la valeur du
+token reste enregistrée en HEX, seul format accepté par le schéma.
+Preuves : 15 tests navigateur réussis (dont saisie RGB, lecture HSL, retour HEX).
+
+## 27/10/2026 · Transparence écartée
+
+Piste étudiée : ajouter la transparence (alpha) aux couleurs.
+Écartée pour l’instant : le schéma n’accepte que #RRGGBB, mes 11 couleurs sont
+des couleurs pleines (texte, fonds, marque), et une couleur transparente change
+selon le fond, ce qui fausse le contraste 4,5:1. Si Gutt en a besoin plus tard :
+tokens dédiés (voile de modale, bordure légère) avec migration du schéma.
