@@ -364,6 +364,27 @@ export default function App() {
   const [pickerFor, setPickerFor] = useState<TokenKey | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
   const [vision, setVision] = useState<Vision>('none');
+  // Catégories du menu repliables ; l'élément affiché reste toujours visible.
+  const [collapsed, setCollapsed] = useState<string[]>(() => {
+    try {
+      const v = JSON.parse(
+        localStorage.getItem('ds-studio-nav-collapsed') ?? '[]',
+      );
+      return Array.isArray(v) ? v.filter((x) => typeof x === 'string') : [];
+    } catch {
+      return [];
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        'ds-studio-nav-collapsed',
+        JSON.stringify(collapsed),
+      );
+    } catch {
+      /* stockage indisponible : le repli reste valable pour la session */
+    }
+  }, [collapsed]);
   useEffect(() => {
     if (!exportOpen) return;
     const close = (e: MouseEvent) => {
@@ -771,6 +792,37 @@ export default function App() {
     };
   }
 
+  const show = (id: string, active: boolean) =>
+    !collapsed.includes(id) || (active && !query);
+  const groupHead = (id: string, label: string, count: number) => {
+    const open = !collapsed.includes(id);
+    return (
+      <button
+        className="side-group"
+        aria-expanded={open}
+        title={open ? `Replier ${label}` : `Déplier ${label}`}
+        onClick={() =>
+          setCollapsed((c) => (open ? [...c, id] : c.filter((x) => x !== id)))
+        }
+      >
+        <span>{label}</span>
+        {!open && <span className="side-group-count">{count}</span>}
+        <svg
+          aria-hidden="true"
+          width="12"
+          height="12"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="m6 9 6 6 6-6" />
+        </svg>
+      </button>
+    );
+  };
   const auditChecks = [...auditTokens(preview), ...targets];
   const auditFails = auditChecks.filter((c) => c.status === 'fail').length;
   const colorKeys = tokenGroups[0].keys;
@@ -1222,83 +1274,110 @@ export default function App() {
                   <option value="audit:a11y">Test d’accessibilité</option>
                 </optgroup>
               </select>
-              <p className="side-group">Tokens</p>
-              {tokenGroups.map((g) => {
-                const changed = g.keys.filter((k) => k in drafts.drafts).length;
-                return (
+              {groupHead('tokens', 'Tokens', tokenGroups.length)}
+              {tokenGroups
+                .filter((g) =>
+                  show(
+                    'tokens',
+                    selection.kind === 'tokens' && selection.id === g.id,
+                  ),
+                )
+                .map((g) => {
+                  const changed = g.keys.filter(
+                    (k) => k in drafts.drafts,
+                  ).length;
+                  return (
+                    <button
+                      key={g.id}
+                      className="side-item"
+                      aria-current={
+                        !query &&
+                        selection.kind === 'tokens' &&
+                        selection.id === g.id
+                          ? 'page'
+                          : undefined
+                      }
+                      onClick={() => select({ kind: 'tokens', id: g.id })}
+                    >
+                      {g.label}
+                      <span className="side-count">
+                        {changed ? `${changed} mod.` : g.keys.length}
+                      </span>
+                    </button>
+                  );
+                })}
+              {groupHead('components', 'Composants', components.length)}
+              {components
+                .filter((c) =>
+                  show(
+                    'components',
+                    selection.kind === 'component' && selection.id === c.id,
+                  ),
+                )
+                .map((c) => (
                   <button
-                    key={g.id}
+                    key={c.id}
                     className="side-item"
                     aria-current={
                       !query &&
-                      selection.kind === 'tokens' &&
-                      selection.id === g.id
+                      selection.kind === 'component' &&
+                      selection.id === c.id
                         ? 'page'
                         : undefined
                     }
-                    onClick={() => select({ kind: 'tokens', id: g.id })}
+                    onClick={() => select({ kind: 'component', id: c.id })}
                   >
-                    {g.label}
-                    <span className="side-count">
-                      {changed ? `${changed} mod.` : g.keys.length}
-                    </span>
+                    {c.label}
                   </button>
-                );
-              })}
-              <p className="side-group">Composants</p>
-              {components.map((c) => (
+                ))}
+              {groupHead('screens', 'Écrans', screens.length)}
+              {screens
+                .filter((s) =>
+                  show(
+                    'screens',
+                    selection.kind === 'screen' && selection.id === s.id,
+                  ),
+                )
+                .map((s) => (
+                  <button
+                    key={s.id}
+                    className="side-item"
+                    aria-current={
+                      !query &&
+                      selection.kind === 'screen' &&
+                      selection.id === s.id
+                        ? 'page'
+                        : undefined
+                    }
+                    onClick={() => select({ kind: 'screen', id: s.id })}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              {groupHead('quality', 'Contrôle qualité', 1)}
+              {show('quality', selection.kind === 'audit') && (
                 <button
-                  key={c.id}
                   className="side-item"
                   aria-current={
-                    !query &&
-                    selection.kind === 'component' &&
-                    selection.id === c.id
-                      ? 'page'
-                      : undefined
+                    !query && selection.kind === 'audit' ? 'page' : undefined
                   }
-                  onClick={() => select({ kind: 'component', id: c.id })}
+                  onClick={() => select({ kind: 'audit', id: 'a11y' })}
                 >
-                  {c.label}
+                  Accessibilité
+                  <span
+                    className={`side-count${auditFails ? ' is-alert' : ''}`}
+                  >
+                    {auditFails ? (
+                      <>
+                        {auditFails}
+                        <span className="sr-only"> à corriger</span>
+                      </>
+                    ) : (
+                      'OK'
+                    )}
+                  </span>
                 </button>
-              ))}
-              <p className="side-group">Écrans</p>
-              {screens.map((s) => (
-                <button
-                  key={s.id}
-                  className="side-item"
-                  aria-current={
-                    !query &&
-                    selection.kind === 'screen' &&
-                    selection.id === s.id
-                      ? 'page'
-                      : undefined
-                  }
-                  onClick={() => select({ kind: 'screen', id: s.id })}
-                >
-                  {s.label}
-                </button>
-              ))}
-              <p className="side-group">Contrôle qualité</p>
-              <button
-                className="side-item"
-                aria-current={
-                  !query && selection.kind === 'audit' ? 'page' : undefined
-                }
-                onClick={() => select({ kind: 'audit', id: 'a11y' })}
-              >
-                Accessibilité
-                <span className={`side-count${auditFails ? ' is-alert' : ''}`}>
-                  {auditFails ? (
-                    <>
-                      {auditFails}
-                      <span className="sr-only"> à corriger</span>
-                    </>
-                  ) : (
-                    'OK'
-                  )}
-                </span>
-              </button>
+              )}
             </nav>
             <div className="ds-content">
               <div className="content-head">

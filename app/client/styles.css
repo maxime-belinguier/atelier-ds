@@ -2766,3 +2766,58 @@ select,
     white-space: nowrap;
   }
 }
+
+/* Recherche : ne se compresse plus quand le menu est long. */
+.ds-sidebar > * {
+  flex-shrink: 0;
+}
+/* Titres de catégorie repliables. */
+.ds-sidebar button.side-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: auto;
+  height: auto;
+  min-height: 0;
+  padding-left: 0;
+  padding-right: 4px;
+  padding-bottom: 0;
+  background: transparent;
+  border-left: 0;
+  border-right: 0;
+  border-bottom: 0;
+  border-radius: 0;
+  text-align: left;
+  cursor: pointer;
+}
+.ds-sidebar button.side-group > span:first-child {
+  flex: 1;
+}
+.ds-sidebar button.side-group svg {
+  flex: none;
+  transition: transform 0.15s ease;
+}
+.ds-sidebar button.side-group[aria-expanded='false'] svg {
+  transform: rotate(-90deg);
+}
+.ds-sidebar button.side-group:hover {
+  color: var(--accent-strong);
+}
+.ds-sidebar button.side-group:focus-visible {
+  outline: 3px solid var(--accent-strong);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+.side-group-count {
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0;
+  color: var(--text-2);
+  background: var(--surface-2);
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+.ds-sidebar button.side-group {
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}

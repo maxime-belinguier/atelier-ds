@@ -300,3 +300,9 @@ Le libellé « Figma non connecté » reste affiché : c’est l’état réel.
 - Titres de catégorie (Tokens, Composants, Écrans, Contrôle qualité) en majuscules, couleur d'accent et trait de séparation entre les groupes.
 - Wording : « Vérifier » devient « Contrôle qualité ». Le menu garde « Accessibilité » (terme attendu par le jury, tient sur une ligne) et la page s'appelle « Test d'accessibilité », avec une phrase simple : « Ton Design System est-il lisible et utilisable par tous ? ».
 - README mis à jour : section « Ajouts de la version Gutt » et état réel des nouvelles fonctions.
+
+## 27/10/2026 · Catégories repliables et barre de recherche corrigée
+- Bug corrigé : la barre de recherche se tassait quand le menu devenait long (éléments du menu compressibles). Elle garde maintenant sa hauteur de 36 px.
+- Chaque titre de catégorie (Tokens, Composants, Écrans, Contrôle qualité) se replie et se déplie au clic, avec un chevron. Replié, il affiche le nombre d'éléments.
+- L'élément affiché reste visible même si sa catégorie est repliée : on ne perd jamais où on est.
+- Le choix est mémorisé dans le navigateur. Accessible au clavier (aria-expanded).

@@ -87,7 +87,7 @@ contenant des espaces est accepté. N’utilisez ni `sudo` ni installation de se
 - **Claude dans l'atelier** : chat en bulle flottante, choix du modèle et de l'effort,
   jauge des crédits. Les propositions passent toujours par le diff et ta validation.
 - **Interface** : deux panneaux redimensionnables (Design System et Aperçu), menu du
-  Design System par catégories (Tokens, Composants, Écrans, Contrôle qualité),
+  Design System par catégories repliables (Tokens, Composants, Écrans, Contrôle qualité),
   sélecteur de couleur HEX/RGB/HSL, enregistrement manuel groupé (Ctrl/Cmd + S).
 - **Aperçu** : formats 320 à 1440 px ou libre, mockups téléphone, tablette et
   navigateur, mode Fit ou 100 %.

@@ -700,3 +700,34 @@ test('vision des couleurs : filtre sur l’aperçu, étiquette et retour', async
   await expect(frame).toHaveCSS('filter', 'none');
   await expect(page.locator('.vision-chip')).toHaveCount(0);
 });
+
+test('menu : catégories repliables, mémorisées, élément affiché gardé', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/');
+  const nav = page.getByRole('navigation', {
+    name: 'Contenu du Design System',
+  });
+  const head = nav.getByRole('button', { name: /^Composants/ });
+  await expect(head).toHaveAttribute('aria-expanded', 'true');
+  await head.click();
+  await expect(head).toHaveAttribute('aria-expanded', 'false');
+  await expect(nav.getByRole('button', { name: 'Boutons' })).toHaveCount(0);
+  // L'élément affiché reste visible même si sa catégorie est repliée.
+  await nav.getByRole('button', { name: /^Tokens/ }).click();
+  await expect(nav.getByRole('button', { name: /^Couleurs/ })).toBeVisible();
+  await expect(nav.getByRole('button', { name: /^Typographie/ })).toHaveCount(
+    0,
+  );
+  await page.reload();
+  await expect(
+    nav.getByRole('button', { name: /^Composants/ }),
+  ).toHaveAttribute('aria-expanded', 'false');
+  // La recherche garde sa hauteur.
+  expect(
+    await page
+      .locator('.sidebar-search')
+      .evaluate((e) => e.getBoundingClientRect().height),
+  ).toBeGreaterThanOrEqual(34);
+});
