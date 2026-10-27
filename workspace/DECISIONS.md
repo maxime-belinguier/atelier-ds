@@ -329,7 +329,8 @@ Règles :
   (conseils, hors score).
 Premiers constats sur Gutt : bordures à 1,74:1 sur les cartes (problème seulement
 si la bordure est le seul repère du champ) ; en deutéranopie, alerte et réussite
-se rapprochent : ajouter une icône aux badges.
+se rapprochent. Corrigé : le badge « points à vérifier » porte une icône ⚠ en
+plus du rouge, le critère WCAG 1.4.1 passe en « OK » dans le contrôle.
 Preuves : 53 tests unitaires/API (seuils, corrections qui passent vraiment le
 seuil, simulation) et tests navigateur (bilan sans édition, correction appliquée
 en brouillon, filtre de l’aperçu, retour en vision classique).
@@ -346,8 +347,23 @@ menus sur la même ligne. Les deux appareils ont la même hauteur, l’échelle
 s’affiche sous chacun ; même écran, mêmes modifications, même type de vision.
 Fit / 100 % reste en place, grisé pendant la comparaison ; le plein écran ⤢
 agrandit les deux. Panneau étroit : Comparer en icône seule.
+Deuxième usage, « Avant / après » : même format des deux côtés, valeurs
+enregistrées à gauche, modifications en cours à droite (avec leur nombre). On
+voit l’effet d’une modif avant de l’enregistrer.
 Écarté après essai : Comparer dans la ligne du titre (la barre passait à la
 ligne et les outils changeaient de place).
 Preuves : test navigateur (deux aperçus qui suivent une modification, changement
 de format, retour à un seul aperçu) ; position et hauteur de la barre mesurées
 identiques avant et après le clic ; audit de mise en page sans anomalie.
+
+## 27/10/2026 · Visite guidée
+
+Problème : l’atelier a beaucoup de zones ; une personne qui l’ouvre (intervenant,
+camarade, jury) ne sait pas par où commencer.
+Décision : visite en 8 étapes posée sur les vraies zones (menu, tokens,
+enregistrement, aperçu et Comparer, Claude, accessibilité, export, aide), la
+zone visée est mise en évidence. Ouverte seule au premier lancement, puis à
+volonté avec le bouton « ? » de l’en-tête. Passer, Précédent, Suivant, flèches
+du clavier et Échap. Rien n’est modifié pendant la visite.
+Preuves : test navigateur (ouverture au premier lancement, pas de réouverture
+après, relance par « ? », 8 étapes, fermeture) ; captures relues.

@@ -5,6 +5,15 @@ const state = async (page: Page) =>
 const diff = (page: Page) =>
   page.getByRole('dialog', { name: 'Valider les changements' });
 
+// La visite guidée s'ouvre au premier lancement : on la marque comme vue,
+// sauf dans le test qui la vérifie.
+test.beforeEach(async ({ page }, info) => {
+  if (!info.title.startsWith('visite guidée'))
+    await page.addInitScript(() =>
+      localStorage.setItem('ds-studio-tour-done', '1'),
+    );
+});
+
 test('boucle centrale : aperçu immédiat, diff, validation, recharge, retour en arrière ciblé', async ({
   page,
 }) => {
@@ -766,4 +775,71 @@ test('aperçu : Comparer affiche deux formats qui suivent les modifications', as
   ).toHaveAttribute('width', '768');
   await page.getByRole('button', { name: 'Comparer' }).click();
   await expect(page.locator('iframe')).toHaveCount(1);
+});
+
+test('visite guidée : ouverte au premier lancement, relancée avec « ? »', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/');
+  const tour = page.getByRole('dialog', { name: 'Ton Design System' });
+  await expect(tour).toBeVisible();
+  await expect(tour).toContainText('Étape 1 sur 8');
+  await page.getByRole('button', { name: 'Suivant', exact: true }).click();
+  await expect(
+    page.getByRole('dialog', { name: 'Modifie une valeur' }),
+  ).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.tour')).toHaveCount(0);
+  // Vue une fois : ne se rouvre pas seule.
+  await page.reload();
+  await expect(page.locator('.tour')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Visite guidée' }).click();
+  await expect(tour).toBeVisible();
+  for (let i = 0; i < 7; i++)
+    await page.getByRole('button', { name: 'Suivant', exact: true }).click();
+  await expect(
+    page.getByRole('dialog', { name: 'Besoin d’un rappel ?' }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Terminer' }).click();
+  await expect(page.locator('.tour')).toHaveCount(0);
+});
+
+test('aperçu : Avant / après compare l’enregistré et les modifs en cours', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/');
+  await page.getByLabel('Couleur de marque', { exact: true }).fill('#AA2200');
+  await page.getByRole('button', { name: 'Comparer' }).click();
+  await page.getByRole('button', { name: 'Avant / après' }).click();
+  const before = page.frameLocator('iframe[title="Aperçu avant"]');
+  const after = page.frameLocator('iframe[title="Aperçu après"]');
+  const keep = { name: 'Garder ce logement', exact: true };
+  const saved = String((await state(page)).tokens['color.brand'].$value);
+  const rgb = saved
+    .slice(1)
+    .match(/../g)!
+    .map((x) => parseInt(x, 16))
+    .join(', ');
+  await expect(before.getByRole('button', keep)).toHaveCSS(
+    'background-color',
+    `rgb(${rgb})`,
+  );
+  await expect(after.getByRole('button', keep)).toHaveCSS(
+    'background-color',
+    'rgb(170, 34, 0)',
+  );
+  await expect(page.locator('.compare-cell figcaption').nth(1)).toContainText(
+    '1 modif en cours',
+  );
+});
+
+test('badge d’alerte : icône en plus du rouge (WCAG 1.4.1)', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await expect(
+    page.frameLocator('iframe').locator('.ds-badge.danger svg'),
+  ).toHaveCount(1);
 });

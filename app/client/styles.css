@@ -3095,3 +3095,80 @@ select,
     display: none;
   }
 }
+
+.compare-mode {
+  flex: none;
+}
+.compare-cell figcaption strong {
+  color: var(--text);
+}
+
+/* Visite guidée */
+.tour {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+}
+.tour-hole {
+  position: fixed;
+  border-radius: 16px;
+  box-shadow: 0 0 0 9999px #1b17304d;
+  outline: 2px solid var(--accent-strong);
+  pointer-events: none;
+  transition: all 0.2s ease;
+}
+.tour-veil {
+  position: fixed;
+  inset: 0;
+  background: #1b17304d;
+}
+.tour-card {
+  position: fixed;
+  width: 320px;
+  max-width: calc(100vw - 28px);
+  padding: 16px 18px 14px;
+  border-radius: 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: 0 18px 50px #2c265040;
+  outline: none;
+}
+.tour-count {
+  margin: 0 0 4px;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--accent-text);
+}
+.tour-card h2 {
+  margin: 0 0 6px;
+  font-size: 17px;
+}
+.tour-card p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-2);
+}
+.tour-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+.tour-actions > span {
+  flex: 1;
+}
+.tour-skip {
+  border: 0 !important;
+  background: transparent !important;
+  padding: 0 4px !important;
+  color: var(--text-2);
+  font-size: 13px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tour-hole {
+    transition: none;
+  }
+}

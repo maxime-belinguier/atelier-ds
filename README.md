@@ -90,7 +90,9 @@ contenant des espaces est accepté. N’utilisez ni `sudo` ni installation de se
   Design System par catégories repliables (Tokens, Composants, Écrans, Contrôle qualité),
   sélecteur de couleur HEX/RGB/HSL, enregistrement manuel groupé (Ctrl/Cmd + S).
 - **Aperçu** : formats 320 à 1440 px ou libre, mockups téléphone, tablette et
-  navigateur, mode Fit ou 100 %, et mode Comparer (deux formats côte à côte).
+  navigateur, mode Fit ou 100 %, et mode Comparer (deux formats côte à côte, ou
+  avant / après des modifications en cours).
+- **Visite guidée** : au premier lancement, puis avec le bouton « ? » de l'en-tête.
 - **En-tête** : bouton Brief, puis Historique, Importer et Exporter en icônes.
 - **Exports** (valeurs enregistrées uniquement) : Tokens JSON, Variables CSS,
   Tailwind v4, Tailwind v3 et Documentation (page HTML imprimable en PDF).

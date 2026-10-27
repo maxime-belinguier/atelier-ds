@@ -14,6 +14,7 @@ import ProjectBrief from './ProjectBrief.js';
 import ScreenPicker from './ScreenPicker.js';
 import ColorPicker from './ColorPicker.js';
 import { useDrafts } from './useTokenDraft.js';
+import Tour, { tourKey, type TourStep } from './Tour.js';
 import { buildDocHtml } from './docExport.js';
 import { VisionFilters, visionFilter, visions, type Vision } from './vision.js';
 import dsCss from './ds-components.css?raw';
@@ -349,6 +350,11 @@ export default function App() {
   const [freeOpen, setFreeOpen] = useState(false);
   // Mode Comparer : deux formats côte à côte (mobile et desktop par défaut).
   const [compare, setCompare] = useState(false);
+  // Comparer deux formats, ou l'avant (enregistré) et l'après (modifs en cours).
+  const [compareMode, setCompareMode] = useState<'formats' | 'before'>(
+    'formats',
+  );
+  const beforeAfter = compare && compareMode === 'before';
   const [pair, setPair] = useState<[string, string]>(['sm', 'xl']);
   const [scenario, setScenario] = useState('cards');
   const [layout, setLayout] = useState(readLayout);
@@ -371,6 +377,14 @@ export default function App() {
   const [creditsOpen, setCreditsOpen] = useState(false);
   const [pickerFor, setPickerFor] = useState<TokenKey | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
+  // Visite guidée : ouverte au premier lancement, puis avec le bouton « ? ».
+  const [tourOpen, setTourOpen] = useState(() => {
+    try {
+      return !localStorage.getItem(tourKey);
+    } catch {
+      return false;
+    }
+  });
   // Profil de vision vérifié dans l'audit ; les daltonismes et la vision sans
   // couleur s'appliquent aussi à l'aperçu.
   const [profile, setProfile] = useState<Profile>('aa');
@@ -525,10 +539,15 @@ export default function App() {
   useEffect(() => {
     // Une ou deux iframes (mode Comparer) : toutes reçoivent l'aperçu.
     const frames = () => [...(stage.current?.querySelectorAll('iframe') ?? [])];
+    // Une iframe marquée « avant » garde les valeurs enregistrées.
     const post = () =>
       frames().forEach((f) =>
         f.contentWindow?.postMessage(
-          { type: 'ds-preview', tokens: previewTokens ?? null },
+          {
+            type: 'ds-preview',
+            tokens:
+              f.dataset.saved !== undefined ? null : (previewTokens ?? null),
+          },
           location.origin,
         ),
       );
@@ -724,7 +743,7 @@ export default function App() {
       ? Math.min(1, availableW / outerW, availableH / outerH)
       : 1;
   // Comparer : chaque appareil tient dans la moitié du panneau.
-  const pairDevices = pair.map(
+  const pairDevices = (beforeAfter ? [pair[0], pair[0]] : pair).map(
     (id) => devices.find((d) => d.id === id) ?? devices[1],
   );
   // Les deux appareils sont affichés à la même hauteur, côte à côte.
@@ -883,6 +902,53 @@ export default function App() {
   const auditFails = [...auditTokens(preview), ...targets].filter(
     (c) => c.status === 'fail',
   ).length;
+  const tourSteps: TourStep[] = [
+    {
+      target: 'menu',
+      title: 'Ton Design System',
+      text: 'Tokens, composants et écrans Gutt. Clique sur une catégorie pour la replier.',
+      before: () => {
+        setSearch('');
+        setSelection({ kind: 'tokens', id: 'colors' });
+      },
+    },
+    {
+      target: 'tokens',
+      title: 'Modifie une valeur',
+      text: 'Change une couleur ou une taille : l’aperçu suit tout de suite. Rien n’est encore enregistré.',
+    },
+    {
+      target: 'save',
+      title: 'Enregistre quand tu es prêt',
+      text: 'Tes modifs s’accumulent ici. « Enregistrer » (ou Cmd + S) ouvre le diff : tu valides avant toute écriture.',
+    },
+    {
+      target: 'preview',
+      title: 'Vois le résultat',
+      text: 'L’écran Gutt dans le format de ton choix. « Comparer » montre deux formats, ou l’avant et l’après de tes modifs.',
+    },
+    {
+      target: 'chat',
+      title: 'Demande à Claude',
+      text: 'Décris ce que tu veux changer. Claude propose des valeurs, tu valides toujours le diff.',
+    },
+    {
+      target: 'quality',
+      title: 'Contrôle l’accessibilité',
+      text: 'Un bilan par type de vision. Les corrections se font dans Couleurs.',
+      before: () => setCollapsed((c) => c.filter((x) => x !== 'quality')),
+    },
+    {
+      target: 'export',
+      title: 'Exporte',
+      text: 'JSON, variables CSS, Tailwind, ou la documentation imprimable en PDF.',
+    },
+    {
+      target: 'help',
+      title: 'Besoin d’un rappel ?',
+      text: 'Relance cette visite quand tu veux avec ce bouton.',
+    },
+  ];
   const colorKeys = tokenGroups[0].keys;
   const renderRow = (k: TokenKey) => {
     const saved = state.tokens[k].$value;
@@ -1079,6 +1145,7 @@ export default function App() {
           </div>
         </div>
         <div
+          data-tour="save"
           className={`save-status ${
             saving
               ? 'is-saving'
@@ -1225,7 +1292,7 @@ export default function App() {
                 }}
               />
             </label>
-            <div className="export-wrap">
+            <div className="export-wrap" data-tour="export">
               <button
                 className="header-icon"
                 aria-label="Exporter"
@@ -1282,6 +1349,29 @@ export default function App() {
                 </div>
               )}
             </div>
+            <button
+              className="header-icon"
+              aria-label="Visite guidée"
+              title="Visite guidée de l’atelier"
+              data-tour="help"
+              onClick={() => setTourOpen(true)}
+            >
+              <svg
+                aria-hidden="true"
+                width="17"
+                height="17"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="12" cy="12" r="9" />
+                <path d="M9.5 9a2.5 2.5 0 0 1 4.9.7c0 1.7-2.4 2.2-2.4 3.8" />
+                <path d="M12 17h.01" />
+              </svg>
+            </button>
           </div>
         </div>
       </header>
@@ -1324,7 +1414,11 @@ export default function App() {
             </h2>
           </div>
           <div className="ds-layout">
-            <nav className="ds-sidebar" aria-label="Contenu du Design System">
+            <nav
+              className="ds-sidebar"
+              aria-label="Contenu du Design System"
+              data-tour="menu"
+            >
               <input
                 type="search"
                 className="sidebar-search"
@@ -1455,6 +1549,7 @@ export default function App() {
                   aria-current={
                     !query && selection.kind === 'audit' ? 'page' : undefined
                   }
+                  data-tour="quality"
                   onClick={() => select({ kind: 'audit', id: 'a11y' })}
                 >
                   Accessibilité
@@ -1528,7 +1623,9 @@ export default function App() {
                   </div>
                 )}
               {selection.kind === 'audit' && !query ? null : keys.length ? (
-                <ul className="token-rows">{keys.map(renderRow)}</ul>
+                <ul className="token-rows" data-tour="tokens">
+                  {keys.map(renderRow)}
+                </ul>
               ) : (
                 <p className="empty">
                   Aucun token ne correspond. Essayez « couleur », « space » ou «
@@ -1556,7 +1653,11 @@ export default function App() {
           <span />
         </div>
 
-        <section className="pane preview-pane" aria-labelledby="preview-title">
+        <section
+          className="pane preview-pane"
+          aria-labelledby="preview-title"
+          data-tour="preview"
+        >
           <div className="pane-head preview-head">
             <div className="preview-row">
               <h2 id="preview-title" tabIndex={-1}>
@@ -1628,10 +1729,30 @@ export default function App() {
             </div>
             {compare ? (
               <div className="preview-row compare-row">
-                <span className="row-label" aria-hidden="true">
-                  Format
-                </span>
-                {(['gauche', 'droite'] as const).map((side, i) => (
+                <div
+                  className="segmented compare-mode"
+                  role="group"
+                  aria-label="Type de comparaison"
+                >
+                  <button
+                    aria-pressed={compareMode === 'formats'}
+                    title="Deux formats côte à côte"
+                    onClick={() => setCompareMode('formats')}
+                  >
+                    Formats
+                  </button>
+                  <button
+                    aria-pressed={compareMode === 'before'}
+                    title="Valeurs enregistrées à gauche, modifications en cours à droite"
+                    onClick={() => setCompareMode('before')}
+                  >
+                    Avant / après
+                  </button>
+                </div>
+                {(compareMode === 'before'
+                  ? (['affiché'] as const)
+                  : (['gauche', 'droite'] as const)
+                ).map((side, i) => (
                   <Fragment key={side}>
                     {i === 1 && (
                       <span className="compare-and" aria-hidden="true">
@@ -1830,7 +1951,7 @@ export default function App() {
             {compare ? (
               <div className="compare-stage">
                 {pairFrames.map(({ d, k, w, h, sc }, i) => (
-                  <figure key={i} className="compare-cell">
+                  <figure key={`${compareMode}-${i}`} className="compare-cell">
                     <div
                       className="frame-holder"
                       style={{ width: w * sc, height: h * sc }}
@@ -1856,8 +1977,15 @@ export default function App() {
                         )}
                         <iframe
                           ref={i === 0 ? iframe : undefined}
+                          data-saved={beforeAfter && i === 0 ? '' : undefined}
                           style={{ filter: visionFilter(vision) }}
-                          title={`Aperçu ${d.title} ${d.width} px`}
+                          title={
+                            beforeAfter
+                              ? i === 0
+                                ? 'Aperçu avant'
+                                : 'Aperçu après'
+                              : `Aperçu ${d.title} ${d.width} px`
+                          }
                           src={`/?preview=1&scenario=${scenario}`}
                           width={d.width}
                           height={d.height}
@@ -1865,7 +1993,24 @@ export default function App() {
                       </div>
                     </div>
                     <figcaption>
-                      {d.title} · {d.width} px · {Math.round(sc * 100)} %
+                      {beforeAfter ? (
+                        i === 0 ? (
+                          <>
+                            <strong>Avant</strong> · enregistré
+                          </>
+                        ) : (
+                          <>
+                            <strong>Après</strong> ·{' '}
+                            {previewTokens
+                              ? `${pendingCount} modif${pendingCount > 1 ? 's' : ''} en cours`
+                              : 'aucune modif en cours'}
+                          </>
+                        )
+                      ) : (
+                        <>
+                          {d.title} · {d.width} px · {Math.round(sc * 100)} %
+                        </>
+                      )}
                     </figcaption>
                   </figure>
                 ))}
@@ -1926,7 +2071,13 @@ export default function App() {
             )}
           </div>
           <div className="pane-foot">
-            {compare ? (
+            {beforeAfter ? (
+              <>
+                Avant / après · {pairDevices[0].title} {pairDevices[0].width} px
+                · à gauche les valeurs enregistrées, à droite tes modifications
+                en cours
+              </>
+            ) : compare ? (
               <>
                 Comparaison · {pairDevices[0].title} {pairDevices[0].width} px
                 et {pairDevices[1].title} {pairDevices[1].width} px · même
@@ -1948,8 +2099,12 @@ export default function App() {
         </section>
       </main>
 
+      {tourOpen && (
+        <Tour steps={tourSteps} onClose={() => setTourOpen(false)} />
+      )}
       <button
         className={`chat-bubble${chatOpen ? ' is-open' : ''}`}
+        data-tour="chat"
         aria-expanded={chatOpen}
         aria-controls="chat-panel"
         aria-label={chatOpen ? 'Fermer l’assistant' : 'Ouvrir l’assistant'}

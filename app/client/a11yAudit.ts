@@ -269,9 +269,10 @@ export function auditTokens(tokens: Tokens, profile: Profile = 'aa'): Check[] {
       id: 'not-color-only',
       group: 'Couleurs distinctes',
       label: 'Ne pas compter sur la couleur seule',
-      value: 'Ajoute une icône ou un mot aux badges et messages',
+      // Vérifié dans les composants Gutt : le badge d'alerte porte une icône ⚠.
+      value: 'Le badge d’alerte porte une icône ⚠ en plus du rouge',
       rule: 'WCAG 1.4.1',
-      status: 'tip',
+      status: 'ok',
       keys: ['color.danger', 'color.success'],
     });
     return checks;

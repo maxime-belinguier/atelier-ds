@@ -48,7 +48,24 @@ export function LogementCard() {
       <h3>Appartement lumineux, 2e étage</h3>
       <p>720 € charges comprises · disponible le 1er décembre.</p>
       <div className="card-meta">
-        <span className="ds-badge danger">3 points à vérifier</span>
+        <span className="ds-badge danger">
+          {/* Icône en plus du rouge : l'alerte se comprend sans la couleur (WCAG 1.4.1). */}
+          <svg
+            aria-hidden="true"
+            width="11"
+            height="11"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" />
+            <path d="M12 9v4M12 17h.01" />
+          </svg>
+          3 points à vérifier
+        </span>
         <span>18,9 €/m²</span>
       </div>
       <Button onClick={() => setKept(!kept)}>
