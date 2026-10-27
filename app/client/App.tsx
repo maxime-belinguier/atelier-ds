@@ -1616,31 +1616,6 @@ export default function App() {
                   Mockup
                 </label>
                 <button
-                  className="compare-toggle"
-                  aria-pressed={compare}
-                  title="Afficher deux formats côte à côte"
-                  onClick={() => {
-                    setCompare(!compare);
-                    setFreeOpen(false);
-                  }}
-                >
-                  <svg
-                    aria-hidden="true"
-                    width="15"
-                    height="15"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <rect x="2" y="4" width="8" height="16" rx="2" />
-                    <rect x="13" y="6" width="9" height="12" rx="1.5" />
-                  </svg>
-                  Comparer
-                </button>
-                <button
                   className="icon-button"
                   aria-pressed={full}
                   aria-label={full ? 'Quitter le plein écran' : 'Plein écran'}
@@ -1683,6 +1658,32 @@ export default function App() {
                     </select>
                   </Fragment>
                 ))}
+                <button
+                  className="compare-toggle"
+                  aria-label="Comparer"
+                  aria-pressed={compare}
+                  title="Afficher deux formats côte à côte"
+                  onClick={() => {
+                    setCompare(!compare);
+                    setFreeOpen(false);
+                  }}
+                >
+                  <svg
+                    aria-hidden="true"
+                    width="15"
+                    height="15"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <rect x="2" y="4" width="8" height="16" rx="2" />
+                    <rect x="13" y="6" width="9" height="12" rx="1.5" />
+                  </svg>
+                  <span className="compare-label">Comparer</span>
+                </button>
               </div>
             ) : (
               <div className="preview-row">
@@ -1771,6 +1772,32 @@ export default function App() {
                     <span className="free-hint">px · ou étirez l’aperçu</span>
                   </div>
                 )}
+                <button
+                  className="compare-toggle"
+                  aria-label="Comparer"
+                  aria-pressed={compare}
+                  title="Afficher deux formats côte à côte"
+                  onClick={() => {
+                    setCompare(!compare);
+                    setFreeOpen(false);
+                  }}
+                >
+                  <svg
+                    aria-hidden="true"
+                    width="15"
+                    height="15"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <rect x="2" y="4" width="8" height="16" rx="2" />
+                    <rect x="13" y="6" width="9" height="12" rx="1.5" />
+                  </svg>
+                  <span className="compare-label">Comparer</span>
+                </button>
               </div>
             )}
           </div>

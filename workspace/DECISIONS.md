@@ -335,3 +335,4 @@ Le libellé « Figma non connecté » reste affiché : c’est l’état réel.
 - En mode Comparer, Fit / 100 % est masqué (toujours ajusté) ; le Mockup reste disponible.
 - La barre de l'Aperçu passe à la ligne plus tôt pour ne jamais déborder.
 - Correctif layout du mode Comparer : plus aucun saut. Fit / 100 % reste en place (grisé pendant la comparaison), « Comparer » est placé après Mockup, et la ligne « Format » garde son libellé et sa hauteur : « Format [Gauche] et [Droite] », sur une seule ligne. Vérifié par mesure : position du bouton et hauteur de l'en-tête identiques avant et après le clic.
+- Placement final de « Comparer » (validé par Maxime) : à droite de la ligne Format. La ligne du titre redevient comme avant (écran, Fit / 100 %, Mockup, plein écran). Panneau étroit : Comparer passe en icône seule (nom accessible conservé).

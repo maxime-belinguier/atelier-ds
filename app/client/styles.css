@@ -3041,15 +3041,6 @@ select,
   align-items: center;
   height: 100%;
 }
-/* Le bouton Comparer élargit la barre : elle passe à la ligne plus tôt. */
-@container preview (max-width: 720px) {
-  .preview-row {
-    flex-wrap: wrap;
-  }
-  .preview-row .preview-tools {
-    margin-left: 0;
-  }
-}
 
 /* Comparer : même gabarit que la ligne Format, rien ne bouge. */
 .compare-select {
@@ -3087,4 +3078,20 @@ select,
 .compare-row .compare-select {
   flex: 1 1 0;
   min-width: 0;
+}
+
+/* Comparer : à droite de la ligne Format. Icône seule si le panneau est étroit. */
+.preview-row > .compare-toggle {
+  margin-left: auto;
+  flex: none;
+}
+@container preview (max-width: 640px) {
+  .compare-toggle {
+    width: 34px;
+    padding: 0 !important;
+    justify-content: center;
+  }
+  .compare-label {
+    display: none;
+  }
 }
