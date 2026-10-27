@@ -46,7 +46,7 @@ test('score : les conseils ne baissent pas le score', () => {
   assert.ok(worse < base || base < 100);
 });
 
-test('profils : la malvoyance forte exige 7:1 pour le texte', () => {
+test('profils : la malvoyance exige 7:1 pour le texte', () => {
   const aa = auditTokens(tokens, 'aa').find(
     (c) => c.id === 'color.muted|color.surface',
   )!;

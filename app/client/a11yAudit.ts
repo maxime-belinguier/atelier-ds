@@ -28,13 +28,13 @@ export interface Check {
 export const profiles = [
   {
     id: 'aa',
-    label: 'Malvoyance',
-    hint: 'Le texte doit être lisible. Norme WCAG 2.2 AA : contraste 4,5:1 pour le texte, 3:1 pour l’interface.',
+    label: 'Vision classique',
+    hint: 'Vue par défaut. Norme de base WCAG 2.2 AA : contraste 4,5:1 pour le texte, 3:1 pour l’interface.',
   },
   {
     id: 'aaa',
-    label: 'Malvoyance forte',
-    hint: 'Contraste renforcé, WCAG AAA : 7:1 pour le texte. L’interface reste à 3:1 (pas de niveau AAA).',
+    label: 'Malvoyance',
+    hint: 'Vue basse : contraste renforcé, WCAG AAA, 7:1 pour le texte. L’interface reste à 3:1 (pas de niveau AAA).',
   },
   {
     id: 'deuteranopia',

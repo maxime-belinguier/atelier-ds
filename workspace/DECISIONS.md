@@ -322,3 +322,8 @@ Le libellé « Figma non connecté » reste affiché : c’est l’état réel.
 - Un daltonisme choisi dans « Vérifier pour » s'applique aussi à l'aperçu ; le ✕ de l'étiquette revient à « Malvoyance ».
 - Accessibilité devient « Contrôle d'accessibilité » : un score par profil (6 cartes), la liste des problèmes de chaque profil et un bouton « Corriger dans Couleurs / Typographie » qui ouvre la bonne ligne et la met en évidence. Aucune modification possible ici.
 - Les zones cliquables restent dans le contrôle (mesure de l'écran affiché).
+
+## 27/10/2026 · « Type de vision » avec la vue classique par défaut
+- Le menu « Vérifier pour » devient « Type de vision », pour montrer qu'on passe d'une vue à l'autre.
+- Premier choix et valeur par défaut : « Vision classique » (norme de base WCAG AA, aperçu normal).
+- « Malvoyance » correspond maintenant au contraste renforcé (AAA, 7:1 pour le texte). Suivent Deutéranopie, Protanopie, Tritanopie et Sans couleur.

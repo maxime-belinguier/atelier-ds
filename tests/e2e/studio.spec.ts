@@ -717,7 +717,7 @@ test('couleurs : vérifier pour un profil, appliquer la proposition, aperçu sim
   // Depuis le contrôle, « Corriger dans Couleurs » ouvre la bonne ligne.
   await page.getByRole('button', { name: /^Accessibilité/ }).click();
   await page
-    .getByRole('region', { name: 'Malvoyance', exact: true })
+    .getByRole('region', { name: 'Vision classique', exact: true })
     .getByRole('button', { name: 'Corriger dans Couleurs' })
     .first()
     .click();
@@ -731,14 +731,14 @@ test('couleurs : vérifier pour un profil, appliquer la proposition, aperçu sim
   ).toBeVisible();
   // Un daltonisme choisi s'applique aussi à l'aperçu ; le ✕ revient à la normale.
   const frame = page.locator('iframe[title="Aperçu responsive"]');
-  await page.getByLabel('Vérifier pour').selectOption('deuteranopia');
+  await page.getByLabel('Type de vision').selectOption('deuteranopia');
   await expect(frame).toHaveCSS('filter', /cvd-deuteranopia/);
   await expect(page.locator('.vision-chip')).toContainText('Deutéranopie');
-  await page.getByLabel('Vérifier pour').selectOption('achromatopsia');
+  await page.getByLabel('Type de vision').selectOption('achromatopsia');
   await expect(frame).toHaveCSS('filter', 'grayscale(1)');
   await page
     .getByRole('button', { name: 'Revenir à la vision normale' })
     .click();
   await expect(frame).toHaveCSS('filter', 'none');
-  await expect(page.getByLabel('Vérifier pour')).toHaveValue('aa');
+  await expect(page.getByLabel('Type de vision')).toHaveValue('aa');
 });

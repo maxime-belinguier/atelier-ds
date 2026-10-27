@@ -848,7 +848,7 @@ export default function App() {
   // Couleurs : vérification du profil choisi, ligne par ligne.
   const profileChecks = auditTokens(preview, profile);
   const profileLabel =
-    profiles.find((p) => p.id === profile)?.label ?? 'Malvoyance';
+    profiles.find((p) => p.id === profile)?.label ?? 'Vision classique';
   // Badge du menu : norme de base (WCAG AA) et zones cliquables mesurées.
   const auditFails = [...auditTokens(preview), ...targets].filter(
     (c) => c.status === 'fail',
@@ -1477,7 +1477,7 @@ export default function App() {
                 selection.kind === 'tokens' &&
                 selection.id === 'colors' && (
                   <div className="profile-bar">
-                    <label htmlFor="profile-select">Vérifier pour</label>
+                    <label htmlFor="profile-select">Type de vision</label>
                     <select
                       id="profile-select"
                       value={profile}
