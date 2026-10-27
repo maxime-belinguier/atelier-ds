@@ -368,5 +368,11 @@ consommation, 5 h et semaine), accessibilité, export, aide. La carte se place
 sous les petits éléments et à côté des grandes zones. Ouverte seule au premier
 lancement, puis à volonté avec le bouton « ? » de l’en-tête. Passer, Précédent,
 Suivant, flèches du clavier et Échap. Aucune valeur modifiée pendant la visite.
+Fluidité : à chaque étape, la carte et le contour attendent que la zone visée ne
+bouge plus (chat qui s’ouvre, aperçu qui change) ; la carte disparaît d’un coup
+puis réapparaît en fondu, déjà à sa place, sans jamais glisser. En quittant la
+visite, l’atelier retrouve son état d’avant (chat et Comparer).
 Preuves : test navigateur (ouverture au premier lancement, pas de réouverture
-après, relance par « ? », 11 étapes, fermeture) ; captures des 11 étapes relues.
+après, relance par « ? », 11 étapes, fermeture, état rétabli) ; position de la
+carte mesurée à chaque image pendant les transitions, à 1440, 1280 et 1024 px :
+une seule position visible par étape, jamais hors écran ; captures relues.

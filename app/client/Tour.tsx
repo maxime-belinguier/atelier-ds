@@ -21,7 +21,11 @@ export default function Tour({
   onClose: () => void;
 }) {
   const [i, setI] = useState(0);
-  const [box, setBox] = useState<Box | null>(null);
+  // Chaque étape attend que sa zone ne bouge plus (panneau qui s'ouvre, aperçu
+  // qui change) avant d'afficher la carte : pas de saut visible.
+  const [settled, setSettled] = useState(false);
+  // Zone affichée : ne change qu'une fois la nouvelle zone stable.
+  const [shown, setShown] = useState<Box | null>(null);
   const card = useRef<HTMLDivElement>(null);
   const step = steps[i];
 
@@ -34,6 +38,9 @@ export default function Tour({
   // Suit la zone visée (redimensionnement, défilement, rendu asynchrone).
   useLayoutEffect(() => {
     let raf = 0;
+    let last = '';
+    let since = performance.now();
+    setSettled(false);
     const measure = () => {
       // Un nom simple vise data-tour ; un sélecteur CSS (« .classe ») est accepté.
       const el = document.querySelector<HTMLElement>(
@@ -44,21 +51,32 @@ export default function Tour({
       const r = el?.getBoundingClientRect();
       const next =
         r && r.width > 0 && r.height > 0
-          ? { top: r.top, left: r.left, width: r.width, height: r.height }
+          ? {
+              top: Math.round(r.top),
+              left: Math.round(r.left),
+              width: Math.round(r.width),
+              height: Math.round(r.height),
+            }
           : null;
-      setBox((b) => (JSON.stringify(b) === JSON.stringify(next) ? b : next));
+      const key = JSON.stringify(next);
+      const now = performance.now();
+      if (key !== last) {
+        last = key;
+        since = now;
+      } else if (now - since > 180) {
+        setShown(next);
+        setSettled(true);
+      }
       raf = requestAnimationFrame(measure);
     };
     measure();
     return () => cancelAnimationFrame(raf);
-  }, [step.target]);
+  }, [step.target, i]);
 
   // Le focus revient sur la carte, même si l'étape ouvre un panneau qui le prend.
   useEffect(() => {
-    card.current?.focus();
-    const t = setTimeout(() => card.current?.focus(), 80);
-    return () => clearTimeout(t);
-  }, [i]);
+    if (settled) card.current?.focus();
+  }, [settled, i]);
 
   const finish = () => {
     try {
@@ -78,48 +96,52 @@ export default function Tour({
     left: '50%',
     transform: 'translate(-50%, -50%)',
   };
-  if (box) {
+  if (shown) {
     const vw = innerWidth;
     const vh = innerHeight;
     const clampTop = (t: number) => Math.max(pad, Math.min(t, vh - 240));
     const clampLeft = (l: number) => Math.max(pad, Math.min(l, vw - W - pad));
     // Petit élément (bouton, barre) : carte dessous, ou dessus faute de place.
     // Grande zone (menu, liste, panneau) : carte à côté.
-    if (box.height < 140) {
-      const below = box.top + box.height + pad;
+    if (shown.height < 140) {
+      const below = shown.top + shown.height + pad;
       style = {
-        top: below + 220 < vh ? below : Math.max(pad, box.top - pad - 220),
-        left: clampLeft(box.left + box.width / 2 - W / 2),
+        top: below + 220 < vh ? below : Math.max(pad, shown.top - pad - 220),
+        left: clampLeft(shown.left + shown.width / 2 - W / 2),
       };
-    } else if (box.left + box.width + pad + W < vw)
-      style = { top: clampTop(box.top), left: box.left + box.width + pad };
-    else if (box.left - pad - W > 0)
-      style = { top: clampTop(box.top), left: box.left - pad - W };
+    } else if (shown.left + shown.width + pad + W < vw)
+      style = {
+        top: clampTop(shown.top),
+        left: shown.left + shown.width + pad,
+      };
+    else if (shown.left - pad - W > 0)
+      style = { top: clampTop(shown.top), left: shown.left - pad - W };
     else
       style = {
-        top: clampTop(box.top + box.height + pad),
-        left: clampLeft(box.left),
+        top: clampTop(shown.top + shown.height + pad),
+        left: clampLeft(shown.left),
       };
   }
 
   return (
     <div className="tour" role="presentation">
-      {box ? (
-        <div
-          className="tour-hole"
-          style={{
-            top: box.top - 6,
-            left: box.left - 6,
-            width: box.width + 12,
-            height: box.height + 12,
-          }}
-        />
-      ) : (
-        <div className="tour-veil" />
-      )}
+      {/* Un seul voile : la zone visée est découpée dedans, sinon voile plein. */}
+      <div
+        className={`tour-hole${shown ? '' : ' is-empty'}`}
+        style={
+          shown
+            ? {
+                top: shown.top - 6,
+                left: shown.left - 6,
+                width: shown.width + 12,
+                height: shown.height + 12,
+              }
+            : { top: '50%', left: '50%', width: 0, height: 0 }
+        }
+      />
       <div
         ref={card}
-        className="tour-card"
+        className={`tour-card${settled ? ' is-on' : ''}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="tour-title"

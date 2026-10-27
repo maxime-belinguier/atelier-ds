@@ -3115,7 +3115,19 @@ select,
   box-shadow: 0 0 0 9999px #1b17304d;
   outline: 2px solid var(--accent-strong);
   pointer-events: none;
-  transition: all 0.2s ease;
+}
+.tour-hole.is-empty {
+  outline: 0;
+}
+/* Contour et carte apparaissent quand la zone est stable. */
+/* La carte disparaît d'un coup au changement d'étape et réapparaît en fondu,
+   déjà à sa place : elle ne glisse jamais. */
+.tour-card {
+  opacity: 0;
+}
+.tour-card.is-on {
+  opacity: 1;
+  transition: opacity 0.16s ease;
 }
 .tour-veil {
   position: fixed;
@@ -3168,7 +3180,10 @@ select,
   font-size: 13px;
 }
 @media (prefers-reduced-motion: reduce) {
-  .tour-hole {
+  .tour-card.is-on {
     transition: none;
   }
+}
+.tour-card:not(.is-on) {
+  pointer-events: none;
 }

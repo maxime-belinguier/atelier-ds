@@ -378,6 +378,8 @@ export default function App() {
   const [pickerFor, setPickerFor] = useState<TokenKey | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
   // Visite guidée : ouverte au premier lancement, puis avec le bouton « ? ».
+  // État de l'atelier avant la visite, rétabli à la fin (chat, Comparer).
+  const tourPrev = useRef({ compare: false, chatOpen: false });
   const [tourOpen, setTourOpen] = useState(() => {
     try {
       return !localStorage.getItem(tourKey);
@@ -1383,7 +1385,10 @@ export default function App() {
               aria-label="Visite guidée"
               title="Visite guidée de l’atelier"
               data-tour="help"
-              onClick={() => setTourOpen(true)}
+              onClick={() => {
+                tourPrev.current = { compare, chatOpen };
+                setTourOpen(true);
+              }}
             >
               <svg
                 aria-hidden="true"
@@ -2131,7 +2136,14 @@ export default function App() {
       </main>
 
       {tourOpen && (
-        <Tour steps={tourSteps} onClose={() => setTourOpen(false)} />
+        <Tour
+          steps={tourSteps}
+          onClose={() => {
+            setTourOpen(false);
+            setCompare(tourPrev.current.compare);
+            setChatOpen(tourPrev.current.chatOpen);
+          }}
+        />
       )}
       <button
         className={`chat-bubble${chatOpen ? ' is-open' : ''}`}

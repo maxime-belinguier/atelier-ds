@@ -803,6 +803,15 @@ test('visite guidée : ouverte au premier lancement, relancée avec « ? »', as
   ).toBeVisible();
   await page.getByRole('button', { name: 'Terminer' }).click();
   await expect(page.locator('.tour')).toHaveCount(0);
+  // Quitter en pleine étape « Compare » rend l'atelier comme avant.
+  await page.getByRole('button', { name: 'Visite guidée' }).click();
+  for (let i = 0; i < 5; i++)
+    await page.getByRole('button', { name: 'Suivant', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Compare' })).toBeVisible();
+  await expect(page.locator('.compare-stage')).toHaveCount(1);
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.compare-stage')).toHaveCount(0);
+  await expect(page.locator('#chat-panel')).toBeHidden();
 });
 
 test('aperçu : Avant / après compare l’enregistré et les modifs en cours', async ({
