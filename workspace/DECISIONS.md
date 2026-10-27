@@ -306,3 +306,12 @@ Le libellé « Figma non connecté » reste affiché : c’est l’état réel.
 - Chaque titre de catégorie (Tokens, Composants, Écrans, Contrôle qualité) se replie et se déplie au clic, avec un chevron. Replié, il affiche le nombre d'éléments.
 - L'élément affiché reste visible même si sa catégorie est repliée : on ne perd jamais où on est.
 - Le choix est mémorisé dans le navigateur. Accessible au clavier (aria-expanded).
+
+## 27/10/2026 · Test d'accessibilité par profil de vision, avec corrections
+- Parcours en 2 étapes : 1. « Pour qui je vérifie ? » (Malvoyance, Malvoyance forte, Deutéranopie, Protanopie, Tritanopie, Sans couleur). 2. « Ce qui passe et ce qui bloque » pour ce profil.
+- Malvoyance : contrastes WCAG 2.2 AA (4,5:1 texte, 3:1 interface). Malvoyance forte : AAA, 7:1 pour le texte (1.4.6) ; l'interface reste à 3:1, WCAG n'a pas de niveau AAA pour elle.
+- Daltonismes et sans couleur : les couleurs de sens (alerte, réussite, marque, focus) doivent rester différentes une fois simulées. Pastilles = couleurs telles que perçues. Rappel WCAG 1.4.1 : ne pas compter sur la couleur seule.
+- Écart perçu : distance CIE76 dans l'espace Lab. Seuil de 20 choisi pour l'atelier : c'est une hypothèse, pas une norme, et c'est écrit dans l'app.
+- Chaque problème a une proposition qui garde la teinte et ne change que la clarté (et reste lisible sur les cartes). « Appliquer en brouillon » : l'aperçu suit, rien n'est écrit avant « Enregistrer » et le diff.
+- Le choix du profil remplace le bloc « Vision des couleurs » : un daltonisme choisi s'applique aussi à l'aperçu. Le ✕ de l'étiquette revient à « Malvoyance ».
+- Le badge rouge du menu suit toujours la norme de base (AA).

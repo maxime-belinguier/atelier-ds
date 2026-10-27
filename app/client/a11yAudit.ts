@@ -8,43 +8,289 @@ import { contrast, type TokenKey, type Tokens } from '../shared/model.js';
 export type CheckStatus = 'ok' | 'fail' | 'tip';
 export interface Check {
   id: string;
-  group: 'Contrastes' | 'Texte' | 'Zones cliquables';
+  group: 'Contrastes' | 'Couleurs distinctes' | 'Texte' | 'Zones cliquables';
   label: string;
   value: string;
   rule: string;
   status: CheckStatus;
   keys: TokenKey[];
+  // Correction proposée : jamais appliquée seule, elle devient un brouillon.
+  fix?: { key: TokenKey; value: string };
+  // Pour « Couleurs distinctes » : couleurs telles que perçues par le profil.
+  seen?: [string, string];
 }
 
-const pairs: [TokenKey, TokenKey, number, string][] = [
-  ['color.text', 'color.surface', 4.5, 'Texte principal sur les cartes'],
-  ['color.text', 'color.canvas', 4.5, 'Texte principal sur le fond de page'],
-  ['color.muted', 'color.surface', 4.5, 'Texte secondaire sur les cartes'],
-  ['color.muted', 'color.canvas', 4.5, 'Texte secondaire sur le fond de page'],
-  ['color.onBrand', 'color.brand', 4.5, 'Texte des boutons'],
-  ['color.onBrand', 'color.brandHover', 4.5, 'Texte des boutons au survol'],
-  ['color.danger', 'color.surface', 4.5, 'Message d’alerte'],
-  ['color.success', 'color.surface', 4.5, 'Message de réussite'],
-  ['color.brand', 'color.surface', 3, 'Bouton visible sur les cartes'],
-  ['color.border', 'color.surface', 3, 'Contour des champs (si seul repère)'],
-  ['color.focus', 'color.surface', 3, 'Contour du focus sur les cartes'],
-  ['color.focus', 'color.canvas', 3, 'Contour du focus sur le fond de page'],
+// Profils de vision. Malvoyance : contrastes WCAG (AA ou AAA).
+// Daltonismes et vision sans couleur : les couleurs qui portent un sens
+// doivent rester différentes une fois simulées.
+export const profiles = [
+  {
+    id: 'aa',
+    label: 'Malvoyance',
+    hint: 'Le texte doit être lisible. Norme WCAG 2.2 AA : contraste 4,5:1 pour le texte, 3:1 pour l’interface.',
+  },
+  {
+    id: 'aaa',
+    label: 'Malvoyance forte',
+    hint: 'Contraste renforcé, WCAG AAA : 7:1 pour le texte. L’interface reste à 3:1 (pas de niveau AAA).',
+  },
+  {
+    id: 'deuteranopia',
+    label: 'Deutéranopie',
+    hint: 'Rouge et vert se confondent. La plus fréquente, environ 5 % des hommes. Aperçu simulé à droite.',
+  },
+  {
+    id: 'protanopia',
+    label: 'Protanopie',
+    hint: 'Rouge et vert se confondent, les rouges paraissent sombres. Aperçu simulé à droite.',
+  },
+  {
+    id: 'tritanopia',
+    label: 'Tritanopie',
+    hint: 'Bleu et jaune se confondent. Rare. Aperçu simulé à droite.',
+  },
+  {
+    id: 'achromatopsia',
+    label: 'Sans couleur',
+    hint: 'Seule la luminosité reste. Les couleurs de sens doivent se distinguer par leur clarté. Aperçu simulé à droite.',
+  },
+] as const;
+export type Profile = (typeof profiles)[number]['id'];
+export const isColorProfile = (p: Profile) => p !== 'aa' && p !== 'aaa';
+
+// [texte, fond, type (texte ou interface), libellé, token à corriger]
+const pairs: [TokenKey, TokenKey, 't' | 'u', string, TokenKey][] = [
+  [
+    'color.text',
+    'color.surface',
+    't',
+    'Texte principal sur les cartes',
+    'color.text',
+  ],
+  [
+    'color.text',
+    'color.canvas',
+    't',
+    'Texte principal sur le fond de page',
+    'color.text',
+  ],
+  [
+    'color.muted',
+    'color.surface',
+    't',
+    'Texte secondaire sur les cartes',
+    'color.muted',
+  ],
+  [
+    'color.muted',
+    'color.canvas',
+    't',
+    'Texte secondaire sur le fond de page',
+    'color.muted',
+  ],
+  ['color.onBrand', 'color.brand', 't', 'Texte des boutons', 'color.brand'],
+  [
+    'color.onBrand',
+    'color.brandHover',
+    't',
+    'Texte des boutons au survol',
+    'color.brandHover',
+  ],
+  ['color.danger', 'color.surface', 't', 'Message d’alerte', 'color.danger'],
+  [
+    'color.success',
+    'color.surface',
+    't',
+    'Message de réussite',
+    'color.success',
+  ],
+  [
+    'color.brand',
+    'color.surface',
+    'u',
+    'Bouton visible sur les cartes',
+    'color.brand',
+  ],
+  [
+    'color.border',
+    'color.surface',
+    'u',
+    'Contour des champs (si seul repère)',
+    'color.border',
+  ],
+  [
+    'color.focus',
+    'color.surface',
+    'u',
+    'Contour du focus sur les cartes',
+    'color.focus',
+  ],
+  [
+    'color.focus',
+    'color.canvas',
+    'u',
+    'Contour du focus sur le fond de page',
+    'color.focus',
+  ],
+];
+
+// Couleurs qui portent un sens et ne doivent pas se confondre.
+const meaningPairs: [TokenKey, TokenKey, string][] = [
+  ['color.danger', 'color.success', 'Alerte et réussite'],
+  ['color.brand', 'color.danger', 'Marque et alerte'],
+  ['color.success', 'color.brand', 'Réussite et marque'],
+  ['color.brand', 'color.focus', 'Marque et contour du focus'],
 ];
 
 const fmt = (n: number) => `${n.toFixed(2).replace('.', ',')}:1`;
+const num = (n: number) => String(n).replace('.', ',');
 
-export function auditTokens(tokens: Tokens): Check[] {
+// --- Couleur : conversions, simulation, écart perçu -------------------------
+const rgb = (h: string) =>
+  h
+    .slice(1)
+    .match(/../g)!
+    .map((x) => parseInt(x, 16) / 255);
+const hex = (c: number[]) =>
+  '#' +
+  c
+    .map((v) =>
+      Math.round(Math.min(1, Math.max(0, v)) * 255)
+        .toString(16)
+        .padStart(2, '0'),
+    )
+    .join('')
+    .toUpperCase();
+const lin = (x: number) =>
+  x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
+const gam = (x: number) =>
+  x <= 0.0031308 ? 12.92 * x : 1.055 * x ** (1 / 2.4) - 0.055;
+
+// Matrices de Machado, Oliveira et Fernandes (2009), sévérité maximale,
+// en RGB linéaire. Mêmes valeurs que le filtre de l'aperçu.
+const machado: Record<string, number[]> = {
+  protanopia: [
+    0.152286, 1.052583, -0.204868, 0.114503, 0.786281, 0.099216, -0.003882,
+    -0.048116, 1.051998,
+  ],
+  deuteranopia: [
+    0.367322, 0.860646, -0.227968, 0.280085, 0.672501, 0.047413, -0.01182,
+    0.04294, 0.968881,
+  ],
+  tritanopia: [
+    1.255528, -0.076749, -0.178779, -0.078411, 0.930809, 0.147602, 0.004733,
+    0.691367, 0.3039,
+  ],
+};
+export function simulate(h: string, p: Profile) {
+  const c = rgb(h).map(lin);
+  if (p === 'achromatopsia') {
+    const y = gam(0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]);
+    return hex([y, y, y]);
+  }
+  const m = machado[p];
+  if (!m) return h;
+  return hex(
+    [0, 1, 2].map((i) =>
+      gam(m[i * 3] * c[0] + m[i * 3 + 1] * c[1] + m[i * 3 + 2] * c[2]),
+    ),
+  );
+}
+const lab = (h: string) => {
+  const [r, g, b] = rgb(h).map(lin);
+  const f = (t: number) => (t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116);
+  const x = f((0.4124 * r + 0.3576 * g + 0.1805 * b) / 0.95047);
+  const y = f(0.2126 * r + 0.7152 * g + 0.0722 * b);
+  const z = f((0.0193 * r + 0.1192 * g + 0.9505 * b) / 1.08883);
+  return [116 * y - 16, 500 * (x - y), 200 * (y - z)];
+};
+// Écart perçu CIE76 (distance dans l'espace Lab).
+export function deltaE(a: string, b: string) {
+  const x = lab(a);
+  const y = lab(b);
+  return Math.hypot(x[0] - y[0], x[1] - y[1], x[2] - y[2]);
+}
+// Seuil choisi pour l'atelier (hypothèse, pas une norme) : en dessous de 20,
+// deux couleurs de sens risquent d'être prises l'une pour l'autre.
+export const distinctMin = 20;
+
+// Variante plus claire (t > 0) ou plus foncée (t < 0) en gardant la teinte.
+const shade = (h: string, t: number) =>
+  hex(rgb(h).map((v) => (t < 0 ? v * (1 + t) : v + (1 - v) * t)));
+
+// Plus petit ajustement de clarté qui satisfait le test ; undefined sinon.
+function nearest(h: string, ok: (c: string) => boolean) {
+  for (let i = 1; i <= 100; i++) {
+    for (const t of [-i / 100, i / 100]) {
+      const c = shade(h, t);
+      if (ok(c)) return c;
+    }
+  }
+  return undefined;
+}
+
+export function auditTokens(tokens: Tokens, profile: Profile = 'aa'): Check[] {
   const v = (k: TokenKey) => tokens[k].$value;
-  const checks: Check[] = pairs.map(([fg, bg, min, label]) => {
-    const ratio = contrast(String(v(fg)), String(v(bg)));
+  const s = (k: TokenKey) => String(v(k));
+  if (isColorProfile(profile)) {
+    const checks: Check[] = meaningPairs.map(([a, b, label]) => {
+      const seen: [string, string] = [
+        simulate(s(a), profile),
+        simulate(s(b), profile),
+      ];
+      const d = deltaE(seen[0], seen[1]);
+      const ok = d >= distinctMin;
+      // La correction garde la couleur lisible sur les cartes (4,5:1).
+      const value = ok
+        ? undefined
+        : nearest(
+            s(b),
+            (c) =>
+              deltaE(seen[0], simulate(c, profile)) >= distinctMin &&
+              contrast(c, s('color.surface')) >=
+                (b === 'color.focus' ? 3 : 4.5),
+          );
+      return {
+        id: `${a}~${b}`,
+        group: 'Couleurs distinctes',
+        label,
+        value: `Écart perçu ${Math.round(d)}`,
+        rule: `${distinctMin} conseillé (seuil de l’atelier, pas une norme)`,
+        status: ok ? 'ok' : 'fail',
+        keys: [a, b],
+        seen,
+        fix: value ? { key: b, value } : undefined,
+      };
+    });
+    checks.push({
+      id: 'not-color-only',
+      group: 'Couleurs distinctes',
+      label: 'Ne pas compter sur la couleur seule',
+      value: 'Ajoute une icône ou un mot aux badges et messages',
+      rule: 'WCAG 1.4.1',
+      status: 'tip',
+      keys: ['color.danger', 'color.success'],
+    });
+    return checks;
+  }
+  const textMin = profile === 'aaa' ? 7 : 4.5;
+  const checks: Check[] = pairs.map(([fg, bg, kind, label, adjust]) => {
+    const min = kind === 't' ? textMin : 3;
+    const ratio = contrast(s(fg), s(bg));
+    const ok = ratio >= min;
+    const other = adjust === fg ? s(bg) : s(fg);
+    const value = ok
+      ? undefined
+      : nearest(s(adjust), (c) => contrast(c, other) >= min);
     return {
       id: `${fg}|${bg}`,
       group: 'Contrastes',
       label,
       value: fmt(ratio),
-      rule: `${String(min).replace('.', ',')}:1 minimum (WCAG ${min === 3 ? '1.4.11' : '1.4.3'})`,
-      status: ratio >= min ? 'ok' : 'fail',
+      rule: `${num(min)}:1 minimum (WCAG ${kind === 'u' ? '1.4.11' : profile === 'aaa' ? '1.4.6' : '1.4.3'})`,
+      status: ok ? 'ok' : 'fail',
       keys: [fg, bg],
+      fix: value ? { key: adjust, value } : undefined,
     };
   });
   const body = Number(v('font.body'));
@@ -58,6 +304,7 @@ export function auditTokens(tokens: Tokens): Check[] {
       rule: '16 px conseillés sur mobile',
       status: body >= 16 ? 'ok' : 'tip',
       keys: ['font.body'],
+      fix: body >= 16 ? undefined : { key: 'font.body', value: '16' },
     },
     {
       id: 'hierarchy',
@@ -67,6 +314,10 @@ export function auditTokens(tokens: Tokens): Check[] {
       rule: 'Au moins 1,25 fois la taille du texte',
       status: heading >= body * 1.25 ? 'ok' : 'tip',
       keys: ['font.heading', 'font.body'],
+      fix:
+        heading >= body * 1.25
+          ? undefined
+          : { key: 'font.heading', value: String(Math.ceil(body * 1.25)) },
     },
   );
   return checks;
@@ -143,7 +394,10 @@ export function measureTargets(doc: Document | null | undefined): Check[] {
 // Score : part des critères WCAG obligatoires respectés (conseils exclus).
 export function score(checks: Check[]) {
   const required = checks.filter(
-    (c) => c.group === 'Contrastes' || c.id === 'targets-min',
+    (c) =>
+      c.group === 'Contrastes' ||
+      (c.group === 'Couleurs distinctes' && c.status !== 'tip') ||
+      c.id === 'targets-min',
   );
   const passed = required.filter((c) => c.status === 'ok').length;
   return required.length ? Math.round((passed / required.length) * 100) : 100;

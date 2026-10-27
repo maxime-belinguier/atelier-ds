@@ -94,10 +94,10 @@ contenant des espaces est accepté. N’utilisez ni `sudo` ni installation de se
 - **En-tête** : bouton Brief, puis Historique, Importer et Exporter en icônes.
 - **Exports** (valeurs enregistrées uniquement) : Tokens JSON, Variables CSS,
   Tailwind v4, Tailwind v3 et Documentation (page HTML imprimable en PDF).
-- **Contrôle qualité › Accessibilité** : test en direct selon WCAG 2.2 AA
-  (12 contrastes, taille du texte, zones cliquables mesurées dans l'aperçu), score,
-  bouton « Modifier » vers le token concerné, et simulation de la vision des couleurs
-  (deutéranopie, protanopie, tritanopie, sans couleur) appliquée à l'aperçu.
+- **Contrôle qualité › Accessibilité** : test par profil de vision (malvoyance AA ou
+  AAA, deutéranopie, protanopie, tritanopie, sans couleur), score, propositions de
+  correction appliquées en brouillon, zones cliquables mesurées dans l'aperçu et
+  simulation de la vision choisie sur l'aperçu.
 
 Détail et justification de chaque choix : [DECISIONS](workspace/DECISIONS.md).
 

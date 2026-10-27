@@ -18,6 +18,9 @@ import { VisionFilters, visionFilter, visions, type Vision } from './vision.js';
 import dsCss from './ds-components.css?raw';
 import {
   auditTokens,
+  isColorProfile,
+  profiles,
+  type Profile,
   measureTargets,
   score as auditScore,
   type Check,
@@ -363,7 +366,10 @@ export default function App() {
   const [creditsOpen, setCreditsOpen] = useState(false);
   const [pickerFor, setPickerFor] = useState<TokenKey | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
-  const [vision, setVision] = useState<Vision>('none');
+  // Profil de vision vérifié dans l'audit ; les daltonismes et la vision sans
+  // couleur s'appliquent aussi à l'aperçu.
+  const [profile, setProfile] = useState<Profile>('aa');
+  const vision: Vision = isColorProfile(profile) ? profile : 'none';
   // Catégories du menu repliables ; l'élément affiché reste toujours visible.
   const [collapsed, setCollapsed] = useState<string[]>(() => {
     try {
@@ -743,7 +749,7 @@ export default function App() {
   } else if (selection.kind === 'audit') {
     title = 'Test d’accessibilité';
     description =
-      'Ton Design System est-il lisible et utilisable par tous ? Contrastes, taille du texte et des boutons, vérifiés en direct avec tes modifications en cours. Norme : WCAG 2.2, niveau AA.';
+      'Ton Design System est-il lisible et utilisable par tous ? Choisis un profil de vision : l’app montre ce qui bloque et propose une correction.';
   } else {
     const s = screens.find((x) => x.id === selection.id) ?? screens[0];
     title = s.label;
@@ -823,8 +829,14 @@ export default function App() {
       </button>
     );
   };
-  const auditChecks = [...auditTokens(preview), ...targets];
-  const auditFails = auditChecks.filter((c) => c.status === 'fail').length;
+  const auditChecks = [
+    ...auditTokens(preview, profile),
+    ...(isColorProfile(profile) ? [] : targets),
+  ];
+  // Le badge du menu suit la norme de base (WCAG AA), quel que soit le profil.
+  const baseChecks =
+    profile === 'aa' ? auditChecks : [...auditTokens(preview), ...targets];
+  const auditFails = baseChecks.filter((c) => c.status === 'fail').length;
   const colorKeys = tokenGroups[0].keys;
   const renderRow = (k: TokenKey) => {
     const saved = state.tokens[k].$value;
@@ -1398,8 +1410,9 @@ export default function App() {
                 <AuditView
                   checks={auditChecks}
                   tokens={preview}
-                  vision={vision}
-                  onVision={setVision}
+                  profile={profile}
+                  onProfile={setProfile}
+                  onFix={(k, v) => drafts.set(k, v)}
                   onEdit={(k) => {
                     const g = tokenGroups.find((x) => x.keys.includes(k));
                     if (g) select({ kind: 'tokens', id: g.id });
@@ -1587,7 +1600,7 @@ export default function App() {
                   Vue : {visions.find((v) => v.id === vision)?.label}
                   <button
                     aria-label="Revenir à la vision normale"
-                    onClick={() => setVision('none')}
+                    onClick={() => setProfile('aa')}
                   >
                     <svg
                       aria-hidden="true"
@@ -2128,60 +2141,70 @@ const statusLabel = { ok: 'OK', fail: 'À corriger', tip: 'Conseil' } as const;
 function AuditView({
   checks,
   tokens,
-  vision,
-  onVision,
+  profile,
+  onProfile,
+  onFix,
   onEdit,
 }: {
   checks: Check[];
   tokens: Tokens;
-  vision: Vision;
-  onVision: (v: Vision) => void;
+  profile: Profile;
+  onProfile: (p: Profile) => void;
+  onFix: (key: TokenKey, value: string) => void;
   onEdit: (key: TokenKey) => void;
 }) {
   const pct = auditScore(checks);
   const required = checks.filter(
-    (c) => c.group === 'Contrastes' || c.id === 'targets-min',
+    (c) =>
+      c.group === 'Contrastes' ||
+      (c.group === 'Couleurs distinctes' && c.status !== 'tip') ||
+      c.id === 'targets-min',
   );
   const passed = required.filter((c) => c.status === 'ok').length;
   const tips = checks.filter((c) => c.status === 'tip').length;
-  const groups = ['Contrastes', 'Texte', 'Zones cliquables'] as const;
+  const groups = [
+    'Contrastes',
+    'Couleurs distinctes',
+    'Texte',
+    'Zones cliquables',
+  ] as const;
   const order = { fail: 0, tip: 1, ok: 2 };
+  const current = profiles.find((p) => p.id === profile) ?? profiles[0];
+  const show = (k: TokenKey, v: string) =>
+    tokens[k].$type === 'dimension' ? `${v} px` : v;
   return (
     <div className="audit">
-      <section className="vision-box" aria-labelledby="vision-title">
-        <p className="rows-title" id="vision-title">
-          Vision des couleurs
+      <section className="vision-box" aria-labelledby="profile-title">
+        <p className="rows-title" id="profile-title">
+          1. Pour qui je vérifie ?
         </p>
         <div
           className="vision-options"
           role="radiogroup"
-          aria-labelledby="vision-title"
+          aria-labelledby="profile-title"
         >
-          {visions.map((v) => (
+          {profiles.map((p) => (
             <button
-              key={v.id}
+              key={p.id}
               role="radio"
-              aria-checked={vision === v.id}
+              aria-checked={profile === p.id}
               className="vision-option"
-              onClick={() => onVision(v.id)}
+              onClick={() => onProfile(p.id)}
             >
-              {v.label}
+              {p.label}
             </button>
           ))}
         </div>
-        <p className="vision-hint">
-          {visions.find((v) => v.id === vision)?.hint} Appliqué à l’aperçu, rien
-          n’est enregistré.
-        </p>
+        <p className="vision-hint">{current.hint}</p>
       </section>
+      <p className="rows-title audit-step">2. Ce qui passe et ce qui bloque</p>
       <div
         className={`audit-score ${pct === 100 ? 'is-ok' : 'is-fail'}`}
         role="status"
       >
         <strong>{pct} %</strong>
         <span>
-          {passed} critère{passed > 1 ? 's' : ''} WCAG sur {required.length}{' '}
-          respecté{passed > 1 ? 's' : ''}
+          {passed} sur {required.length} pour « {current.label} »
           {tips ? ` · ${tips} conseil${tips > 1 ? 's' : ''}` : ''}
         </span>
       </div>
@@ -2189,6 +2212,8 @@ function AuditView({
         const list = checks
           .filter((c) => c.group === g)
           .sort((a, b) => order[a.status] - order[b.status]);
+        if (!list.length && g !== 'Zones cliquables') return null;
+        if (!list.length && isColorProfile(profile)) return null;
         return (
           <section key={g} className="audit-group" aria-label={g}>
             <p className="rows-title">{g}</p>
@@ -2196,7 +2221,7 @@ function AuditView({
               <ul className="audit-list">
                 {list.map((c) => (
                   <li key={c.id} className={`audit-row is-${c.status}`}>
-                    {c.group === 'Contrastes' && (
+                    {c.group === 'Contrastes' ? (
                       <span
                         className="audit-sample"
                         aria-hidden="true"
@@ -2207,6 +2232,13 @@ function AuditView({
                       >
                         Aa
                       </span>
+                    ) : c.seen ? (
+                      <span className="audit-pair" aria-hidden="true">
+                        <span style={{ background: c.seen[0] }} />
+                        <span style={{ background: c.seen[1] }} />
+                      </span>
+                    ) : (
+                      <span />
                     )}
                     <div className="audit-text">
                       <strong>{c.label}</strong>
@@ -2215,16 +2247,50 @@ function AuditView({
                       </span>
                     </div>
                     <span className={`audit-status is-${c.status}`}>
-                      {statusLabel[c.status]}
+                      {c.group === 'Couleurs distinctes' && c.status !== 'tip'
+                        ? c.status === 'ok'
+                          ? 'Distinctes'
+                          : 'Confondues'
+                        : statusLabel[c.status]}
                     </span>
-                    {c.status !== 'ok' && (
+                    {c.status !== 'ok' &&
+                    c.group !== 'Zones cliquables' &&
+                    c.id !== 'not-color-only' ? (
                       <button
                         className="audit-edit"
-                        onClick={() => onEdit(c.keys[0])}
-                        aria-label={`Modifier : ${c.label}`}
+                        onClick={() => onEdit(c.fix?.key ?? c.keys[0])}
+                        aria-label={`Modifier à la main : ${c.label}`}
                       >
                         Modifier
                       </button>
+                    ) : (
+                      <span />
+                    )}
+                    {c.fix && (
+                      <div className="audit-fix">
+                        <span>
+                          Proposition : {tokenLabels[c.fix.key]}{' '}
+                          <code>
+                            {show(c.fix.key, String(tokens[c.fix.key].$value))}
+                          </code>{' '}
+                          →{' '}
+                          {tokens[c.fix.key].$type === 'color' && (
+                            <span
+                              className="audit-chip"
+                              style={{ background: c.fix.value }}
+                              aria-hidden="true"
+                            />
+                          )}
+                          <code>{show(c.fix.key, c.fix.value)}</code>
+                        </span>
+                        <button
+                          className="audit-apply"
+                          onClick={() => onFix(c.fix!.key, c.fix!.value)}
+                          aria-label={`Appliquer en brouillon : ${tokenLabels[c.fix.key]} ${c.fix.value}`}
+                        >
+                          Appliquer en brouillon
+                        </button>
+                      </div>
                     )}
                   </li>
                 ))}
@@ -2237,6 +2303,11 @@ function AuditView({
           </section>
         );
       })}
+      <p className="audit-foot">
+        Les propositions gardent ta teinte et changent seulement la clarté.
+        Elles deviennent un brouillon : l’aperçu suit, puis tu valides avec «
+        Enregistrer ».
+      </p>
     </div>
   );
 }

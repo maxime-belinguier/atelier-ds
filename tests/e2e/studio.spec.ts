@@ -731,3 +731,22 @@ test('menu : catégories repliables, mémorisées, élément affiché gardé', a
       .evaluate((e) => e.getBoundingClientRect().height),
   ).toBeGreaterThanOrEqual(34);
 });
+
+test('audit par profil : proposition appliquée en brouillon, puis enregistrée', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/');
+  await page.getByRole('button', { name: /^Accessibilité/ }).click();
+  await page.getByRole('radio', { name: 'Malvoyance forte' }).click();
+  await expect(page.locator('.audit-score')).toContainText('Malvoyance forte');
+  await page.getByRole('radio', { name: 'Malvoyance', exact: true }).click();
+  const row = page.locator('.audit-row', { hasText: 'Contour des champs' });
+  await expect(row).toContainText('À corriger');
+  await row.getByRole('button', { name: /^Appliquer en brouillon/ }).click();
+  await expect(row).toContainText('OK');
+  // Rien n'est enregistré tant que l'on ne valide pas.
+  await expect(
+    page.getByRole('button', { name: 'Enregistrer (1)' }),
+  ).toBeVisible();
+});
