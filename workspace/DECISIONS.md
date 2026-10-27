@@ -271,3 +271,4 @@ Le libellé « Figma non connecté » reste affiché : c’est l’état réel.
 - Exporter ouvre un menu : Tokens JSON (DS-Studio), Variables CSS (tokens.css), Tailwind v4 (theme.css avec @theme), Tailwind v3 (tailwind.config.js).
 - Les exports utilisent uniquement les valeurs enregistrées. Un message prévient si des modifications ne sont pas encore enregistrées.
 - Le menu se ferme au clic extérieur et avec Échap. Testé : tests unitaires des exports et test e2e des téléchargements.
+- Brief sorti du groupe d'icônes : bouton à part avec icône et texte « Brief », même hauteur que le groupe. Le brief est le contenu du projet, pas une action sur les fichiers. Le groupe garde Historique, Importer et Exporter.

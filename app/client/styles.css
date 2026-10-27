@@ -2429,6 +2429,26 @@ select,
   background: var(--surface);
   border: 1px solid var(--border-strong);
 }
+.brief-pill {
+  height: 42px !important;
+  min-height: 42px;
+  padding: 0 16px 0 13px !important;
+  display: inline-flex !important;
+  align-items: center;
+  gap: 7px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+  cursor: pointer;
+}
+.brief-pill:hover {
+  background: var(--surface-2);
+}
+.brief-pill svg {
+  color: var(--accent-strong);
+}
 .header-icon {
   position: relative;
   width: 34px;
