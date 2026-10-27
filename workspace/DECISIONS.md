@@ -272,3 +272,12 @@ Le libellé « Figma non connecté » reste affiché : c’est l’état réel.
 - Les exports utilisent uniquement les valeurs enregistrées. Un message prévient si des modifications ne sont pas encore enregistrées.
 - Le menu se ferme au clic extérieur et avec Échap. Testé : tests unitaires des exports et test e2e des téléchargements.
 - Brief sorti du groupe d'icônes : bouton à part avec icône et texte « Brief », même hauteur que le groupe. Le brief est le contenu du projet, pas une action sur les fichiers. Le groupe garde Historique, Importer et Exporter.
+
+## 27/10/2026 · Audit d'accessibilité
+- Nouvelle section « Vérifier › Accessibilité » dans le menu du Design System, avec un badge rouge qui compte les points à corriger.
+- Calcul en direct sur les valeurs, modifications en cours comprises. Repère : WCAG 2.2 niveau AA.
+- Contrastes (12 paires) : texte 4,5:1 (1.4.3), éléments d'interface 3:1 (1.4.11). Aperçu « Aa » avec les vraies couleurs.
+- Texte : 16 px conseillés sur mobile, titres au moins 1,25 fois le texte. Ce sont des conseils, ils ne comptent pas dans le score.
+- Zones cliquables : mesurées dans l'écran affiché par l'aperçu. 24 px minimum (2.5.8), 44 px conseillés (Apple). Une case reliée à son libellé compte la zone du libellé.
+- Score = part des critères WCAG obligatoires respectés. Bouton « Modifier » pour aller au token concerné.
+- Premier constat : les bordures sont à 1,74:1 sur les cartes. Ça ne pose problème que si la bordure est le seul repère du champ.

@@ -2419,6 +2419,122 @@ select,
   color: var(--text-2);
 }
 
+/* Audit d'accessibilité */
+.side-count.is-alert,
+.side-item[aria-current='page'] .side-count.is-alert {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  display: inline-grid;
+  place-items: center;
+  background: #b42318;
+  color: #fff;
+  font-weight: 650;
+}
+.audit {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.audit-score {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+.audit-score strong {
+  font-size: 30px;
+  line-height: 1;
+  letter-spacing: -0.5px;
+}
+.audit-score.is-ok strong {
+  color: #1f7a4d;
+}
+.audit-score.is-fail strong {
+  color: #b42318;
+}
+.audit-score span {
+  font-size: 13px;
+  color: var(--text-2);
+}
+.audit-group .rows-title {
+  margin-top: 0;
+}
+.audit-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--surface);
+}
+.audit-row {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--border);
+}
+.audit-row:first-child {
+  border-top: 0;
+}
+.audit-sample {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 14px;
+  box-shadow: inset 0 0 0 1px #0000001a;
+}
+.audit-row:not(:has(.audit-sample)) .audit-text {
+  grid-column: 1 / 3;
+}
+.audit-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.audit-text strong {
+  font-size: 13px;
+}
+.audit-text span {
+  font-size: 11.5px;
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+}
+.audit-status {
+  flex: none;
+  font-size: 11px;
+  font-weight: 650;
+  padding: 3px 9px;
+  border-radius: 999px;
+}
+.audit-status.is-ok {
+  background: #e3f4ea;
+  color: #1f6b44;
+}
+.audit-status.is-fail {
+  background: #fde7e4;
+  color: #a1251a;
+}
+.audit-status.is-tip {
+  background: #fdf1d8;
+  color: #7a4b00;
+}
+.audit-edit {
+  font-size: 13px !important;
+}
+
 /* En-tête : actions regroupées en icônes */
 .icon-group {
   display: inline-flex;
@@ -2821,4 +2937,9 @@ select,
     animation: none !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Le texte masqué du badge reste dans la barre défilante. */
+.side-item {
+  position: relative;
 }

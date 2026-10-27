@@ -13,6 +13,12 @@ import ProjectBrief from './ProjectBrief.js';
 import ScreenPicker from './ScreenPicker.js';
 import ColorPicker from './ColorPicker.js';
 import { useDrafts } from './useTokenDraft.js';
+import {
+  auditTokens,
+  measureTargets,
+  score as auditScore,
+  type Check,
+} from './a11yAudit.js';
 import { toCssVariables, toTailwindV3, toTailwindV4 } from './exporters.js';
 import {
   bootstrap,
@@ -290,7 +296,8 @@ function Swatch({ value }: { value: string | number }) {
 type Selection =
   | { kind: 'tokens'; id: string }
   | { kind: 'component'; id: string }
-  | { kind: 'screen'; id: string };
+  | { kind: 'screen'; id: string }
+  | { kind: 'audit'; id: string };
 
 export default function App() {
   const { state, setState, error: stateError } = useDesignState();
@@ -456,6 +463,24 @@ export default function App() {
     addEventListener('message', onReady);
     return () => removeEventListener('message', onReady);
   }, [previewTokens]);
+
+  // Zones cliquables mesurées dans l'écran affiché, tant que l'audit est ouvert.
+  const [targets, setTargets] = useState<Check[]>([]);
+  useEffect(() => {
+    if (selection.kind !== 'audit') return;
+    let last = '';
+    const run = () => {
+      const next = measureTargets(iframe.current?.contentDocument);
+      const key = JSON.stringify(next);
+      if (key !== last) {
+        last = key;
+        setTargets(next);
+      }
+    };
+    run();
+    const t = setInterval(run, 700);
+    return () => clearInterval(t);
+  }, [selection.kind]);
 
   const clearError = () => {
     setError('');
@@ -664,6 +689,10 @@ export default function App() {
     description = c.description;
     keys = c.tokens;
     demo = c.render;
+  } else if (selection.kind === 'audit') {
+    title = 'Accessibilité';
+    description =
+      'Vérifié en direct sur tes valeurs, modifications en cours comprises. Repère : WCAG 2.2 niveau AA.';
   } else {
     const s = screens.find((x) => x.id === selection.id) ?? screens[0];
     title = s.label;
@@ -712,6 +741,8 @@ export default function App() {
     };
   }
 
+  const auditChecks = [...auditTokens(preview), ...targets];
+  const auditFails = auditChecks.filter((c) => c.status === 'fail').length;
   const colorKeys = tokenGroups[0].keys;
   const renderRow = (k: TokenKey) => {
     const saved = state.tokens[k].$value;
@@ -1153,6 +1184,9 @@ export default function App() {
                     </option>
                   ))}
                 </optgroup>
+                <optgroup label="Vérifier">
+                  <option value="audit:a11y">Accessibilité</option>
+                </optgroup>
               </select>
               <p className="side-group">Tokens</p>
               {tokenGroups.map((g) => {
@@ -1211,6 +1245,26 @@ export default function App() {
                   {s.label}
                 </button>
               ))}
+              <p className="side-group">Vérifier</p>
+              <button
+                className="side-item"
+                aria-current={
+                  !query && selection.kind === 'audit' ? 'page' : undefined
+                }
+                onClick={() => select({ kind: 'audit', id: 'a11y' })}
+              >
+                Accessibilité
+                <span className={`side-count${auditFails ? ' is-alert' : ''}`}>
+                  {auditFails ? (
+                    <>
+                      {auditFails}
+                      <span className="sr-only"> à corriger</span>
+                    </>
+                  ) : (
+                    'OK'
+                  )}
+                </span>
+              </button>
             </nav>
             <div className="ds-content">
               <div className="content-head">
@@ -1227,10 +1281,19 @@ export default function App() {
                   </DSProvider>
                 </div>
               )}
-              {selection.kind !== 'tokens' && !query && (
+              {selection.kind === 'audit' && !query ? (
+                <AuditView
+                  checks={auditChecks}
+                  tokens={preview}
+                  onEdit={(k) => {
+                    const g = tokenGroups.find((x) => x.keys.includes(k));
+                    if (g) select({ kind: 'tokens', id: g.id });
+                  }}
+                />
+              ) : selection.kind !== 'tokens' && !query ? (
                 <p className="rows-title">Tokens utilisés</p>
-              )}
-              {keys.length ? (
+              ) : null}
+              {selection.kind === 'audit' && !query ? null : keys.length ? (
                 <ul className="token-rows">{keys.map(renderRow)}</ul>
               ) : (
                 <p className="empty">
@@ -1916,6 +1979,93 @@ export default function App() {
           </button>
         </div>
       </dialog>
+    </div>
+  );
+}
+
+const statusLabel = { ok: 'OK', fail: 'À corriger', tip: 'Conseil' } as const;
+function AuditView({
+  checks,
+  tokens,
+  onEdit,
+}: {
+  checks: Check[];
+  tokens: Tokens;
+  onEdit: (key: TokenKey) => void;
+}) {
+  const pct = auditScore(checks);
+  const required = checks.filter(
+    (c) => c.group === 'Contrastes' || c.id === 'targets-min',
+  );
+  const passed = required.filter((c) => c.status === 'ok').length;
+  const tips = checks.filter((c) => c.status === 'tip').length;
+  const groups = ['Contrastes', 'Texte', 'Zones cliquables'] as const;
+  const order = { fail: 0, tip: 1, ok: 2 };
+  return (
+    <div className="audit">
+      <div
+        className={`audit-score ${pct === 100 ? 'is-ok' : 'is-fail'}`}
+        role="status"
+      >
+        <strong>{pct} %</strong>
+        <span>
+          {passed} critère{passed > 1 ? 's' : ''} WCAG sur {required.length}{' '}
+          respecté{passed > 1 ? 's' : ''}
+          {tips ? ` · ${tips} conseil${tips > 1 ? 's' : ''}` : ''}
+        </span>
+      </div>
+      {groups.map((g) => {
+        const list = checks
+          .filter((c) => c.group === g)
+          .sort((a, b) => order[a.status] - order[b.status]);
+        return (
+          <section key={g} className="audit-group" aria-label={g}>
+            <p className="rows-title">{g}</p>
+            {list.length ? (
+              <ul className="audit-list">
+                {list.map((c) => (
+                  <li key={c.id} className={`audit-row is-${c.status}`}>
+                    {c.group === 'Contrastes' && (
+                      <span
+                        className="audit-sample"
+                        aria-hidden="true"
+                        style={{
+                          color: String(tokens[c.keys[0]].$value),
+                          background: String(tokens[c.keys[1]].$value),
+                        }}
+                      >
+                        Aa
+                      </span>
+                    )}
+                    <div className="audit-text">
+                      <strong>{c.label}</strong>
+                      <span>
+                        {c.value} · {c.rule}
+                      </span>
+                    </div>
+                    <span className={`audit-status is-${c.status}`}>
+                      {statusLabel[c.status]}
+                    </span>
+                    {c.status !== 'ok' && (
+                      <button
+                        className="audit-edit"
+                        onClick={() => onEdit(c.keys[0])}
+                        aria-label={`Modifier : ${c.label}`}
+                      >
+                        Modifier
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="empty">
+                Mesure en cours sur l’écran affiché dans l’aperçu.
+              </p>
+            )}
+          </section>
+        );
+      })}
     </div>
   );
 }

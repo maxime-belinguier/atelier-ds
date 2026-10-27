@@ -637,3 +637,22 @@ test('en-tête en icônes : export CSS et Tailwind depuis le menu', async ({
   await page.keyboard.press('Escape');
   await expect(page.getByRole('menu', { name: 'Exporter' })).toHaveCount(0);
 });
+
+test('audit d’accessibilité : score, contrastes et zones cliquables', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/');
+  await page.getByRole('button', { name: /^Accessibilité/ }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Accessibilité' }),
+  ).toBeVisible();
+  await expect(page.locator('.audit-score')).toContainText(/\d+ %/);
+  await expect(
+    page.getByRole('region', { name: 'Contrastes' }).locator('li'),
+  ).toHaveCount(12);
+  // Mesure faite dans l'écran affiché par l'aperçu.
+  await expect(
+    page.getByRole('region', { name: 'Zones cliquables' }),
+  ).toContainText('WCAG 2.5.8');
+});
