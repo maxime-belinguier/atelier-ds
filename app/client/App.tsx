@@ -494,7 +494,7 @@ export default function App() {
   const [insetX, insetY] = frameInset[kind];
   const outerW = dev.width + insetX;
   const outerH = dev.height + insetY;
-  // « Ajuster » fait tenir tout l'appareil (largeur et hauteur) dans le panneau.
+  // « Voir en entier » fait tenir tout l'appareil (largeur et hauteur) dans le panneau.
   const availableW = Math.max(0, stageWidth - 64);
   const availableH = Math.max(0, stageHeight - 64);
   const scale =
@@ -1002,7 +1002,10 @@ export default function App() {
                 }}
               />
               <div className="preview-tools">
-                <label className="toggle">
+                <label
+                  className="toggle"
+                  title="Réduit l’aperçu pour voir tout l’écran, sans changer sa largeur réelle"
+                >
                   <input
                     type="checkbox"
                     checked={layout.fit}
@@ -1010,7 +1013,7 @@ export default function App() {
                       setLayout({ ...layout, fit: e.target.checked })
                     }
                   />
-                  Ajuster
+                  Voir en entier
                 </label>
                 <label
                   className={`toggle${isFree ? ' is-disabled' : ''}`}

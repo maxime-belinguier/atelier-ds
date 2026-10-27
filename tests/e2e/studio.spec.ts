@@ -112,15 +112,15 @@ test('largeurs réelles, ajustement visuel, interactions et formulaire', async (
       );
     expect(columns).toBe(width >= 700 ? 2 : 1);
   }
-  // « Ajuster » réduit l'affichage sans changer la largeur CSS réelle.
+  // « Voir en entier » réduit l'affichage sans changer la largeur CSS réelle.
   const holder = page.locator('.frame-holder');
   expect(await holder.evaluate((el) => el.clientWidth)).toBeLessThan(1280);
-  await page.getByLabel('Ajuster').uncheck();
+  await page.getByLabel('Voir en entier').uncheck();
   expect(await holder.evaluate((el) => el.clientWidth)).toBeGreaterThanOrEqual(
     1280,
   );
   await expect(page.locator('iframe')).toHaveAttribute('width', '1280');
-  await page.getByLabel('Ajuster').check();
+  await page.getByLabel('Voir en entier').check();
   await page
     .getByRole('button', { name: 'Mobile 375 px', exact: true })
     .click();

@@ -170,3 +170,9 @@ Preuves : 14 tests navigateur (dont mockup par format, case décochée, saisie
 libre, étirement à la souris, taille mémorisée) et 38 tests unitaires/API
 réussis (Linux) ; audit de mise en page sans anomalie ; captures relues.
 Limite : mockups indicatifs, pas des gabarits constructeur exacts.
+
+## 27/10/2026 · Case « Voir en entier »
+
+La case « Ajuster » devient « Voir en entier », qui décrit le résultat plutôt
+que l’action ; une info-bulle précise que la largeur réelle ne change pas.
+Tests navigateur mis à jour et réussis ; audit sans anomalie.
