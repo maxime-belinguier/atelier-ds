@@ -70,7 +70,19 @@ export default function ScreenPicker({
         disabled={index === 0}
         onClick={() => onChange(screens[index - 1].id)}
       >
-        ‹
+        <svg
+          aria-hidden="true"
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="m15 18-6-6 6-6" />
+        </svg>
       </button>
       <button
         ref={trigger}
@@ -84,7 +96,21 @@ export default function ScreenPicker({
           {index + 1}/{screens.length}
         </span>
         <strong>{current.label}</strong>
-        <span aria-hidden="true">▾</span>
+        <span className="picker-chevron">
+          <svg
+            aria-hidden="true"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.4"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+        </span>
       </button>
       <button
         className="picker-step"
@@ -92,7 +118,19 @@ export default function ScreenPicker({
         disabled={index === screens.length - 1}
         onClick={() => onChange(screens[index + 1].id)}
       >
-        ›
+        <svg
+          aria-hidden="true"
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="m9 18 6-6-6-6" />
+        </svg>
       </button>
       {open && (
         <div className="picker-pop">

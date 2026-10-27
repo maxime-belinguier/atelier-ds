@@ -247,3 +247,11 @@ Piste étudiée : ajouter la transparence (alpha) aux couleurs.
 des couleurs pleines (texte, fonds, marque), et une couleur transparente change
 selon le fond, ce qui fausse le contraste 4,5:1. Si Gutt en a besoin plus tard :
 tokens dédiés (voile de modale, bordure légère) avec migration du schéma.
+
+## 27/10/2026 · Sélecteur d’écran en une seule forme
+
+Problème : une pilule blanche posée dans une autre pilule, effet de double forme.
+Décision : une seule pilule bordée, flèches précédent / suivant et liste
+séparées par de fines lignes, icônes de chevron dessinées plutôt que des
+caractères, survol discret sur chaque zone.
+Preuves : 15 tests navigateur réussis ; audit sans anomalie ; capture relue.
