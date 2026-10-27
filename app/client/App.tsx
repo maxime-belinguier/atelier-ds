@@ -120,6 +120,60 @@ export function Preview() {
   );
 }
 
+const models = [
+  {
+    id: 'sonnet',
+    label: 'Sonnet · équilibré',
+    hint: 'Sonnet : bon équilibre entre qualité, vitesse et quota.',
+  },
+  {
+    id: 'opus',
+    label: 'Opus · le plus poussé',
+    hint: 'Opus : réponses plus fines, plus lent, consomme plus de quota.',
+  },
+  {
+    id: 'haiku',
+    label: 'Haiku · rapide',
+    hint: 'Haiku : très rapide et économe, pour des demandes simples.',
+  },
+] as const;
+const efforts = [
+  { id: 'low', label: 'Faible' },
+  { id: 'medium', label: 'Moyen' },
+  { id: 'high', label: 'Élevé' },
+  { id: 'xhigh', label: 'Très élevé' },
+] as const;
+type AssistantPrefs = {
+  model: (typeof models)[number]['id'];
+  effort: (typeof efforts)[number]['id'];
+};
+type ChatEntry = {
+  role: 'user' | 'assistant';
+  text: string;
+  usage?: { model: string; inputTokens: number; outputTokens: number };
+  effort?: AssistantPrefs['effort'];
+};
+function readAssistant(): AssistantPrefs {
+  try {
+    const saved = JSON.parse(
+      localStorage.getItem('ds-studio-assistant') || '{}',
+    );
+    return {
+      model: models.some((m) => m.id === saved.model) ? saved.model : 'sonnet',
+      effort: efforts.some((e) => e.id === saved.effort)
+        ? saved.effort
+        : 'medium',
+    };
+  } catch {
+    return { model: 'sonnet', effort: 'medium' };
+  }
+}
+const fmt = (n: number) => n.toLocaleString('fr-FR');
+function modelName(id: string) {
+  const m = id.match(/(opus|sonnet|haiku|fable)/i)?.[1];
+  return m ? m[0].toUpperCase() + m.slice(1).toLowerCase() : 'Claude';
+}
+
 function readLayout() {
   try {
     const saved = JSON.parse(localStorage.getItem('ds-studio-layout') || '{}');
@@ -165,6 +219,7 @@ export default function App() {
   const [layout, setLayout] = useState(readLayout);
   const [full, setFull] = useState(false);
   const [stageWidth, setStageWidth] = useState(0);
+  const [workspaceWidth, setWorkspaceWidth] = useState(0);
   const [saving, setSaving] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [briefOpen, setBriefOpen] = useState(false);
@@ -174,9 +229,8 @@ export default function App() {
   const [agents, setAgents] = useState<Bootstrap['agents']>([]);
   const [agent, setAgent] = useState('claude');
   const [message, setMessage] = useState('');
-  const [chat, setChat] = useState<
-    { role: 'user' | 'assistant'; text: string }[]
-  >([]);
+  const [chat, setChat] = useState<ChatEntry[]>([]);
+  const [assistant, setAssistant] = useState(readAssistant);
   const [thinking, setThinking] = useState(false);
   const controller = useRef<AbortController | null>(null);
   const historyDialog = useRef<HTMLDialogElement>(null);
@@ -194,6 +248,13 @@ export default function App() {
       .catch((e) => setError(e.message));
     return () => controller.current?.abort();
   }, []);
+  useEffect(() => {
+    try {
+      localStorage.setItem('ds-studio-assistant', JSON.stringify(assistant));
+    } catch {
+      /* Préférence facultative. */
+    }
+  }, [assistant]);
   useEffect(() => {
     try {
       localStorage.setItem('ds-studio-layout', JSON.stringify(layout));
@@ -238,10 +299,16 @@ export default function App() {
   const ready = !!state && !!drafts.preview;
   useLayoutEffect(() => {
     const el = stage.current;
-    if (!el) return;
-    const ro = new ResizeObserver(() => setStageWidth(el.clientWidth));
+    const ws = workspace.current;
+    if (!el || !ws) return;
+    const ro = new ResizeObserver(() => {
+      setStageWidth(el.clientWidth);
+      setWorkspaceWidth(ws.clientWidth);
+    });
     ro.observe(el);
+    ro.observe(ws);
     setStageWidth(el.clientWidth);
+    setWorkspaceWidth(ws.clientWidth);
     return () => ro.disconnect();
   }, [ready]);
 
@@ -307,7 +374,8 @@ export default function App() {
     setMessage('');
     setThinking(true);
     clearError();
-    const previous = chat.slice(-10);
+    // Seul le texte part au fournisseur : les compteurs restent dans l'atelier.
+    const previous = chat.slice(-10).map(({ role, text }) => ({ role, text }));
     setChat([...chat, { role: 'user', text }]);
     const abort = new AbortController();
     controller.current = abort;
@@ -315,12 +383,27 @@ export default function App() {
       const result = await request<{
         message: string;
         proposal: Proposal | null;
+        usage: ChatEntry['usage'] | null;
       }>(
         'agent',
-        { agent, message: text, revision: state.revision, history: previous },
+        {
+          agent,
+          message: text,
+          revision: state.revision,
+          history: previous,
+          ...(agent === 'claude' ? assistant : {}),
+        },
         abort.signal,
       );
-      setChat((c) => [...c, { role: 'assistant', text: result.message }]);
+      setChat((c) => [
+        ...c,
+        {
+          role: 'assistant',
+          text: result.message,
+          usage: result.usage ?? undefined,
+          effort: agent === 'claude' ? assistant.effort : undefined,
+        },
+      ]);
       if (result.proposal) {
         // La bulle se replie : le diff et l'aperçu prennent la place.
         setChatOpen(false);
@@ -371,6 +454,10 @@ export default function App() {
   const pendingCount = Object.keys(drafts.drafts).length;
   const selectedAgent = agents.find((a) => a.id === agent);
   const agentName = agent === 'codex' ? 'Codex' : 'Claude';
+  const totalTokens = chat.reduce(
+    (n, c) => n + (c.usage ? c.usage.inputTokens + c.usage.outputTokens : 0),
+    0,
+  );
   const staleProposal = !!proposal && proposal.revision !== state.revision;
   const dev = devices.find((d) => d.id === device) ?? devices[1];
   const available = Math.max(0, stageWidth - 32);
@@ -418,16 +505,25 @@ export default function App() {
     setSelection(next);
     if (next.kind === 'screen') setScenario(next.id);
   }
+  // Bornes en pixels : le Design System garde 440 px et l'Aperçu 380 px.
+  const W = workspaceWidth || 1200;
+  const minSplit = Math.min(50, Math.max(28, Math.ceil((440 / W) * 100)));
+  const maxSplit = Math.max(
+    50,
+    Math.min(72, Math.floor(100 - (380 / W) * 100)),
+  );
+  const clampSplit = (v: number) => Math.min(maxSplit, Math.max(minSplit, v));
+  const split = clampSplit(layout.split);
   function onSplitterKey(e: KeyboardEvent<HTMLDivElement>) {
     const step = e.shiftKey ? 10 : 2;
-    let split = layout.split;
-    if (e.key === 'ArrowLeft') split -= step;
-    else if (e.key === 'ArrowRight') split += step;
-    else if (e.key === 'Home') split = 28;
-    else if (e.key === 'End') split = 72;
+    let next = split;
+    if (e.key === 'ArrowLeft') next -= step;
+    else if (e.key === 'ArrowRight') next += step;
+    else if (e.key === 'Home') next = minSplit;
+    else if (e.key === 'End') next = maxSplit;
     else return;
     e.preventDefault();
-    setLayout({ ...layout, split: Math.min(72, Math.max(28, split)) });
+    setLayout({ ...layout, split: clampSplit(next) });
   }
   function onSplitterDown(e: PointerEvent<HTMLDivElement>) {
     const box = workspace.current?.getBoundingClientRect();
@@ -437,7 +533,7 @@ export default function App() {
     document.body.classList.add('is-resizing');
     target.onpointermove = (m) => {
       const pct = ((m.clientX - box.left) / box.width) * 100;
-      setLayout((l) => ({ ...l, split: Math.min(72, Math.max(28, pct)) }));
+      setLayout((l) => ({ ...l, split: clampSplit(pct) }));
     };
     target.onpointerup = () => {
       target.onpointermove = null;
@@ -712,14 +808,13 @@ export default function App() {
       <main
         ref={workspace}
         className={`workspace${full ? ' is-full' : ''}`}
-        style={{ '--split': `${layout.split}%` } as CSSProperties}
+        style={{ '--split': `${split}%` } as CSSProperties}
       >
         <section className="pane ds-pane" aria-labelledby="ds-title">
           <div className="pane-head">
             <h2 id="ds-title" tabIndex={-1}>
               Design System
             </h2>
-            <span className="muted">r{state.revision}</span>
           </div>
           <div className="ds-layout">
             <nav className="ds-sidebar" aria-label="Contenu du Design System">
@@ -727,7 +822,7 @@ export default function App() {
                 type="search"
                 className="sidebar-search"
                 aria-label="Rechercher un token"
-                placeholder="Rechercher un token"
+                placeholder="Rechercher"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -825,9 +920,9 @@ export default function App() {
           tabIndex={0}
           aria-orientation="vertical"
           aria-label="Largeur du panneau Design System"
-          aria-valuemin={28}
-          aria-valuemax={72}
-          aria-valuenow={Math.round(layout.split)}
+          aria-valuemin={minSplit}
+          aria-valuemax={maxSplit}
+          aria-valuenow={Math.round(split)}
           onKeyDown={onSplitterKey}
           onPointerDown={onSplitterDown}
           onDoubleClick={() => setLayout({ ...layout, split: 50 })}
@@ -959,6 +1054,51 @@ export default function App() {
             ×
           </button>
         </div>
+        {agent === 'claude' && (
+          <div className="chat-options">
+            <label>
+              Modèle
+              <select
+                value={assistant.model}
+                onChange={(e) =>
+                  setAssistant({
+                    ...assistant,
+                    model: e.target.value as AssistantPrefs['model'],
+                  })
+                }
+              >
+                {models.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Effort
+              <select
+                value={assistant.effort}
+                onChange={(e) =>
+                  setAssistant({
+                    ...assistant,
+                    effort: e.target.value as AssistantPrefs['effort'],
+                  })
+                }
+              >
+                {efforts.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <p className="chat-total">
+              {totalTokens
+                ? `Conversation : ${fmt(totalTokens)} tokens`
+                : models.find((m) => m.id === assistant.model)?.hint}
+            </p>
+          </div>
+        )}
         <p className="chat-status">
           {selectedAgent?.detail ?? 'Détection de l’assistant…'}
         </p>
@@ -973,6 +1113,16 @@ export default function App() {
             <article className={`chat-message ${c.role}`} key={i}>
               <strong>{c.role === 'user' ? 'Vous' : agentName}</strong>
               <p>{c.text}</p>
+              {c.usage && (
+                <span className="chat-usage">
+                  {modelName(c.usage.model)}
+                  {c.effort
+                    ? ` · effort ${efforts.find((x) => x.id === c.effort)?.label.toLowerCase()}`
+                    : ''}{' '}
+                  · {fmt(c.usage.inputTokens)} tokens envoyés ·{' '}
+                  {fmt(c.usage.outputTokens)} générés
+                </span>
+              )}
             </article>
           ))}
           {thinking && <p className="chat-thinking">Réflexion en cours…</p>}

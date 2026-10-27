@@ -101,3 +101,49 @@ bouton « Historique » sans numéro ; phrase d’aide qui rappelle qu’un seul
 Preuves : 12 tests navigateur réussis (Linux), dont recherche d’écran, choix et
 précédent / suivant ; capture relue.
 Limite : la liste des écrans est déclarée à la main dans DesignSystem.tsx.
+
+## 27/10/2026 · Refonte visuelle de l’atelier et audit de mise en page
+
+Problème : interface jugée brute et froide ; titres de section et éléments
+cliquables trop proches visuellement ; boutons de hauteurs différentes ;
+panneaux qui s’écrasaient aux extrêmes de la poignée.
+Pistes : références monday.com, Apple, Notion. Fonds testés en situation réelle :
+crème, pêche, menthe (écartée : nuit à la lisibilité du voyant « Enregistré »),
+blanc chaud et gris (écartés : trop ternes), pêche et lavande pâles.
+Décision : fond lavande très pâle, accent corail, boutons principaux noirs ;
+cartes très arrondies, tout élément cliquable en pilule ; titres de section en
+texte gris simple, sans forme ni survol ; police système (SF Pro sur Mac, aucun
+téléchargement, fonctionne hors ligne) ; fond neutre très clair derrière l’aperçu
+pour ne pas teinter les écrans Gutt. Corail foncé (#D2401E) pour tout texte blanc
+sur corail, contraste 4,5:1 minimum.
+Audit : 8 largeurs d’écran (375 à 1920 px), poignée aux deux extrêmes, 4 vues et
+2 largeurs d’aperçu chacune, conversation avec messages longs et mots sans
+espace, diff de 8 tokens, historique : aucun débordement. Tous les boutons de
+l’atelier font 34 px. Panneaux bornés (Design System 440 px, Aperçu 380 px
+minimum) ; un panneau étroit replie son menu en ligne et ses réglages sous le nom.
+Preuves : 12 tests navigateur et 35 tests unitaires/API réussis (Linux) ; script
+d’audit exécuté avec 0 anomalie ; captures relues.
+Limite : rendu Safari et vrai Mac à vérifier ; thème sombre non prévu.
+
+## 27/10/2026 · Choix du modèle Claude et compteur de tokens
+
+Problème : impossible de choisir entre un modèle rapide et un modèle plus poussé,
+ni de voir ce que consomme chaque demande.
+Décision : dans la bulle de l’assistant, choix du modèle (Sonnet par défaut, Opus,
+Haiku) et de l’effort (faible à très élevé), mémorisés dans le navigateur ; sous
+chaque réponse, modèle, effort, tokens envoyés (cache inclus) et générés ; total
+de la conversation. Le serveur n’accepte que ces valeurs (liste fermée), jamais
+un argument libre vers le CLI.
+Preuves : tests unitaires (arguments ajoutés seulement depuis la liste, valeur
+hostile ignorée, lecture du compteur), test HTTP (valeur inventée refusée en 400),
+test navigateur (choix transmis, compteur affiché) ; essai réel Haiku / faible.
+Limite : le compteur reflète ce que renvoie le CLI, pas une facturation.
+
+## 27/10/2026 · Panneau Design System : alignement et recherche
+
+Problème : réglages décalés d’une ligne à l’autre, liste déroulante au style
+natif, recherche peu visible, numéro de révision « r3 » sans intérêt.
+Décision : colonne de réglages de largeur fixe pour toutes les lignes, listes
+déroulantes au style de l’atelier, recherche avec bordure, fond blanc et loupe,
+numéro de révision retiré.
+Preuves : 13 tests navigateur réussis ; audit de mise en page sans anomalie.

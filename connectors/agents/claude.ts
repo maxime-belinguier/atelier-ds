@@ -3,7 +3,13 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { agentReplySchema } from '../../app/shared/model.js';
 import { runCli } from './codex.js';
-import type { AgentAdapter, AgentContext } from './types.js';
+import {
+  claudeEfforts,
+  claudeModels,
+  type AgentAdapter,
+  type AgentContext,
+  type AgentOptions,
+} from './types.js';
 
 // Profil volontairement sans outils, comme Codex : le modèle reçoit uniquement
 // le contexte transmis. Pas d'outil intégré, pas de MCP, pas de Chrome, pas de
@@ -69,7 +75,12 @@ export class ClaudeAdapter implements AgentAdapter {
       };
     }
   }
-  async reply(message: string, context: AgentContext, signal?: AbortSignal) {
+  async reply(
+    message: string,
+    context: AgentContext,
+    signal?: AbortSignal,
+    options: AgentOptions = {},
+  ) {
     const status = await this.status();
     if (!status.available) throw new Error(status.detail);
     const cwd = await mkdtemp(path.join(tmpdir(), 'ds-studio-agent-'));
@@ -110,7 +121,7 @@ export class ClaudeAdapter implements AgentAdapter {
     try {
       const raw = await runCli(
         this.binary,
-        claudeArgs,
+        claudeArgsFor(options),
         JSON.stringify({ context, message }),
         { cwd, env },
         signal,
@@ -124,6 +135,16 @@ export class ClaudeAdapter implements AgentAdapter {
   }
 }
 
+// Modèle et effort choisis dans l'atelier, validés contre une liste fermée.
+export function claudeArgsFor(options: AgentOptions = {}) {
+  const args = [...claudeArgs];
+  if (options.model && claudeModels.includes(options.model))
+    args.push('--model', options.model);
+  if (options.effort && claudeEfforts.includes(options.effort))
+    args.push('--effort', options.effort);
+  return args;
+}
+
 export function parseClaudeOutput(raw: string) {
   let event: {
     type?: string;
@@ -132,6 +153,13 @@ export function parseClaudeOutput(raw: string) {
     num_turns?: number;
     permission_denials?: unknown[];
     result?: unknown;
+    usage?: {
+      input_tokens?: number;
+      output_tokens?: number;
+      cache_read_input_tokens?: number;
+      cache_creation_input_tokens?: number;
+    };
+    modelUsage?: Record<string, unknown>;
   };
   try {
     event = JSON.parse(raw);
@@ -155,7 +183,21 @@ export function parseClaudeOutput(raw: string) {
   const text = event.result.trim();
   const json = text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1);
   try {
-    return agentReplySchema.parse(JSON.parse(json));
+    const reply = agentReplySchema.parse(JSON.parse(json));
+    const u = event.usage ?? {};
+    const models = Object.keys(event.modelUsage ?? {});
+    return {
+      ...reply,
+      usage: {
+        // Le modèle principal est le dernier listé (un petit modèle annexe peut précéder).
+        model: models.at(-1) ?? '',
+        inputTokens:
+          (u.input_tokens ?? 0) +
+          (u.cache_read_input_tokens ?? 0) +
+          (u.cache_creation_input_tokens ?? 0),
+        outputTokens: u.output_tokens ?? 0,
+      },
+    };
   } catch {
     throw new Error(
       'Échec Claude : réponse hors format. Reformulez la demande. Aucune écriture appliquée.',

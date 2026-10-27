@@ -46,6 +46,13 @@ avec une liste MCP vide, `--setting-sources ""`, `--permission-mode dontAsk`,
 dédié. Aucun `--dangerously-skip-permissions`. `--bare` n’est pas utilisé car il
 empêche la lecture du trousseau macOS, donc la connexion par abonnement.
 
+Modèle (`sonnet`, `opus`, `haiku`) et effort (`low`, `medium`, `high`, `xhigh`)
+se choisissent dans la bulle de l’assistant. Le serveur n’accepte que ces
+valeurs (liste fermée validée par Zod), puis ajoute `--model` et `--effort`.
+Les tokens envoyés (cache inclus) et générés sont lus dans la sortie JSON et
+affichés sous chaque réponse, avec un total par conversation ; ils ne sont ni
+stockés ni renvoyés au fournisseur.
+
 Le processus tourne dans un dossier temporaire vide, avec une liste limitée de
 variables d’environnement ; aucune clé d’API n’est transmise. Le résultat est
 refusé si plus d’un tour ou un refus de permission apparaît (signe d’un appel

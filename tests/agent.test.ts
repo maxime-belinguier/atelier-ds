@@ -94,6 +94,7 @@ import path from 'node:path';
 import {
   ClaudeAdapter,
   claudeArgs,
+  claudeArgsFor,
   parseClaudeOutput,
 } from '../connectors/agents/claude.js';
 
@@ -208,3 +209,33 @@ process.stdin.on('end', () => {
     }
   },
 );
+
+test('Claude : modèle et effort ajoutés seulement depuis la liste fermée', () => {
+  const args = claudeArgsFor({ model: 'opus', effort: 'high' });
+  assert.deepEqual(args.slice(-4), ['--model', 'opus', '--effort', 'high']);
+  assert.deepEqual(claudeArgsFor({}), claudeArgs);
+  const hostile = claudeArgsFor({
+    model: '--dangerously-skip-permissions' as never,
+    effort: 'max; rm' as never,
+  });
+  assert.deepEqual(hostile, claudeArgs);
+});
+
+test('Claude : compteur de tokens lu dans la sortie, cache inclus', () => {
+  const r = parseClaudeOutput(
+    ok('{"message":"ok","changes":[]}', {
+      usage: {
+        input_tokens: 5,
+        cache_read_input_tokens: 1000,
+        cache_creation_input_tokens: 200,
+        output_tokens: 42,
+      },
+      modelUsage: { 'claude-haiku-5-5': {}, 'claude-opus-5-5': {} },
+    }),
+  );
+  assert.deepEqual(r.usage, {
+    model: 'claude-opus-5-5',
+    inputTokens: 1205,
+    outputTokens: 42,
+  });
+});

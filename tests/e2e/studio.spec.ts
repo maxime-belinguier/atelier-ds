@@ -406,7 +406,14 @@ test('panneaux redimensionnables au clavier, plein écran et assistant flottant'
     await pane.evaluate((el) => el.getBoundingClientRect().width),
   ).toBeGreaterThan(width);
   await page.keyboard.press('Home');
-  await expect(separator).toHaveAttribute('aria-valuenow', '28');
+  await expect(separator).toHaveAttribute(
+    'aria-valuenow',
+    (await separator.getAttribute('aria-valuemin'))!,
+  );
+  // Le panneau Design System garde une largeur utilisable (440 px minimum).
+  expect(
+    await pane.evaluate((el) => el.getBoundingClientRect().width),
+  ).toBeGreaterThanOrEqual(439);
   await page.getByRole('button', { name: 'Plein écran' }).click();
   await expect(pane).toBeHidden();
   await page.getByRole('button', { name: 'Quitter le plein écran' }).click();
@@ -417,4 +424,52 @@ test('panneaux redimensionnables au clavier, plein écran et assistant flottant'
   await expect(page.getByLabel('Votre demande')).toBeFocused();
   await page.keyboard.press('Escape');
   await expect(assistant).toBeHidden();
+});
+
+test('assistant : choix du modèle et de l’effort, tokens affichés par réponse', async ({
+  page,
+}) => {
+  let sent: Record<string, unknown> = {};
+  await page.route('**/api/agents', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify([
+        {
+          id: 'claude',
+          available: true,
+          detail: 'Claude simulé pour le test.',
+        },
+      ]),
+    }),
+  );
+  await page.route('**/api/agent', async (route) => {
+    sent = route.request().postDataJSON();
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        message: 'Réponse simulée.',
+        proposal: null,
+        usage: {
+          model: 'claude-opus-5-5',
+          inputTokens: 12345,
+          outputTokens: 210,
+        },
+      }),
+    });
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Ouvrir l’assistant' }).click();
+  await page.getByLabel('Modèle').selectOption('opus');
+  await page.getByLabel('Effort').selectOption('high');
+  await page.getByLabel('Votre demande').fill('Bonjour');
+  await page.keyboard.press('Enter');
+  await expect(
+    page.getByText('Opus · effort élevé · 12 345 tokens envoyés · 210 générés'),
+  ).toBeVisible();
+  await expect(page.getByText('Conversation : 12 555 tokens')).toBeVisible();
+  expect(sent.model).toBe('opus');
+  expect(sent.effort).toBe('high');
+  expect(sent.history).toEqual([]);
 });

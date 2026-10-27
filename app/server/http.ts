@@ -10,7 +10,11 @@ import { projectSchema } from '../shared/project.js';
 import { CodexAdapter } from '../../connectors/agents/codex.js';
 import { ClaudeAdapter } from '../../connectors/agents/claude.js';
 import { unvalidatedAdapter } from '../../connectors/agents/unvalidated.js';
-import type { AgentAdapter } from '../../connectors/agents/types.js';
+import {
+  claudeEfforts,
+  claudeModels,
+  type AgentAdapter,
+} from '../../connectors/agents/types.js';
 import { figmaStatus } from '../../connectors/figma/contract.js';
 import type { RecordInfo } from '../../scripts/runtime.mjs';
 
@@ -189,6 +193,8 @@ export async function createStudioServer(options: {
                     .strict(),
                 )
                 .max(10),
+              model: z.enum(claudeModels).optional(),
+              effort: z.enum(claudeEfforts).optional(),
             })
             .strict()
             .parse(body);
@@ -226,6 +232,7 @@ export async function createStudioServer(options: {
                 history: b.history,
               },
               controller.signal,
+              { model: b.model, effort: b.effort },
             );
             const proposal = reply.changes.length
               ? store.propose(
@@ -234,7 +241,11 @@ export async function createStudioServer(options: {
                   b.agent === 'claude' ? 'claude' : 'codex',
                 )
               : null;
-            return send(200, { message: reply.message, proposal });
+            return send(200, {
+              message: reply.message,
+              proposal,
+              usage: reply.usage ?? null,
+            });
           } finally {
             busy = false;
             active.delete(controller);

@@ -208,6 +208,41 @@ test('Claude simulé : proposition sourcée claude, jamais appliquée sans valid
   assert.equal(store.snapshot().tokens['color.brand'].$value, before);
 });
 
+test('Claude simulé : modèle et effort transmis, valeur libre refusée', async (t) => {
+  let received: unknown;
+  const { post } = await fixture(t, false, {
+    id: 'claude',
+    async status() {
+      return { available: true, detail: 'simulation' };
+    },
+    async reply(_m, _c, _s, options) {
+      received = options;
+      return {
+        message: 'ok',
+        changes: [],
+        usage: { model: 'claude-opus-5-5', inputTokens: 10, outputTokens: 2 },
+      };
+    },
+  });
+  const body = {
+    agent: 'claude',
+    revision: 0,
+    message: 'Bonjour',
+    history: [],
+    model: 'opus',
+    effort: 'high',
+  };
+  const ok = await post('agent', body);
+  assert.equal(ok.status, 200);
+  assert.deepEqual(received, { model: 'opus', effort: 'high' });
+  assert.equal((await ok.json()).usage.inputTokens, 10);
+  assert.equal(
+    (await post('agent', { ...body, model: '--dangerously-skip-permissions' }))
+      .status,
+    400,
+  );
+});
+
 test('mode dev : frontend servi, workspace et backend non distribués', async (t) => {
   const { origin } = await fixture(t, true);
   for (const route of [

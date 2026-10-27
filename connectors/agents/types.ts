@@ -5,6 +5,19 @@ export interface AgentContext {
   rules: string;
   history: { role: 'user' | 'assistant'; text: string }[];
 }
+// Choix proposés à l'utilisateur. Liste fermée : aucune valeur libre ne
+// rejoint les arguments du CLI.
+export const claudeModels = ['sonnet', 'opus', 'haiku'] as const;
+export const claudeEfforts = ['low', 'medium', 'high', 'xhigh'] as const;
+export interface AgentOptions {
+  model?: (typeof claudeModels)[number];
+  effort?: (typeof claudeEfforts)[number];
+}
+export interface AgentUsage {
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+}
 export interface AgentAdapter {
   id: string;
   status(): Promise<{ available: boolean; detail: string }>;
@@ -12,5 +25,6 @@ export interface AgentAdapter {
     message: string,
     context: AgentContext,
     signal?: AbortSignal,
-  ): Promise<AgentReply>;
+    options?: AgentOptions,
+  ): Promise<AgentReply & { usage?: AgentUsage }>;
 }
