@@ -360,10 +360,13 @@ identiques avant et après le clic ; audit de mise en page sans anomalie.
 
 Problème : l’atelier a beaucoup de zones ; une personne qui l’ouvre (intervenant,
 camarade, jury) ne sait pas par où commencer.
-Décision : visite en 8 étapes posée sur les vraies zones (menu, tokens,
-enregistrement, aperçu et Comparer, Claude, accessibilité, export, aide), la
-zone visée est mise en évidence. Ouverte seule au premier lancement, puis à
-volonté avec le bouton « ? » de l’en-tête. Passer, Précédent, Suivant, flèches
-du clavier et Échap. Rien n’est modifié pendant la visite.
+Décision : visite en 11 étapes posée sur les vraies zones, mises en évidence :
+menu, tokens, enregistrement, choix de l’écran, formats et mockup, Comparer
+(formats ou avant / après, activé pendant l’étape), Claude (modèle Sonnet / Opus /
+Haiku et effort, chat ouvert pendant l’étape), quota Claude (cercle de
+consommation, 5 h et semaine), accessibilité, export, aide. La carte se place
+sous les petits éléments et à côté des grandes zones. Ouverte seule au premier
+lancement, puis à volonté avec le bouton « ? » de l’en-tête. Passer, Précédent,
+Suivant, flèches du clavier et Échap. Aucune valeur modifiée pendant la visite.
 Preuves : test navigateur (ouverture au premier lancement, pas de réouverture
-après, relance par « ? », 8 étapes, fermeture) ; captures relues.
+après, relance par « ? », 11 étapes, fermeture) ; captures des 11 étapes relues.

@@ -784,7 +784,7 @@ test('visite guidée : ouverte au premier lancement, relancée avec « ? »', as
   await page.goto('/');
   const tour = page.getByRole('dialog', { name: 'Ton Design System' });
   await expect(tour).toBeVisible();
-  await expect(tour).toContainText('Étape 1 sur 8');
+  await expect(tour).toContainText('Étape 1 sur 11');
   await page.getByRole('button', { name: 'Suivant', exact: true }).click();
   await expect(
     page.getByRole('dialog', { name: 'Modifie une valeur' }),
@@ -796,7 +796,7 @@ test('visite guidée : ouverte au premier lancement, relancée avec « ? »', as
   await expect(page.locator('.tour')).toHaveCount(0);
   await page.getByRole('button', { name: 'Visite guidée' }).click();
   await expect(tour).toBeVisible();
-  for (let i = 0; i < 7; i++)
+  for (let i = 0; i < 10; i++)
     await page.getByRole('button', { name: 'Suivant', exact: true }).click();
   await expect(
     page.getByRole('dialog', { name: 'Besoin d’un rappel ?' }),

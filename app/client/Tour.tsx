@@ -35,8 +35,11 @@ export default function Tour({
   useLayoutEffect(() => {
     let raf = 0;
     const measure = () => {
+      // Un nom simple vise data-tour ; un sélecteur CSS (« .classe ») est accepté.
       const el = document.querySelector<HTMLElement>(
-        `[data-tour="${step.target}"]`,
+        /^[.#[]/.test(step.target)
+          ? step.target
+          : `[data-tour="${step.target}"]`,
       );
       const r = el?.getBoundingClientRect();
       const next =
@@ -50,8 +53,11 @@ export default function Tour({
     return () => cancelAnimationFrame(raf);
   }, [step.target]);
 
+  // Le focus revient sur la carte, même si l'étape ouvre un panneau qui le prend.
   useEffect(() => {
     card.current?.focus();
+    const t = setTimeout(() => card.current?.focus(), 80);
+    return () => clearTimeout(t);
   }, [i]);
 
   const finish = () => {
@@ -75,15 +81,24 @@ export default function Tour({
   if (box) {
     const vw = innerWidth;
     const vh = innerHeight;
-    const clampTop = (t: number) => Math.max(pad, Math.min(t, vh - 220));
-    if (box.left + box.width + pad + W < vw)
+    const clampTop = (t: number) => Math.max(pad, Math.min(t, vh - 240));
+    const clampLeft = (l: number) => Math.max(pad, Math.min(l, vw - W - pad));
+    // Petit élément (bouton, barre) : carte dessous, ou dessus faute de place.
+    // Grande zone (menu, liste, panneau) : carte à côté.
+    if (box.height < 140) {
+      const below = box.top + box.height + pad;
+      style = {
+        top: below + 220 < vh ? below : Math.max(pad, box.top - pad - 220),
+        left: clampLeft(box.left + box.width / 2 - W / 2),
+      };
+    } else if (box.left + box.width + pad + W < vw)
       style = { top: clampTop(box.top), left: box.left + box.width + pad };
     else if (box.left - pad - W > 0)
       style = { top: clampTop(box.top), left: box.left - pad - W };
     else
       style = {
-        top: Math.min(box.top + box.height + pad, vh - 220),
-        left: Math.max(pad, Math.min(box.left, vw - W - pad)),
+        top: clampTop(box.top + box.height + pad),
+        left: clampLeft(box.left),
       };
   }
 

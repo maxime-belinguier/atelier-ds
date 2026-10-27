@@ -923,20 +923,49 @@ export default function App() {
       text: 'Tes modifs s’accumulent ici. « Enregistrer » (ou Cmd + S) ouvre le diff : tu valides avant toute écriture.',
     },
     {
-      target: 'preview',
-      title: 'Vois le résultat',
-      text: 'L’écran Gutt dans le format de ton choix. « Comparer » montre deux formats, ou l’avant et l’après de tes modifs.',
+      target: '.screen-picker',
+      title: 'Change d’écran',
+      text: 'Passe d’un écran Gutt à l’autre avec les flèches, ou cherche-le dans la liste.',
+      before: () => setChatOpen(false),
     },
     {
-      target: 'chat',
+      target: 'formats',
+      title: 'Teste chaque format',
+      text: 'Du petit mobile (320) au grand écran (1440), ou « Libre » pour une taille sur mesure. La case Mockup ajoute le téléphone ou le navigateur autour.',
+      before: () => setCompare(false),
+    },
+    {
+      target: 'compare',
+      title: 'Compare',
+      text: '« Formats » : mobile et desktop côte à côte. « Avant / après » : l’écran enregistré à gauche, tes modifs en cours à droite.',
+      before: () => {
+        setChatOpen(false);
+        setCompare(true);
+      },
+    },
+    {
+      target: 'chat-models',
       title: 'Demande à Claude',
-      text: 'Décris ce que tu veux changer. Claude propose des valeurs, tu valides toujours le diff.',
+      text: 'Décris ce que tu veux changer, Claude propose et tu valides le diff. Modèle : Sonnet au quotidien, Opus pour les demandes complexes, Haiku pour aller vite. L’effort règle le temps de réflexion.',
+      before: () => {
+        setCompare(false);
+        setChatOpen(true);
+      },
+    },
+    {
+      target: 'chat-quota',
+      title: 'Surveille ton quota',
+      text: 'Le cercle montre ta consommation Claude (session de 5 h et semaine). Orange dès 70 %, corail dès 90 %. Clique dessus pour le détail et l’heure de remise à zéro.',
+      before: () => setChatOpen(true),
     },
     {
       target: 'quality',
       title: 'Contrôle l’accessibilité',
       text: 'Un bilan par type de vision. Les corrections se font dans Couleurs.',
-      before: () => setCollapsed((c) => c.filter((x) => x !== 'quality')),
+      before: () => {
+        setChatOpen(false);
+        setCollapsed((c) => c.filter((x) => x !== 'quality'));
+      },
     },
     {
       target: 'export',
@@ -1781,6 +1810,7 @@ export default function App() {
                 ))}
                 <button
                   className="compare-toggle"
+                  data-tour="compare"
                   aria-label="Comparer"
                   aria-pressed={compare}
                   title="Afficher deux formats côte à côte"
@@ -1807,7 +1837,7 @@ export default function App() {
                 </button>
               </div>
             ) : (
-              <div className="preview-row">
+              <div className="preview-row" data-tour="formats">
                 <span className="row-label" aria-hidden="true">
                   Format
                 </span>
@@ -1895,6 +1925,7 @@ export default function App() {
                 )}
                 <button
                   className="compare-toggle"
+                  data-tour="compare"
                   aria-label="Comparer"
                   aria-pressed={compare}
                   title="Afficher deux formats côte à côte"
@@ -2125,7 +2156,7 @@ export default function App() {
         <div className="chat-head">
           <h2 id="chat-title">Assistant</h2>
           {agent === 'claude' && (
-            <div className="credit-wrap">
+            <div className="credit-wrap" data-tour="chat-quota">
               <button
                 className="credit-ring"
                 aria-expanded={creditsOpen}
@@ -2239,7 +2270,7 @@ export default function App() {
           </button>
         </div>
         {agent === 'claude' && (
-          <div className="chat-options">
+          <div className="chat-options" data-tour="chat-models">
             <label>
               Modèle
               <select
