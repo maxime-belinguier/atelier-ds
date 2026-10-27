@@ -379,7 +379,15 @@ export default function App() {
   const [exportOpen, setExportOpen] = useState(false);
   // Visite guidée : ouverte au premier lancement, puis avec le bouton « ? ».
   // État de l'atelier avant la visite, rétabli à la fin (chat, Comparer).
-  const tourPrev = useRef({ compare: false, chatOpen: false });
+  const tourPrev = useRef<{
+    compare: boolean;
+    chatOpen: boolean;
+    selection?: Selection;
+  }>({
+    compare: false,
+    chatOpen: false,
+    selection: { kind: 'tokens', id: 'colors' },
+  });
   const [tourOpen, setTourOpen] = useState(() => {
     try {
       return !localStorage.getItem(tourKey);
@@ -390,6 +398,10 @@ export default function App() {
   // Profil de vision vérifié dans l'audit ; les daltonismes et la vision sans
   // couleur s'appliquent aussi à l'aperçu.
   const [profile, setProfile] = useState<Profile>('aa');
+  // Nouvelle page du Design System : on repart du haut.
+  useEffect(() => {
+    document.querySelector('.ds-content')?.scrollTo({ top: 0 });
+  }, [selection.kind, selection.id]);
   // Ligne mise en avant après « Corriger dans … » depuis le contrôle.
   const [focusKey, setFocusKey] = useState<TokenKey | null>(null);
   useEffect(() => {
@@ -961,12 +973,22 @@ export default function App() {
       before: () => setChatOpen(true),
     },
     {
-      target: 'quality',
+      target: '.ds-layout',
       title: 'Contrôle l’accessibilité',
-      text: 'Un bilan par type de vision. Les corrections se font dans Couleurs.',
+      text: 'En bas du menu, Contrôle qualité › Accessibilité : un score par type de vision et la liste de ce qui bloque. Les corrections se font dans Couleurs.',
       before: () => {
         setChatOpen(false);
         setCollapsed((c) => c.filter((x) => x !== 'quality'));
+        setSearch('');
+        setSelection({ kind: 'audit', id: 'a11y' });
+        // Le lien du menu est tout en bas : on le fait apparaître.
+        setTimeout(
+          () =>
+            document
+              .querySelector('[data-tour="quality"]')
+              ?.scrollIntoView({ block: 'nearest' }),
+          0,
+        );
       },
     },
     {
@@ -1386,7 +1408,7 @@ export default function App() {
               title="Visite guidée de l’atelier"
               data-tour="help"
               onClick={() => {
-                tourPrev.current = { compare, chatOpen };
+                tourPrev.current = { compare, chatOpen, selection };
                 setTourOpen(true);
               }}
             >
@@ -2142,6 +2164,8 @@ export default function App() {
             setTourOpen(false);
             setCompare(tourPrev.current.compare);
             setChatOpen(tourPrev.current.chatOpen);
+            if (tourPrev.current.selection)
+              setSelection(tourPrev.current.selection);
           }}
         />
       )}

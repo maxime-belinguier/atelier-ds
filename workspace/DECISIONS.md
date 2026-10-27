@@ -371,7 +371,11 @@ Suivant, flèches du clavier et Échap. Aucune valeur modifiée pendant la visit
 Fluidité : à chaque étape, la carte et le contour attendent que la zone visée ne
 bouge plus (chat qui s’ouvre, aperçu qui change) ; la carte disparaît d’un coup
 puis réapparaît en fondu, déjà à sa place, sans jamais glisser. En quittant la
-visite, l’atelier retrouve son état d’avant (chat et Comparer).
+visite, l’atelier retrouve son état d’avant (chat, Comparer, page affichée).
+Étape accessibilité : la visite ouvre la catégorie Contrôle qualité, affiche la
+page « Contrôle d’accessibilité » depuis son début et fait défiler le menu
+jusqu’au lien, tout en bas. Toute zone hors de vue défile pour apparaître.
+Correctif général : changer de page dans le Design System repart du haut.
 Preuves : test navigateur (ouverture au premier lancement, pas de réouverture
 après, relance par « ? », 11 étapes, fermeture, état rétabli) ; position de la
 carte mesurée à chaque image pendant les transitions, à 1440, 1280 et 1024 px :

@@ -40,6 +40,7 @@ export default function Tour({
     let raf = 0;
     let last = '';
     let since = performance.now();
+    let scrolled = false;
     setSettled(false);
     const measure = () => {
       // Un nom simple vise data-tour ; un sélecteur CSS (« .classe ») est accepté.
@@ -48,6 +49,11 @@ export default function Tour({
           ? step.target
           : `[data-tour="${step.target}"]`,
       );
+      // Zone hors de vue (ex. bas d'un menu long) : on la fait défiler une fois.
+      if (el && !scrolled) {
+        scrolled = true;
+        el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      }
       const r = el?.getBoundingClientRect();
       const next =
         r && r.width > 0 && r.height > 0
