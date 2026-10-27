@@ -645,7 +645,7 @@ test('audit d’accessibilité : score, contrastes et zones cliquables', async (
   await page.goto('/');
   await page.getByRole('button', { name: /^Accessibilité/ }).click();
   await expect(
-    page.getByRole('heading', { name: 'Accessibilité' }),
+    page.getByRole('heading', { name: 'Test d’accessibilité' }),
   ).toBeVisible();
   await expect(page.locator('.audit-score')).toContainText(/\d+ %/);
   await expect(
@@ -677,4 +677,26 @@ test('export Documentation : page HTML complète et autonome', async ({
   ])
     expect(html).toContain(needle);
   expect(html).not.toMatch(/<script/);
+});
+
+test('vision des couleurs : filtre sur l’aperçu, étiquette et retour', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/');
+  await page.getByRole('button', { name: /^Accessibilité/ }).click();
+  const frame = page.locator('iframe[title="Aperçu responsive"]');
+  await page.getByRole('radio', { name: 'Deutéranopie' }).click();
+  await expect(
+    page.getByRole('radio', { name: 'Deutéranopie' }),
+  ).toHaveAttribute('aria-checked', 'true');
+  await expect(frame).toHaveCSS('filter', /cvd-deuteranopia/);
+  await expect(page.locator('.vision-chip')).toContainText('Deutéranopie');
+  await page.getByRole('radio', { name: 'Sans couleur' }).click();
+  await expect(frame).toHaveCSS('filter', 'grayscale(1)');
+  await page
+    .getByRole('button', { name: 'Revenir à la vision normale' })
+    .click();
+  await expect(frame).toHaveCSS('filter', 'none');
+  await expect(page.locator('.vision-chip')).toHaveCount(0);
 });

@@ -288,3 +288,15 @@ Le libellé « Figma non connecté » reste affiché : c’est l’état réel.
 - Valeurs enregistrées uniquement, comme les autres exports. Mise en page prévue pour l'impression : Fichier, Imprimer, Enregistrer en PDF.
 - Base pour le livrable Design System du PFE.
 - Technique : les styles des composants sont sortis dans ds-components.css, partagé par l'atelier, l'aperçu et la doc.
+
+## 27/10/2026 · Simulation de la vision des couleurs
+- Réglage dans Vérifier › Accessibilité : Normale, Deutéranopie, Protanopie, Tritanopie, Sans couleur.
+- Le filtre s'applique à l'aperçu de l'écran Gutt. Une étiquette « Vue : … » avec ✕ reste visible en haut à gauche de l'aperçu tant qu'un filtre est actif.
+- Rien n'est enregistré : c'est une loupe de vérification, les tokens ne changent pas.
+- Méthode : matrices de Machado, Oliveira et Fernandes (2009), sévérité maximale ; niveaux de gris pour « Sans couleur ».
+- Premier constat : en deutéranopie, le badge rouge « 3 points à vérifier » perd sa couleur d'alerte. Le texte reste lisible, mais le rouge seul ne suffit pas comme signal.
+
+## 27/10/2026 · Menu du Design System plus lisible
+- Titres de catégorie (Tokens, Composants, Écrans, Contrôle qualité) en majuscules, couleur d'accent et trait de séparation entre les groupes.
+- Wording : « Vérifier » devient « Contrôle qualité ». Le menu garde « Accessibilité » (terme attendu par le jury, tient sur une ligne) et la page s'appelle « Test d'accessibilité », avec une phrase simple : « Ton Design System est-il lisible et utilisable par tous ? ».
+- README mis à jour : section « Ajouts de la version Gutt » et état réel des nouvelles fonctions.

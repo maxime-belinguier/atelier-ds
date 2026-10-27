@@ -69,7 +69,7 @@ contenant des espaces est accepté. N’utilisez ni `sudo` ni installation de se
 
 ## Ce qui change en V2
 
-- **Mon PFE** : brief privé éditable et exportable en Markdown ; aucun compte nécessaire.
+- **Brief** : brief privé éditable et exportable en Markdown ; aucun compte nécessaire.
 - Recherche de tokens, sélecteur de couleur, valeurs numériques bornées et brouillon
   récupérable dans le même onglet après recharge. Rien n’est appliqué avant le diff.
 - Conflits multi-onglets signalés dans le diff ; session locale renouvelée après
@@ -81,6 +81,26 @@ contenant des espaces est accepté. N’utilisez ni `sudo` ni installation de se
   qualifier sur les postes réels (voir [rapport](DELIVERY_REPORT.md)).
 
 [Changelog V1/V2](docs/V2_CHANGELOG.md) · [Audit et priorités](docs/V2_AUDIT.md)
+
+## Ajouts de la version Gutt (PFE)
+
+- **Claude dans l'atelier** : chat en bulle flottante, choix du modèle et de l'effort,
+  jauge des crédits. Les propositions passent toujours par le diff et ta validation.
+- **Interface** : deux panneaux redimensionnables (Design System et Aperçu), menu du
+  Design System par catégories (Tokens, Composants, Écrans, Contrôle qualité),
+  sélecteur de couleur HEX/RGB/HSL, enregistrement manuel groupé (Ctrl/Cmd + S).
+- **Aperçu** : formats 320 à 1440 px ou libre, mockups téléphone, tablette et
+  navigateur, mode Fit ou 100 %.
+- **En-tête** : bouton Brief, puis Historique, Importer et Exporter en icônes.
+- **Exports** (valeurs enregistrées uniquement) : Tokens JSON, Variables CSS,
+  Tailwind v4, Tailwind v3 et Documentation (page HTML imprimable en PDF).
+- **Contrôle qualité › Accessibilité** : test en direct selon WCAG 2.2 AA
+  (12 contrastes, taille du texte, zones cliquables mesurées dans l'aperçu), score,
+  bouton « Modifier » vers le token concerné, et simulation de la vision des couleurs
+  (deutéranopie, protanopie, tritanopie, sans couleur) appliquée à l'aperçu.
+
+Détail et justification de chaque choix : [DECISIONS](workspace/DECISIONS.md).
+
 
 ## Votre première boucle, en deux minutes
 
@@ -115,8 +135,8 @@ l’original est conservé sous `state-preserved-….json`. Le brief ne change p
 Après restauration, rechargez les onglets de l’atelier. Sans copie valide, aucune
 restauration automatique n’est tentée. Sauvegardez aussi `.ds-studio/` hors du projet.
 
-Ne modifiez pas le journal `state.json` à la main. **Exporter les tokens** télécharge
-le JSON courant ; **Importer un JSON** prépare un diff qui demande validation.
+Ne modifiez pas le journal `state.json` à la main. L'icône **Exporter** propose le JSON
+courant et d'autres formats ; l'icône **Importer** prépare un diff qui demande validation.
 Le format est un sous-ensemble local à clés plates et valeurs explicites, **pas un
 importeur universel DTCG ni un export Figma automatique**. Voir [TOKENS](docs/TOKENS.md).
 Pour sauvegarder tout l’historique, arrêtez le serveur et copiez `.ds-studio/` dans
@@ -151,6 +171,8 @@ Inspirez-vous des deux skills fournis, sans copier vos identifiants ou vos conve
 | Édition manuelle, diff, commit, persistance et annulation sélective | **TESTED**, Linux, API + navigateur + redémarrage processus                                        |
 | Catalogue et viewport responsive, formulaire et navigation          | **TESTED**, Chromium sous Linux                                                                    |
 | Import/export JSON local                                            | **TESTED**, API + navigateur                                                                       |
+| Exports CSS, Tailwind et Documentation                              | **TESTED**, tests unitaires + téléchargements navigateur                                           |
+| Test d'accessibilité et simulation de la vision des couleurs        | **TESTED**, Chromium ; contrôle sur les tokens, pas un audit WCAG complet de l'app                 |
 | Chat Codex, JSON proposé avant acceptation                          | **TESTED**, CLI 0.164.0, compte enseignant disponible pendant la qualification ; quota non garanti |
 | Claude Code dans l’application                                      | **TESTED (expérimental)**, Linux, CLI 2.1.311, sans outils ; voir docs/AGENT_ADAPTERS.md            |
 | Gemini dans l’application                                           | **NOT IMPLEMENTED**, adaptateur indisponible et contrat documenté                                  |

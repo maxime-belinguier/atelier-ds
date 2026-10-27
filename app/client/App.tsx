@@ -14,6 +14,7 @@ import ScreenPicker from './ScreenPicker.js';
 import ColorPicker from './ColorPicker.js';
 import { useDrafts } from './useTokenDraft.js';
 import { buildDocHtml } from './docExport.js';
+import { VisionFilters, visionFilter, visions, type Vision } from './vision.js';
 import dsCss from './ds-components.css?raw';
 import {
   auditTokens,
@@ -362,6 +363,7 @@ export default function App() {
   const [creditsOpen, setCreditsOpen] = useState(false);
   const [pickerFor, setPickerFor] = useState<TokenKey | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
+  const [vision, setVision] = useState<Vision>('none');
   useEffect(() => {
     if (!exportOpen) return;
     const close = (e: MouseEvent) => {
@@ -718,9 +720,9 @@ export default function App() {
     keys = c.tokens;
     demo = c.render;
   } else if (selection.kind === 'audit') {
-    title = 'Accessibilité';
+    title = 'Test d’accessibilité';
     description =
-      'Vérifié en direct sur tes valeurs, modifications en cours comprises. Repère : WCAG 2.2 niveau AA.';
+      'Ton Design System est-il lisible et utilisable par tous ? Contrastes, taille du texte et des boutons, vérifiés en direct avec tes modifications en cours. Norme : WCAG 2.2, niveau AA.';
   } else {
     const s = screens.find((x) => x.id === selection.id) ?? screens[0];
     title = s.label;
@@ -1216,8 +1218,8 @@ export default function App() {
                     </option>
                   ))}
                 </optgroup>
-                <optgroup label="Vérifier">
-                  <option value="audit:a11y">Accessibilité</option>
+                <optgroup label="Contrôle qualité">
+                  <option value="audit:a11y">Test d’accessibilité</option>
                 </optgroup>
               </select>
               <p className="side-group">Tokens</p>
@@ -1277,7 +1279,7 @@ export default function App() {
                   {s.label}
                 </button>
               ))}
-              <p className="side-group">Vérifier</p>
+              <p className="side-group">Contrôle qualité</p>
               <button
                 className="side-item"
                 aria-current={
@@ -1317,6 +1319,8 @@ export default function App() {
                 <AuditView
                   checks={auditChecks}
                   tokens={preview}
+                  vision={vision}
+                  onVision={setVision}
                   onEdit={(k) => {
                     const g = tokenGroups.find((x) => x.keys.includes(k));
                     if (g) select({ kind: 'tokens', id: g.id });
@@ -1498,6 +1502,30 @@ export default function App() {
             </div>
           </div>
           <div className="stage" ref={stage}>
+            {vision !== 'none' && (
+              <div className="vision-sticky">
+                <span className="vision-chip" role="status">
+                  Vue : {visions.find((v) => v.id === vision)?.label}
+                  <button
+                    aria-label="Revenir à la vision normale"
+                    onClick={() => setVision('none')}
+                  >
+                    <svg
+                      aria-hidden="true"
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.6"
+                      strokeLinecap="round"
+                    >
+                      <path d="M18 6 6 18M6 6l12 12" />
+                    </svg>
+                  </button>
+                </span>
+              </div>
+            )}
             <div
               className="frame-holder"
               style={{ width: outerW * scale, height: outerH * scale }}
@@ -1521,8 +1549,10 @@ export default function App() {
                 {kind === 'phone' && (
                   <span className="device-island" aria-hidden="true" />
                 )}
+                <VisionFilters />
                 <iframe
                   ref={iframe}
+                  style={{ filter: visionFilter(vision) }}
                   title="Aperçu responsive"
                   src={`/?preview=1&scenario=${scenario}`}
                   width={dev.width}
@@ -2019,10 +2049,14 @@ const statusLabel = { ok: 'OK', fail: 'À corriger', tip: 'Conseil' } as const;
 function AuditView({
   checks,
   tokens,
+  vision,
+  onVision,
   onEdit,
 }: {
   checks: Check[];
   tokens: Tokens;
+  vision: Vision;
+  onVision: (v: Vision) => void;
   onEdit: (key: TokenKey) => void;
 }) {
   const pct = auditScore(checks);
@@ -2035,6 +2069,32 @@ function AuditView({
   const order = { fail: 0, tip: 1, ok: 2 };
   return (
     <div className="audit">
+      <section className="vision-box" aria-labelledby="vision-title">
+        <p className="rows-title" id="vision-title">
+          Vision des couleurs
+        </p>
+        <div
+          className="vision-options"
+          role="radiogroup"
+          aria-labelledby="vision-title"
+        >
+          {visions.map((v) => (
+            <button
+              key={v.id}
+              role="radio"
+              aria-checked={vision === v.id}
+              className="vision-option"
+              onClick={() => onVision(v.id)}
+            >
+              {v.label}
+            </button>
+          ))}
+        </div>
+        <p className="vision-hint">
+          {visions.find((v) => v.id === vision)?.hint} Appliqué à l’aperçu, rien
+          n’est enregistré.
+        </p>
+      </section>
       <div
         className={`audit-score ${pct === 100 ? 'is-ok' : 'is-fail'}`}
         role="status"
