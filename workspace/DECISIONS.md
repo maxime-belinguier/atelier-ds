@@ -315,3 +315,10 @@ Le libellé « Figma non connecté » reste affiché : c’est l’état réel.
 - Chaque problème a une proposition qui garde la teinte et ne change que la clarté (et reste lisible sur les cartes). « Appliquer en brouillon » : l'aperçu suit, rien n'est écrit avant « Enregistrer » et le diff.
 - Le choix du profil remplace le bloc « Vision des couleurs » : un daltonisme choisi s'applique aussi à l'aperçu. Le ✕ de l'étiquette revient à « Malvoyance ».
 - Le badge rouge du menu suit toujours la norme de base (AA).
+
+## 27/10/2026 · Créer dans Couleurs, contrôler dans Accessibilité
+- Principe UX : on crée dans Couleurs, on contrôle dans Accessibilité. Les corrections ne se font plus dans l'écran de contrôle.
+- Couleurs : sélecteur « Vérifier pour » (6 profils) en haut. Chaque couleur affiche son statut pour ce profil (« ✓ … OK » ou « À corriger »), avec la proposition et un bouton « Appliquer » sous la ligne. Appliquer crée un brouillon, validé ensuite avec « Enregistrer ».
+- Un daltonisme choisi dans « Vérifier pour » s'applique aussi à l'aperçu ; le ✕ de l'étiquette revient à « Malvoyance ».
+- Accessibilité devient « Contrôle d'accessibilité » : un score par profil (6 cartes), la liste des problèmes de chaque profil et un bouton « Corriger dans Couleurs / Typographie » qui ouvre la bonne ligne et la met en évidence. Aucune modification possible ici.
+- Les zones cliquables restent dans le contrôle (mesure de l'écran affiché).

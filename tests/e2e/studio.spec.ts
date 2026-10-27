@@ -225,9 +225,9 @@ test('aperçu et contraste immédiats, valeur enregistrée inchangée', async ({
 }) => {
   await page.goto('/');
   await page.getByLabel('Couleur de marque', { exact: true }).fill('#FFFFFF');
-  await expect(
-    page.getByText('Contraste texte sur marque : 1.00:1', { exact: false }),
-  ).toContainText('contraste à améliorer');
+  await expect(page.locator('#row-color-brand')).toContainText(
+    'À corriger · Texte des boutons : 1,00:1',
+  );
   await expect(
     page
       .frameLocator('iframe')
@@ -638,25 +638,6 @@ test('en-tête en icônes : export CSS et Tailwind depuis le menu', async ({
   await expect(page.getByRole('menu', { name: 'Exporter' })).toHaveCount(0);
 });
 
-test('audit d’accessibilité : score, contrastes et zones cliquables', async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto('/');
-  await page.getByRole('button', { name: /^Accessibilité/ }).click();
-  await expect(
-    page.getByRole('heading', { name: 'Test d’accessibilité' }),
-  ).toBeVisible();
-  await expect(page.locator('.audit-score')).toContainText(/\d+ %/);
-  await expect(
-    page.getByRole('region', { name: 'Contrastes' }).locator('li'),
-  ).toHaveCount(12);
-  // Mesure faite dans l'écran affiché par l'aperçu.
-  await expect(
-    page.getByRole('region', { name: 'Zones cliquables' }),
-  ).toContainText('WCAG 2.5.8');
-});
-
 test('export Documentation : page HTML complète et autonome', async ({
   page,
 }) => {
@@ -677,28 +658,6 @@ test('export Documentation : page HTML complète et autonome', async ({
   ])
     expect(html).toContain(needle);
   expect(html).not.toMatch(/<script/);
-});
-
-test('vision des couleurs : filtre sur l’aperçu, étiquette et retour', async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto('/');
-  await page.getByRole('button', { name: /^Accessibilité/ }).click();
-  const frame = page.locator('iframe[title="Aperçu responsive"]');
-  await page.getByRole('radio', { name: 'Deutéranopie' }).click();
-  await expect(
-    page.getByRole('radio', { name: 'Deutéranopie' }),
-  ).toHaveAttribute('aria-checked', 'true');
-  await expect(frame).toHaveCSS('filter', /cvd-deuteranopia/);
-  await expect(page.locator('.vision-chip')).toContainText('Deutéranopie');
-  await page.getByRole('radio', { name: 'Sans couleur' }).click();
-  await expect(frame).toHaveCSS('filter', 'grayscale(1)');
-  await page
-    .getByRole('button', { name: 'Revenir à la vision normale' })
-    .click();
-  await expect(frame).toHaveCSS('filter', 'none');
-  await expect(page.locator('.vision-chip')).toHaveCount(0);
 });
 
 test('menu : catégories repliables, mémorisées, élément affiché gardé', async ({
@@ -732,21 +691,54 @@ test('menu : catégories repliables, mémorisées, élément affiché gardé', a
   ).toBeGreaterThanOrEqual(34);
 });
 
-test('audit par profil : proposition appliquée en brouillon, puis enregistrée', async ({
+test('contrôle d’accessibilité : bilan par profil, sans édition', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/');
   await page.getByRole('button', { name: /^Accessibilité/ }).click();
-  await page.getByRole('radio', { name: 'Malvoyance forte' }).click();
-  await expect(page.locator('.audit-score')).toContainText('Malvoyance forte');
-  await page.getByRole('radio', { name: 'Malvoyance', exact: true }).click();
-  const row = page.locator('.audit-row', { hasText: 'Contour des champs' });
+  await expect(
+    page.getByRole('heading', { name: 'Contrôle d’accessibilité' }),
+  ).toBeVisible();
+  await expect(page.locator('.report-card')).toHaveCount(6);
+  // Ici on contrôle : aucun champ de token, aucun bouton « Appliquer ».
+  await expect(page.locator('.token-row')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /^Appliquer/ })).toHaveCount(0);
+  await expect(
+    page.getByRole('region', { name: 'Zones cliquables' }),
+  ).toContainText('WCAG 2.5.8');
+});
+
+test('couleurs : vérifier pour un profil, appliquer la proposition, aperçu simulé', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/');
+  // Depuis le contrôle, « Corriger dans Couleurs » ouvre la bonne ligne.
+  await page.getByRole('button', { name: /^Accessibilité/ }).click();
+  await page
+    .getByRole('region', { name: 'Malvoyance', exact: true })
+    .getByRole('button', { name: 'Corriger dans Couleurs' })
+    .first()
+    .click();
+  await expect(page.getByRole('heading', { name: 'Couleurs' })).toBeVisible();
+  const row = page.locator('#row-color-border');
   await expect(row).toContainText('À corriger');
-  await row.getByRole('button', { name: /^Appliquer en brouillon/ }).click();
-  await expect(row).toContainText('OK');
-  // Rien n'est enregistré tant que l'on ne valide pas.
+  await row.getByRole('button', { name: /^Appliquer/ }).click();
+  await expect(row).not.toContainText('À corriger');
   await expect(
     page.getByRole('button', { name: 'Enregistrer (1)' }),
   ).toBeVisible();
+  // Un daltonisme choisi s'applique aussi à l'aperçu ; le ✕ revient à la normale.
+  const frame = page.locator('iframe[title="Aperçu responsive"]');
+  await page.getByLabel('Vérifier pour').selectOption('deuteranopia');
+  await expect(frame).toHaveCSS('filter', /cvd-deuteranopia/);
+  await expect(page.locator('.vision-chip')).toContainText('Deutéranopie');
+  await page.getByLabel('Vérifier pour').selectOption('achromatopsia');
+  await expect(frame).toHaveCSS('filter', 'grayscale(1)');
+  await page
+    .getByRole('button', { name: 'Revenir à la vision normale' })
+    .click();
+  await expect(frame).toHaveCSS('filter', 'none');
+  await expect(page.getByLabel('Vérifier pour')).toHaveValue('aa');
 });

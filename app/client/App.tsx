@@ -17,6 +17,7 @@ import { buildDocHtml } from './docExport.js';
 import { VisionFilters, visionFilter, visions, type Vision } from './vision.js';
 import dsCss from './ds-components.css?raw';
 import {
+  auditAll,
   auditTokens,
   isColorProfile,
   profiles,
@@ -369,6 +370,21 @@ export default function App() {
   // Profil de vision vérifié dans l'audit ; les daltonismes et la vision sans
   // couleur s'appliquent aussi à l'aperçu.
   const [profile, setProfile] = useState<Profile>('aa');
+  // Ligne mise en avant après « Corriger dans … » depuis le contrôle.
+  const [focusKey, setFocusKey] = useState<TokenKey | null>(null);
+  useEffect(() => {
+    if (!focusKey) return;
+    const t = setTimeout(() => {
+      document
+        .getElementById(`row-${focusKey.replace('.', '-')}`)
+        ?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }, 60);
+    const end = setTimeout(() => setFocusKey(null), 2600);
+    return () => {
+      clearTimeout(t);
+      clearTimeout(end);
+    };
+  }, [focusKey]);
   const vision: Vision = isColorProfile(profile) ? profile : 'none';
   // Catégories du menu repliables ; l'élément affiché reste toujours visible.
   const [collapsed, setCollapsed] = useState<string[]>(() => {
@@ -747,9 +763,9 @@ export default function App() {
     keys = c.tokens;
     demo = c.render;
   } else if (selection.kind === 'audit') {
-    title = 'Test d’accessibilité';
+    title = 'Contrôle d’accessibilité';
     description =
-      'Ton Design System est-il lisible et utilisable par tous ? Choisis un profil de vision : l’app montre ce qui bloque et propose une correction.';
+      'Bilan de ton Design System pour chaque profil de vision. Ici on contrôle ; les corrections se font dans Couleurs ou Typographie.';
   } else {
     const s = screens.find((x) => x.id === selection.id) ?? screens[0];
     title = s.label;
@@ -829,14 +845,14 @@ export default function App() {
       </button>
     );
   };
-  const auditChecks = [
-    ...auditTokens(preview, profile),
-    ...(isColorProfile(profile) ? [] : targets),
-  ];
-  // Le badge du menu suit la norme de base (WCAG AA), quel que soit le profil.
-  const baseChecks =
-    profile === 'aa' ? auditChecks : [...auditTokens(preview), ...targets];
-  const auditFails = baseChecks.filter((c) => c.status === 'fail').length;
+  // Couleurs : vérification du profil choisi, ligne par ligne.
+  const profileChecks = auditTokens(preview, profile);
+  const profileLabel =
+    profiles.find((p) => p.id === profile)?.label ?? 'Malvoyance';
+  // Badge du menu : norme de base (WCAG AA) et zones cliquables mesurées.
+  const auditFails = [...auditTokens(preview), ...targets].filter(
+    (c) => c.status === 'fail',
+  ).length;
   const colorKeys = tokenGroups[0].keys;
   const renderRow = (k: TokenKey) => {
     const saved = state.tokens[k].$value;
@@ -845,14 +861,20 @@ export default function App() {
     const modified = k in drafts.drafts;
     const type = state.tokens[k].$type;
     const label = tokenLabels[k];
-    const contrast =
-      type === 'color' && !err ? contrastFor(preview, k) : undefined;
+    // Points d'accessibilité dont ce token est la clé, pour le profil choisi.
+    const checks = err
+      ? []
+      : profileChecks.filter(
+          (c) => c.target === k && c.id !== 'not-color-only',
+        );
+    const issues = checks.filter((c) => c.status !== 'ok');
     const errId = `err-${k.replace('.', '-')}`;
     const range = sliderRange[k] ?? [0, 128];
     return (
       <li
         key={k}
-        className={`token-row${modified ? ' is-modified' : ''}${err ? ' has-error' : ''}`}
+        id={`row-${k.replace('.', '-')}`}
+        className={`token-row${modified ? ' is-modified' : ''}${err ? ' has-error' : ''}${focusKey === k ? ' is-target' : ''}`}
       >
         <div className="token-id">
           <span className="token-name">
@@ -961,16 +983,46 @@ export default function App() {
             {err}
           </p>
         )}
-        {contrast && (
-          <p className={`contrast-chip ${contrast.ok ? 'ok' : 'low'}`}>
-            Contraste {contrast.label} : {contrast.ratio.toFixed(2)}:1 ·{' '}
-            {contrast.ok
-              ? contrast.min === 3
-                ? 'AA élément graphique'
-                : 'AA texte courant'
-              : 'contraste à améliorer'}
+        {checks.length > 0 && !issues.length && (
+          <p className="contrast-chip ok">
+            ✓ {profileLabel} : {checks.length} vérification
+            {checks.length > 1 ? 's' : ''} OK
           </p>
         )}
+        {issues.map((c) => (
+          <div key={c.id} className={`row-fix is-${c.status}`}>
+            <p>
+              <strong>{c.status === 'fail' ? 'À corriger' : 'Conseil'}</strong>{' '}
+              · {c.label} : {c.value}
+              <span> ({c.rule})</span>
+            </p>
+            {c.fix && (
+              <p className="row-fix-proposal">
+                <span>
+                  Proposition{' '}
+                  {type === 'color' && (
+                    <span
+                      className="audit-chip"
+                      style={{ background: c.fix.value }}
+                      aria-hidden="true"
+                    />
+                  )}
+                  <code>
+                    {c.fix.value}
+                    {type === 'dimension' ? ' px' : ''}
+                  </code>
+                </span>
+                <button
+                  className="audit-apply"
+                  onClick={() => drafts.set(c.fix!.key, c.fix!.value)}
+                  aria-label={`Appliquer ${c.fix.value} à ${label}`}
+                >
+                  Appliquer
+                </button>
+              </p>
+            )}
+          </div>
+        ))}
       </li>
     );
   };
@@ -1408,19 +1460,43 @@ export default function App() {
               )}
               {selection.kind === 'audit' && !query ? (
                 <AuditView
-                  checks={auditChecks}
-                  tokens={preview}
-                  profile={profile}
-                  onProfile={setProfile}
-                  onFix={(k, v) => drafts.set(k, v)}
-                  onEdit={(k) => {
+                  report={auditAll(preview)}
+                  targets={targets}
+                  onGo={(p, k) => {
+                    if (isColorProfile(p) || tokenGroups[0].keys.includes(k))
+                      setProfile(p);
                     const g = tokenGroups.find((x) => x.keys.includes(k));
                     if (g) select({ kind: 'tokens', id: g.id });
+                    setFocusKey(k);
                   }}
                 />
               ) : selection.kind !== 'tokens' && !query ? (
                 <p className="rows-title">Tokens utilisés</p>
               ) : null}
+              {!query &&
+                selection.kind === 'tokens' &&
+                selection.id === 'colors' && (
+                  <div className="profile-bar">
+                    <label htmlFor="profile-select">Vérifier pour</label>
+                    <select
+                      id="profile-select"
+                      value={profile}
+                      onChange={(e) => setProfile(e.target.value as Profile)}
+                    >
+                      {profiles.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.label}
+                        </option>
+                      ))}
+                    </select>
+                    <p>
+                      {profiles.find((p) => p.id === profile)?.hint}{' '}
+                      {profileChecks.some((c) => c.status === 'fail')
+                        ? `${profileChecks.filter((c) => c.status === 'fail').length} point(s) à corriger ci-dessous.`
+                        : 'Tout est OK pour ce profil.'}
+                    </p>
+                  </div>
+                )}
               {selection.kind === 'audit' && !query ? null : keys.length ? (
                 <ul className="token-rows">{keys.map(renderRow)}</ul>
               ) : (
@@ -2137,102 +2213,57 @@ export default function App() {
   );
 }
 
-const statusLabel = { ok: 'OK', fail: 'À corriger', tip: 'Conseil' } as const;
 function AuditView({
-  checks,
-  tokens,
-  profile,
-  onProfile,
-  onFix,
-  onEdit,
+  report,
+  targets,
+  onGo,
 }: {
-  checks: Check[];
-  tokens: Tokens;
-  profile: Profile;
-  onProfile: (p: Profile) => void;
-  onFix: (key: TokenKey, value: string) => void;
-  onEdit: (key: TokenKey) => void;
+  report: ReturnType<typeof auditAll>;
+  targets: Check[];
+  onGo: (profile: Profile, key: TokenKey) => void;
 }) {
-  const pct = auditScore(checks);
-  const required = checks.filter(
-    (c) =>
-      c.group === 'Contrastes' ||
-      (c.group === 'Couleurs distinctes' && c.status !== 'tip') ||
-      c.id === 'targets-min',
-  );
-  const passed = required.filter((c) => c.status === 'ok').length;
-  const tips = checks.filter((c) => c.status === 'tip').length;
-  const groups = [
-    'Contrastes',
-    'Couleurs distinctes',
-    'Texte',
-    'Zones cliquables',
-  ] as const;
-  const order = { fail: 0, tip: 1, ok: 2 };
-  const current = profiles.find((p) => p.id === profile) ?? profiles[0];
-  const show = (k: TokenKey, v: string) =>
-    tokens[k].$type === 'dimension' ? `${v} px` : v;
+  const where = (k: TokenKey) =>
+    tokenGroups.find((g) => g.keys.includes(k))?.label ?? 'Couleurs';
   return (
     <div className="audit">
-      <section className="vision-box" aria-labelledby="profile-title">
-        <p className="rows-title" id="profile-title">
-          1. Pour qui je vérifie ?
-        </p>
-        <div
-          className="vision-options"
-          role="radiogroup"
-          aria-labelledby="profile-title"
-        >
-          {profiles.map((p) => (
-            <button
-              key={p.id}
-              role="radio"
-              aria-checked={profile === p.id}
-              className="vision-option"
-              onClick={() => onProfile(p.id)}
+      <ul className="report-cards" aria-label="Score par profil">
+        {report.map((r) => (
+          <li key={r.profile.id}>
+            <a
+              href={`#profil-${r.profile.id}`}
+              className={`report-card ${r.fails ? 'is-fail' : 'is-ok'}`}
             >
-              {p.label}
-            </button>
-          ))}
-        </div>
-        <p className="vision-hint">{current.hint}</p>
-      </section>
-      <p className="rows-title audit-step">2. Ce qui passe et ce qui bloque</p>
-      <div
-        className={`audit-score ${pct === 100 ? 'is-ok' : 'is-fail'}`}
-        role="status"
-      >
-        <strong>{pct} %</strong>
-        <span>
-          {passed} sur {required.length} pour « {current.label} »
-          {tips ? ` · ${tips} conseil${tips > 1 ? 's' : ''}` : ''}
-        </span>
-      </div>
-      {groups.map((g) => {
-        const list = checks
-          .filter((c) => c.group === g)
-          .sort((a, b) => order[a.status] - order[b.status]);
-        if (!list.length && g !== 'Zones cliquables') return null;
-        if (!list.length && isColorProfile(profile)) return null;
+              <span>{r.profile.label}</span>
+              <strong>{r.score} %</strong>
+              <small>
+                {r.fails ? `${r.fails} à corriger` : 'Rien à corriger'}
+              </small>
+            </a>
+          </li>
+        ))}
+      </ul>
+      {report.map((r) => {
+        const issues = r.checks
+          .filter((c) => c.status !== 'ok')
+          .sort(
+            (a, b) =>
+              (a.status === 'fail' ? -1 : 1) - (b.status === 'fail' ? -1 : 1),
+          );
         return (
-          <section key={g} className="audit-group" aria-label={g}>
-            <p className="rows-title">{g}</p>
-            {list.length ? (
+          <section
+            key={r.profile.id}
+            id={`profil-${r.profile.id}`}
+            className="audit-group"
+            aria-label={r.profile.label}
+          >
+            <p className="rows-title">
+              {r.profile.label} · {r.score} %
+            </p>
+            {issues.length ? (
               <ul className="audit-list">
-                {list.map((c) => (
+                {issues.map((c) => (
                   <li key={c.id} className={`audit-row is-${c.status}`}>
-                    {c.group === 'Contrastes' ? (
-                      <span
-                        className="audit-sample"
-                        aria-hidden="true"
-                        style={{
-                          color: String(tokens[c.keys[0]].$value),
-                          background: String(tokens[c.keys[1]].$value),
-                        }}
-                      >
-                        Aa
-                      </span>
-                    ) : c.seen ? (
+                    {c.seen ? (
                       <span className="audit-pair" aria-hidden="true">
                         <span style={{ background: c.seen[0] }} />
                         <span style={{ background: c.seen[1] }} />
@@ -2247,67 +2278,57 @@ function AuditView({
                       </span>
                     </div>
                     <span className={`audit-status is-${c.status}`}>
-                      {c.group === 'Couleurs distinctes' && c.status !== 'tip'
-                        ? c.status === 'ok'
-                          ? 'Distinctes'
-                          : 'Confondues'
-                        : statusLabel[c.status]}
+                      {c.status === 'fail' ? 'À corriger' : 'Conseil'}
                     </span>
-                    {c.status !== 'ok' &&
-                    c.group !== 'Zones cliquables' &&
-                    c.id !== 'not-color-only' ? (
+                    {c.target && c.id !== 'not-color-only' ? (
                       <button
                         className="audit-edit"
-                        onClick={() => onEdit(c.fix?.key ?? c.keys[0])}
-                        aria-label={`Modifier à la main : ${c.label}`}
+                        onClick={() => onGo(r.profile.id, c.target!)}
                       >
-                        Modifier
+                        Corriger dans {where(c.target)}
                       </button>
                     ) : (
                       <span />
-                    )}
-                    {c.fix && (
-                      <div className="audit-fix">
-                        <span>
-                          Proposition : {tokenLabels[c.fix.key]}{' '}
-                          <code>
-                            {show(c.fix.key, String(tokens[c.fix.key].$value))}
-                          </code>{' '}
-                          →{' '}
-                          {tokens[c.fix.key].$type === 'color' && (
-                            <span
-                              className="audit-chip"
-                              style={{ background: c.fix.value }}
-                              aria-hidden="true"
-                            />
-                          )}
-                          <code>{show(c.fix.key, c.fix.value)}</code>
-                        </span>
-                        <button
-                          className="audit-apply"
-                          onClick={() => onFix(c.fix!.key, c.fix!.value)}
-                          aria-label={`Appliquer en brouillon : ${tokenLabels[c.fix.key]} ${c.fix.value}`}
-                        >
-                          Appliquer en brouillon
-                        </button>
-                      </div>
                     )}
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="empty">
-                Mesure en cours sur l’écran affiché dans l’aperçu.
-              </p>
+              <p className="report-ok">✓ Rien à corriger pour ce profil.</p>
             )}
           </section>
         );
       })}
-      <p className="audit-foot">
-        Les propositions gardent ta teinte et changent seulement la clarté.
-        Elles deviennent un brouillon : l’aperçu suit, puis tu valides avec «
-        Enregistrer ».
-      </p>
+      <section className="audit-group" aria-label="Zones cliquables">
+        <p className="rows-title">Zones cliquables · écran affiché</p>
+        {targets.length ? (
+          <ul className="audit-list">
+            {targets.map((c) => (
+              <li key={c.id} className={`audit-row is-${c.status}`}>
+                <span />
+                <div className="audit-text">
+                  <strong>{c.label}</strong>
+                  <span>
+                    {c.value} · {c.rule}
+                  </span>
+                </div>
+                <span className={`audit-status is-${c.status}`}>
+                  {c.status === 'ok'
+                    ? 'OK'
+                    : c.status === 'fail'
+                      ? 'À corriger'
+                      : 'Conseil'}
+                </span>
+                <span />
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="empty">
+            Mesure en cours sur l’écran affiché dans l’aperçu.
+          </p>
+        )}
+      </section>
     </div>
   );
 }

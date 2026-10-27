@@ -14,6 +14,8 @@ export interface Check {
   rule: string;
   status: CheckStatus;
   keys: TokenKey[];
+  // Token à ajuster pour corriger ce point (affiché sur sa ligne dans Couleurs).
+  target?: TokenKey;
   // Correction proposée : jamais appliquée seule, elle devient un brouillon.
   fix?: { key: TokenKey; value: string };
   // Pour « Couleurs distinctes » : couleurs telles que perçues par le profil.
@@ -258,6 +260,7 @@ export function auditTokens(tokens: Tokens, profile: Profile = 'aa'): Check[] {
         rule: `${distinctMin} conseillé (seuil de l’atelier, pas une norme)`,
         status: ok ? 'ok' : 'fail',
         keys: [a, b],
+        target: b,
         seen,
         fix: value ? { key: b, value } : undefined,
       };
@@ -290,6 +293,7 @@ export function auditTokens(tokens: Tokens, profile: Profile = 'aa'): Check[] {
       rule: `${num(min)}:1 minimum (WCAG ${kind === 'u' ? '1.4.11' : profile === 'aaa' ? '1.4.6' : '1.4.3'})`,
       status: ok ? 'ok' : 'fail',
       keys: [fg, bg],
+      target: adjust,
       fix: value ? { key: adjust, value } : undefined,
     };
   });
@@ -304,6 +308,7 @@ export function auditTokens(tokens: Tokens, profile: Profile = 'aa'): Check[] {
       rule: '16 px conseillés sur mobile',
       status: body >= 16 ? 'ok' : 'tip',
       keys: ['font.body'],
+      target: 'font.body',
       fix: body >= 16 ? undefined : { key: 'font.body', value: '16' },
     },
     {
@@ -314,6 +319,7 @@ export function auditTokens(tokens: Tokens, profile: Profile = 'aa'): Check[] {
       rule: 'Au moins 1,25 fois la taille du texte',
       status: heading >= body * 1.25 ? 'ok' : 'tip',
       keys: ['font.heading', 'font.body'],
+      target: 'font.heading',
       fix:
         heading >= body * 1.25
           ? undefined
@@ -401,4 +407,17 @@ export function score(checks: Check[]) {
   );
   const passed = required.filter((c) => c.status === 'ok').length;
   return required.length ? Math.round((passed / required.length) * 100) : 100;
+}
+
+// Bilan de tous les profils, pour l'écran de contrôle.
+export function auditAll(tokens: Tokens) {
+  return profiles.map((p) => {
+    const checks = auditTokens(tokens, p.id);
+    return {
+      profile: p,
+      checks,
+      score: score(checks),
+      fails: checks.filter((c) => c.status === 'fail').length,
+    };
+  });
 }

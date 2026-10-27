@@ -94,10 +94,10 @@ contenant des espaces est accepté. N’utilisez ni `sudo` ni installation de se
 - **En-tête** : bouton Brief, puis Historique, Importer et Exporter en icônes.
 - **Exports** (valeurs enregistrées uniquement) : Tokens JSON, Variables CSS,
   Tailwind v4, Tailwind v3 et Documentation (page HTML imprimable en PDF).
-- **Contrôle qualité › Accessibilité** : test par profil de vision (malvoyance AA ou
-  AAA, deutéranopie, protanopie, tritanopie, sans couleur), score, propositions de
-  correction appliquées en brouillon, zones cliquables mesurées dans l'aperçu et
-  simulation de la vision choisie sur l'aperçu.
+- **Accessibilité** : dans Couleurs, « Vérifier pour » un profil de vision (malvoyance
+  AA ou AAA, deutéranopie, protanopie, tritanopie, sans couleur), statut par couleur et
+  proposition appliquée en brouillon. Dans Contrôle qualité › Accessibilité, bilan
+  global par profil avec liens « Corriger dans… », et zones cliquables mesurées.
 
 Détail et justification de chaque choix : [DECISIONS](workspace/DECISIONS.md).
 
