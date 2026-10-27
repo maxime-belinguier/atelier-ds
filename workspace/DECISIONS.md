@@ -173,6 +173,34 @@ Limite : mockups indicatifs, pas des gabarits constructeur exacts.
 
 ## 27/10/2026 · Case « Voir en entier »
 
-La case « Ajuster » devient « Voir en entier », qui décrit le résultat plutôt
+La case « Ajuster » devient « Voir en entier » (remplacée ensuite par Fit | 100 %), qui décrit le résultat plutôt
 que l’action ; une info-bulle précise que la largeur réelle ne change pas.
 Tests navigateur mis à jour et réussis ; audit sans anomalie.
+
+## 27/10/2026 · Jauge des crédits Claude et zoom Fit | 100 %
+
+Problème : impossible de savoir où en est son abonnement Claude ; le libellé
+« Voir en entier » restait flou pour un mode d’affichage.
+Décision : le CLI est lu en sortie « stream » pour récupérer les pourcentages
+d’utilisation (session de 5 h et semaine) et l’heure de remise à zéro. Un mini
+cercle dans l’en-tête de l’assistant montre la fenêtre la plus entamée (vert,
+orange dès 70 %, corail dès 90 %) ; un clic ouvre le détail des deux jauges.
+Valeurs bornées, mémorisées dans le navigateur, mises à jour après chaque
+réponse. Dans l’Aperçu, la case devient un sélecteur « Fit | 100 % », le
+vocabulaire des outils de design (Figma : Zoom to fit).
+Sécurité : tout appel d’outil visible dans le flux de Claude est refusé.
+Preuves : 40 tests unitaires/API (dont lecture des limites et refus d’outil) et
+14 tests navigateur réussis ; essai réel ; audit de mise en page sans anomalie.
+Limite : pourcentages d’abonnement, pas un solde en euros ; pas de lecture
+avant la première réponse.
+
+## 27/10/2026 · Jauge fiabilisée et titre « Format »
+
+Problème : la jauge restait vide sur mon poste ; les boutons de taille
+n’avaient pas de titre.
+Décision : lecture des limites compatible avec l’ancien format du CLI (une
+seule fenêtre) ; si Claude répond sans limites, la jauge l’explique et propose
+« claude update » ; cause principale constatée : serveur non redémarré après
+la mise à jour. Titre « Format » devant les tailles d’écran.
+Preuves : 41 tests unitaires/API (dont ancien format) et 14 tests navigateur
+réussis ; jauge vérifiée sur mon Mac après redémarrage ; audit sans anomalie.

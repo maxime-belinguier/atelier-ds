@@ -884,7 +884,6 @@ small,
 }
 .chat-head h2 {
   font-size: 15px;
-  margin-right: auto;
 }
 .chat-head select {
   font-size: 12px;
@@ -1805,6 +1804,12 @@ select,
 .preview-row .preview-tools {
   margin-left: auto;
 }
+.row-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-2);
+  min-width: 52px;
+}
 .picker-trigger {
   width: 176px;
   justify-content: flex-start;
@@ -2006,6 +2011,111 @@ select,
     right: auto;
     flex-wrap: wrap;
   }
+}
+
+/* Jauge des crédits de l'abonnement */
+.credit-wrap {
+  position: relative;
+  margin-right: auto;
+}
+.credit-ring {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  min-height: 34px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  display: grid;
+  place-items: center;
+}
+.credit-ring:hover {
+  background: var(--surface-2);
+}
+.credit-ring svg {
+  position: absolute;
+  inset: 2px;
+  width: 30px;
+  height: 30px;
+  transform: rotate(-90deg);
+}
+.ring-track {
+  fill: none;
+  stroke: var(--bg-deep);
+  stroke-width: 4;
+}
+.ring-value {
+  fill: none;
+  stroke: #2f8a5b;
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+.ring-value.is-mid {
+  stroke: #d08a00;
+}
+.ring-value.is-high {
+  stroke: var(--accent-strong);
+}
+.credit-ring span {
+  position: relative;
+  font-size: 10px;
+  font-weight: 650;
+  color: var(--text);
+}
+.limits {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: -20px;
+  z-index: 5;
+  width: 300px;
+  max-width: calc(100vw - 48px);
+  box-shadow: 0 14px 34px #2c26502a;
+  background: var(--surface) !important;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 14px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+.limit-top {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-2);
+}
+.limit-top strong {
+  color: var(--text);
+}
+.limit-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--bg-deep);
+  overflow: hidden;
+  margin: 4px 0 3px;
+}
+.limit-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: #2f8a5b;
+}
+.limit-bar span.is-mid {
+  background: #d08a00;
+}
+.limit-bar span.is-high {
+  background: var(--accent-strong);
+}
+.limit-reset {
+  font-size: 10px;
+  color: var(--text-2);
+}
+.limit-note {
+  grid-column: 1 / -1;
+  margin: 4px 0 0;
+  font-size: 10px;
+  color: var(--text-2);
 }
 
 /* Composants du Design System : mêmes sources dans le catalogue et l'iframe. */

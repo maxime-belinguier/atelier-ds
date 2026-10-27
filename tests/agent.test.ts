@@ -239,3 +239,53 @@ test('Claude : compteur de tokens lu dans la sortie, cache inclus', () => {
     outputTokens: 42,
   });
 });
+
+test('Claude : flux ligne par ligne, limites d’abonnement lues et bornées', () => {
+  const raw = [
+    JSON.stringify({ type: 'system', subtype: 'init' }),
+    JSON.stringify({
+      type: 'rate_limit_event',
+      rate_limit_info: {
+        unifiedWindows: {
+          five_hour: { utilization: 0.91, resetsAt: 1793106600 },
+          seven_day: { utilization: 1.7, resetsAt: 1793386800 },
+          other: { utilization: 0.5, resetsAt: 1 },
+        },
+      },
+    }),
+    ok('{"message":"ok","changes":[]}'),
+  ].join('\n');
+  const r = parseClaudeOutput(raw);
+  assert.deepEqual(r.limits, [
+    { id: 'five_hour', utilization: 0.91, resetsAt: 1793106600 },
+    { id: 'seven_day', utilization: 1, resetsAt: 1793386800 },
+  ]);
+});
+
+test('Claude : appel d’outil visible dans le flux refusé', () => {
+  const raw = [
+    JSON.stringify({
+      type: 'assistant',
+      message: { content: [{ type: 'tool_use', name: 'Bash' }] },
+    }),
+    ok('{"message":"ok","changes":[]}'),
+  ].join('\n');
+  assert.throws(() => parseClaudeOutput(raw), /outil inattendu/);
+});
+
+test('Claude : ancien format de limite (une seule fenêtre) aussi lu', () => {
+  const raw = [
+    JSON.stringify({
+      type: 'rate_limit_event',
+      rate_limit_info: {
+        rateLimitType: 'five_hour',
+        utilization: 0.3,
+        resetsAt: 1793106600,
+      },
+    }),
+    ok('{"message":"ok","changes":[]}'),
+  ].join('\n');
+  assert.deepEqual(parseClaudeOutput(raw).limits, [
+    { id: 'five_hour', utilization: 0.3, resetsAt: 1793106600 },
+  ]);
+});

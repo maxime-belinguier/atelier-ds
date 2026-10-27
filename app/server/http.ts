@@ -245,6 +245,7 @@ export async function createStudioServer(options: {
               message: reply.message,
               proposal,
               usage: reply.usage ?? null,
+              limits: reply.limits ?? null,
             });
           } finally {
             busy = false;

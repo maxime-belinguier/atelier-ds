@@ -112,15 +112,15 @@ test('largeurs réelles, ajustement visuel, interactions et formulaire', async (
       );
     expect(columns).toBe(width >= 700 ? 2 : 1);
   }
-  // « Voir en entier » réduit l'affichage sans changer la largeur CSS réelle.
+  // « Fit » réduit l'affichage sans changer la largeur CSS réelle.
   const holder = page.locator('.frame-holder');
   expect(await holder.evaluate((el) => el.clientWidth)).toBeLessThan(1280);
-  await page.getByLabel('Voir en entier').uncheck();
+  await page.getByRole('button', { name: '100 %', exact: true }).click();
   expect(await holder.evaluate((el) => el.clientWidth)).toBeGreaterThanOrEqual(
     1280,
   );
   await expect(page.locator('iframe')).toHaveAttribute('width', '1280');
-  await page.getByLabel('Voir en entier').check();
+  await page.getByRole('button', { name: 'Fit', exact: true }).click();
   await page
     .getByRole('button', { name: 'Mobile 375 px', exact: true })
     .click();
@@ -428,7 +428,7 @@ test('panneaux redimensionnables au clavier, plein écran et assistant flottant'
   await expect(assistant).toBeHidden();
 });
 
-test('assistant : choix du modèle et de l’effort, tokens affichés par réponse', async ({
+test('assistant : modèle, effort, tokens et jauge des crédits', async ({
   page,
 }) => {
   let sent: Record<string, unknown> = {};
@@ -458,6 +458,10 @@ test('assistant : choix du modèle et de l’effort, tokens affichés par répon
           inputTokens: 12345,
           outputTokens: 210,
         },
+        limits: [
+          { id: 'five_hour', utilization: 0.42, resetsAt: 1793106600 },
+          { id: 'seven_day', utilization: 0.93, resetsAt: 1793386800 },
+        ],
       }),
     });
   });
@@ -471,6 +475,19 @@ test('assistant : choix du modèle et de l’effort, tokens affichés par répon
     page.getByText('Opus · effort élevé · 12 345 tokens envoyés · 210 générés'),
   ).toBeVisible();
   await expect(page.getByText('Conversation : 12 555 tokens')).toBeVisible();
+  // Jauge des crédits : mini cercle, détail au clic.
+  await expect(
+    page.getByRole('button', {
+      name: /^Crédits : Session \(5 h\) 42 %, Semaine 93 %/,
+    }),
+  ).toContainText('93');
+  await page.getByRole('button', { name: /^Crédits/ }).click();
+  await expect(
+    page.getByRole('progressbar', { name: 'Session (5 h) : crédits utilisés' }),
+  ).toHaveAttribute('aria-valuenow', '42');
+  await expect(
+    page.getByRole('progressbar', { name: 'Semaine : crédits utilisés' }),
+  ).toHaveAttribute('aria-valuenow', '93');
   expect(sent.model).toBe('opus');
   expect(sent.effort).toBe('high');
   expect(sent.history).toEqual([]);

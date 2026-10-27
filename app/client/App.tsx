@@ -188,6 +188,30 @@ function readAssistant(): AssistantPrefs {
   }
 }
 const fmt = (n: number) => n.toLocaleString('fr-FR');
+type Limits = {
+  id: 'five_hour' | 'seven_day';
+  utilization: number;
+  resetsAt: number;
+}[];
+const limitLabels = { five_hour: 'Session (5 h)', seven_day: 'Semaine' };
+function readLimits(): { limits: Limits; at: number } | undefined {
+  try {
+    const saved = JSON.parse(
+      localStorage.getItem('ds-studio-limits') || 'null',
+    );
+    return Array.isArray(saved?.limits) && typeof saved.at === 'number'
+      ? saved
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+function resetLabel(id: Limits[number]['id'], ts: number) {
+  const d = new Date(ts * 1000);
+  return id === 'five_hour'
+    ? `remise à zéro à ${d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`
+    : `remise à zéro ${d.toLocaleString('fr-FR', { weekday: 'long', hour: '2-digit', minute: '2-digit' })}`;
+}
 function modelName(id: string) {
   const m = id.match(/(opus|sonnet|haiku|fable)/i)?.[1];
   return m ? m[0].toUpperCase() + m.slice(1).toLowerCase() : 'Claude';
@@ -254,6 +278,18 @@ export default function App() {
   const [message, setMessage] = useState('');
   const [chat, setChat] = useState<ChatEntry[]>([]);
   const [assistant, setAssistant] = useState(readAssistant);
+  const [limits, setLimits] = useState(readLimits);
+  const [creditsOpen, setCreditsOpen] = useState(false);
+  const [limitsMissing, setLimitsMissing] = useState(false);
+  useEffect(() => {
+    if (!creditsOpen) return;
+    const close = (e: MouseEvent) => {
+      if (!(e.target as Element).closest?.('.credit-wrap'))
+        setCreditsOpen(false);
+    };
+    addEventListener('mousedown', close);
+    return () => removeEventListener('mousedown', close);
+  }, [creditsOpen]);
   const [thinking, setThinking] = useState(false);
   const controller = useRef<AbortController | null>(null);
   const historyDialog = useRef<HTMLDialogElement>(null);
@@ -409,6 +445,7 @@ export default function App() {
         message: string;
         proposal: Proposal | null;
         usage: ChatEntry['usage'] | null;
+        limits: Limits | null;
       }>(
         'agent',
         {
@@ -420,6 +457,18 @@ export default function App() {
         },
         abort.signal,
       );
+      // Réponse Claude sans limites : le CLI installé ne les transmet pas.
+      if (agent === 'claude' && result.usage)
+        setLimitsMissing(!result.limits?.length);
+      if (result.limits?.length) {
+        const next = { limits: result.limits, at: Date.now() };
+        setLimits(next);
+        try {
+          localStorage.setItem('ds-studio-limits', JSON.stringify(next));
+        } catch {
+          /* Affichage seulement. */
+        }
+      }
       setChat((c) => [
         ...c,
         {
@@ -479,6 +528,10 @@ export default function App() {
   const pendingCount = Object.keys(drafts.drafts).length;
   const selectedAgent = agents.find((a) => a.id === agent);
   const agentName = agent === 'codex' ? 'Codex' : 'Claude';
+  // Le cercle montre la fenêtre la plus entamée (souvent la session de 5 h).
+  const ringPct = limits
+    ? Math.round(Math.max(...limits.limits.map((l) => l.utilization)) * 100)
+    : undefined;
   const totalTokens = chat.reduce(
     (n, c) => n + (c.usage ? c.usage.inputTokens + c.usage.outputTokens : 0),
     0,
@@ -494,7 +547,7 @@ export default function App() {
   const [insetX, insetY] = frameInset[kind];
   const outerW = dev.width + insetX;
   const outerH = dev.height + insetY;
-  // « Voir en entier » fait tenir tout l'appareil (largeur et hauteur) dans le panneau.
+  // « Fit » fait tenir tout l'appareil (largeur et hauteur) dans le panneau.
   const availableW = Math.max(0, stageWidth - 64);
   const availableH = Math.max(0, stageHeight - 64);
   const scale =
@@ -1002,19 +1055,22 @@ export default function App() {
                 }}
               />
               <div className="preview-tools">
-                <label
-                  className="toggle"
-                  title="Réduit l’aperçu pour voir tout l’écran, sans changer sa largeur réelle"
-                >
-                  <input
-                    type="checkbox"
-                    checked={layout.fit}
-                    onChange={(e) =>
-                      setLayout({ ...layout, fit: e.target.checked })
-                    }
-                  />
-                  Voir en entier
-                </label>
+                <div className="segmented" role="group" aria-label="Zoom">
+                  <button
+                    aria-pressed={layout.fit}
+                    title="Fit : l’aperçu tient entièrement dans le panneau"
+                    onClick={() => setLayout({ ...layout, fit: true })}
+                  >
+                    Fit
+                  </button>
+                  <button
+                    aria-pressed={!layout.fit}
+                    title="100 % : taille réelle, défilement si besoin"
+                    onClick={() => setLayout({ ...layout, fit: false })}
+                  >
+                    100 %
+                  </button>
+                </div>
                 <label
                   className={`toggle${isFree ? ' is-disabled' : ''}`}
                   title={
@@ -1045,10 +1101,13 @@ export default function App() {
               </div>
             </div>
             <div className="preview-row">
+              <span className="row-label" aria-hidden="true">
+                Format
+              </span>
               <div
                 className="segmented"
                 role="group"
-                aria-label="Largeur d’écran"
+                aria-label="Format d’écran"
               >
                 {devices.map((d) => (
                   <button
@@ -1210,6 +1269,101 @@ export default function App() {
       >
         <div className="chat-head">
           <h2 id="chat-title">Assistant</h2>
+          {agent === 'claude' && (
+            <div className="credit-wrap">
+              <button
+                className="credit-ring"
+                aria-expanded={creditsOpen}
+                aria-controls="credits-pop"
+                aria-label={
+                  limits
+                    ? `Crédits : ${limits.limits
+                        .map(
+                          (l) =>
+                            `${limitLabels[l.id]} ${Math.round(l.utilization * 100)} %`,
+                        )
+                        .join(', ')}`
+                    : 'Crédits : pas encore connus'
+                }
+                title="Crédits de l’abonnement"
+                onClick={() => setCreditsOpen(!creditsOpen)}
+              >
+                <svg viewBox="0 0 36 36" aria-hidden="true">
+                  <circle cx="18" cy="18" r="15" className="ring-track" />
+                  {ringPct !== undefined && (
+                    <circle
+                      cx="18"
+                      cy="18"
+                      r="15"
+                      className={`ring-value${ringPct >= 90 ? ' is-high' : ringPct >= 70 ? ' is-mid' : ''}`}
+                      strokeDasharray={`${(ringPct / 100) * 94.25} 94.25`}
+                    />
+                  )}
+                </svg>
+                <span>{ringPct !== undefined ? ringPct : '–'}</span>
+              </button>
+              {creditsOpen && (
+                <div
+                  className="limits"
+                  id="credits-pop"
+                  role="dialog"
+                  aria-label="Crédits de l’abonnement Claude"
+                >
+                  {limits ? (
+                    <>
+                      {limits.limits.map((l) => {
+                        const pct = Math.round(l.utilization * 100);
+                        return (
+                          <div className="limit" key={l.id}>
+                            <div className="limit-top">
+                              <span>{limitLabels[l.id]}</span>
+                              <strong>{pct} %</strong>
+                            </div>
+                            <div
+                              className="limit-bar"
+                              role="progressbar"
+                              aria-label={`${limitLabels[l.id]} : crédits utilisés`}
+                              aria-valuemin={0}
+                              aria-valuemax={100}
+                              aria-valuenow={pct}
+                            >
+                              <span
+                                className={
+                                  pct >= 90
+                                    ? 'is-high'
+                                    : pct >= 70
+                                      ? 'is-mid'
+                                      : ''
+                                }
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                            <span className="limit-reset">
+                              {resetLabel(l.id, l.resetsAt)}
+                            </span>
+                          </div>
+                        );
+                      })}
+                      <p className="limit-note">
+                        Mis à jour à{' '}
+                        {new Date(limits.at).toLocaleTimeString('fr-FR', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                        , après la dernière réponse.
+                      </p>
+                    </>
+                  ) : (
+                    <p className="limit-note">
+                      {limitsMissing
+                        ? 'Ton CLI Claude ne transmet pas cette information. Mets-le à jour avec « claude update » dans un terminal, puis redémarre DS-Studio.'
+                        : 'Tes crédits s’affichent après la première réponse.'}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
           <select
             aria-label="Assistant utilisé"
             value={agent}

@@ -8,6 +8,7 @@ import {
   claudeModels,
   type AgentAdapter,
   type AgentContext,
+  type AgentLimits,
   type AgentOptions,
 } from './types.js';
 
@@ -21,7 +22,8 @@ export const claudeSystemPrompt = `Tu es l'assistant DS-Studio. Travaille unique
 export const claudeArgs = [
   '-p',
   '--output-format',
-  'json',
+  'stream-json',
+  '--verbose',
   '--tools',
   '',
   '--no-chrome',
@@ -145,6 +147,36 @@ export function claudeArgsFor(options: AgentOptions = {}) {
   return args;
 }
 
+// Pourcentages d'utilisation de l'abonnement (fenêtres de 5 h et de 7 jours),
+// tels que renvoyés par le CLI. Valeurs bornées, rien d'autre n'est conservé.
+function readLimits(item: Record<string, unknown>): AgentLimits | undefined {
+  type Win = { utilization?: unknown; resetsAt?: unknown };
+  const info = item.rate_limit_info as
+    | (Win & { rateLimitType?: unknown; unifiedWindows?: Record<string, Win> })
+    | undefined;
+  if (!info) return undefined;
+  // Format récent : plusieurs fenêtres ; format plus ancien : une seule.
+  const windows: Record<string, Win> = info.unifiedWindows ?? {
+    [String(info.rateLimitType ?? '')]: info,
+  };
+  const out: AgentLimits = [];
+  for (const id of ['five_hour', 'seven_day'] as const) {
+    const w = windows[id];
+    if (
+      w &&
+      typeof w.utilization === 'number' &&
+      Number.isFinite(w.utilization) &&
+      typeof w.resetsAt === 'number'
+    )
+      out.push({
+        id,
+        utilization: Math.min(1, Math.max(0, w.utilization)),
+        resetsAt: w.resetsAt,
+      });
+  }
+  return out.length ? out : undefined;
+}
+
 export function parseClaudeOutput(raw: string) {
   let event: {
     type?: string;
@@ -161,13 +193,34 @@ export function parseClaudeOutput(raw: string) {
     };
     modelUsage?: Record<string, unknown>;
   };
-  try {
-    event = JSON.parse(raw);
-  } catch {
+  // Sortie ligne par ligne : on garde le résultat final et l'état des limites
+  // d'abonnement ; tout appel d'outil visible dans le flux est refusé.
+  let found: typeof event | undefined;
+  let limits: AgentLimits | undefined;
+  let toolUse = false;
+  for (const line of raw.split('\n')) {
+    if (!line.trim()) continue;
+    let item: Record<string, unknown>;
+    try {
+      item = JSON.parse(line);
+    } catch {
+      continue;
+    }
+    if (item.type === 'result') found = item as typeof event;
+    if (item.type === 'rate_limit_event') limits = readLimits(item) ?? limits;
+    if (item.type === 'assistant') {
+      const content = (item.message as { content?: { type?: string }[] })
+        ?.content;
+      if (content?.some((c) => c.type === 'tool_use')) toolUse = true;
+    }
+  }
+  if (!found)
     throw new Error(
       'Échec Claude : réponse illisible. Aucune écriture appliquée.',
     );
-  }
+  event = found;
+  if (toolUse)
+    throw new Error('Claude a tenté un outil inattendu. Intégration refusée.');
   if (
     event.type !== 'result' ||
     event.subtype !== 'success' ||
@@ -188,6 +241,7 @@ export function parseClaudeOutput(raw: string) {
     const models = Object.keys(event.modelUsage ?? {});
     return {
       ...reply,
+      limits,
       usage: {
         // Le modèle principal est le dernier listé (un petit modèle annexe peut précéder).
         model: models.at(-1) ?? '',

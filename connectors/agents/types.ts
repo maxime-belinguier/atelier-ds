@@ -18,6 +18,11 @@ export interface AgentUsage {
   inputTokens: number;
   outputTokens: number;
 }
+export type AgentLimits = {
+  id: 'five_hour' | 'seven_day';
+  utilization: number;
+  resetsAt: number;
+}[];
 export interface AgentAdapter {
   id: string;
   status(): Promise<{ available: boolean; detail: string }>;
@@ -26,5 +31,5 @@ export interface AgentAdapter {
     context: AgentContext,
     signal?: AbortSignal,
     options?: AgentOptions,
-  ): Promise<AgentReply & { usage?: AgentUsage }>;
+  ): Promise<AgentReply & { usage?: AgentUsage; limits?: AgentLimits }>;
 }
