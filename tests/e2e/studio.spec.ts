@@ -742,3 +742,28 @@ test('couleurs : vérifier pour un profil, appliquer la proposition, aperçu sim
   await expect(frame).toHaveCSS('filter', 'none');
   await expect(page.getByLabel('Type de vision')).toHaveValue('aa');
 });
+
+test('aperçu : Comparer affiche deux formats qui suivent les modifications', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Comparer' }).click();
+  await expect(page.getByRole('button', { name: 'Comparer' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  const left = page.frameLocator('iframe[title="Aperçu Mobile 375 px"]');
+  const right = page.frameLocator('iframe[title="Aperçu Grand écran 1440 px"]');
+  await page.getByLabel('Couleur de marque', { exact: true }).fill('#AA2200');
+  for (const f of [left, right])
+    await expect(
+      f.getByRole('button', { name: 'Garder ce logement', exact: true }),
+    ).toHaveCSS('background-color', 'rgb(170, 34, 0)');
+  await page.getByLabel('Format droite').selectOption('tab');
+  await expect(
+    page.locator('iframe[title="Aperçu Tablette 768 px"]'),
+  ).toHaveAttribute('width', '768');
+  await page.getByRole('button', { name: 'Comparer' }).click();
+  await expect(page.locator('iframe')).toHaveCount(1);
+});

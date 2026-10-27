@@ -327,3 +327,11 @@ Le libellé « Figma non connecté » reste affiché : c’est l’état réel.
 - Le menu « Vérifier pour » devient « Type de vision », pour montrer qu'on passe d'une vue à l'autre.
 - Premier choix et valeur par défaut : « Vision classique » (norme de base WCAG AA, aperçu normal).
 - « Malvoyance » correspond maintenant au contraste renforcé (AAA, 7:1 pour le texte). Suivent Deutéranopie, Protanopie, Tritanopie et Sans couleur.
+
+## 27/10/2026 · Aperçu : mode Comparer (2 formats côte à côte)
+- Bouton « Comparer » dans la barre de l'Aperçu. Deux formats seulement : à trois, le desktop devient illisible dans un panneau d'environ 700 px.
+- Par défaut : Mobile 375 à gauche, Grand écran 1440 à droite. Deux menus « Gauche » et « Droite » pour changer de format.
+- Les deux appareils sont affichés à la même hauteur, avec leur échelle sous chacun. Même écran, mêmes modifications en cours, même type de vision. Le plein écran ⤢ les agrandit.
+- En mode Comparer, Fit / 100 % est masqué (toujours ajusté) ; le Mockup reste disponible.
+- La barre de l'Aperçu passe à la ligne plus tôt pour ne jamais déborder.
+- Correctif layout du mode Comparer : plus aucun saut. Fit / 100 % reste en place (grisé pendant la comparaison), « Comparer » est placé après Mockup, et la ligne « Format » garde son libellé et sa hauteur : « Format [Gauche] et [Droite] », sur une seule ligne. Vérifié par mesure : position du bouton et hauteur de l'en-tête identiques avant et après le clic.

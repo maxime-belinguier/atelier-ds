@@ -1,4 +1,5 @@
 import {
+  Fragment,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -346,6 +347,9 @@ export default function App() {
   const [notice, setNotice] = useState('');
   const [device, setDevice] = useState('sm');
   const [freeOpen, setFreeOpen] = useState(false);
+  // Mode Comparer : deux formats côte à côte (mobile et desktop par défaut).
+  const [compare, setCompare] = useState(false);
+  const [pair, setPair] = useState<[string, string]>(['sm', 'xl']);
   const [scenario, setScenario] = useState('cards');
   const [layout, setLayout] = useState(readLayout);
   const [full, setFull] = useState(false);
@@ -519,16 +523,20 @@ export default function App() {
   // Aperçu en direct dans l'iframe : rien n'est écrit sur disque.
   const previewTokens = drafts.changes.length ? drafts.preview : undefined;
   useEffect(() => {
+    // Une ou deux iframes (mode Comparer) : toutes reçoivent l'aperçu.
+    const frames = () => [...(stage.current?.querySelectorAll('iframe') ?? [])];
     const post = () =>
-      iframe.current?.contentWindow?.postMessage(
-        { type: 'ds-preview', tokens: previewTokens ?? null },
-        location.origin,
+      frames().forEach((f) =>
+        f.contentWindow?.postMessage(
+          { type: 'ds-preview', tokens: previewTokens ?? null },
+          location.origin,
+        ),
       );
     post();
     const onReady = (e: MessageEvent) => {
       if (
         e.origin === location.origin &&
-        e.source === iframe.current?.contentWindow &&
+        frames().some((f) => e.source === f.contentWindow) &&
         e.data?.type === 'ds-preview-ready'
       )
         post();
@@ -715,6 +723,28 @@ export default function App() {
     layout.fit && availableW > 0 && availableH > 0
       ? Math.min(1, availableW / outerW, availableH / outerH)
       : 1;
+  // Comparer : chaque appareil tient dans la moitié du panneau.
+  const pairDevices = pair.map(
+    (id) => devices.find((d) => d.id === id) ?? devices[1],
+  );
+  // Les deux appareils sont affichés à la même hauteur, côte à côte.
+  const pairBoxes = pairDevices.map((d) => {
+    const k: FrameKind = layout.frame ? frameKind(d.width) : 'none';
+    const [ix, iy] = frameInset[k];
+    return { d, k, w: d.width + ix, h: d.height + iy };
+  });
+  const pairRowW = Math.max(0, stageWidth - 64 - 24);
+  const pairH = Math.max(
+    0,
+    Math.min(
+      availableH - 30,
+      pairRowW / pairBoxes.reduce((t, b) => t + b.w / b.h, 0),
+    ),
+  );
+  const pairFrames = pairBoxes.map((b) => ({
+    ...b,
+    sc: pairH > 0 ? Math.min(1, pairH / b.h) : 1,
+  }));
   function startResize(
     e: PointerEvent<HTMLSpanElement>,
     axis: 'x' | 'y' | 'xy',
@@ -1542,7 +1572,16 @@ export default function App() {
                 }}
               />
               <div className="preview-tools">
-                <div className="segmented" role="group" aria-label="Zoom">
+                <div
+                  className={`segmented${compare ? ' is-disabled' : ''}`}
+                  role="group"
+                  aria-label="Zoom"
+                  title={
+                    compare
+                      ? 'Comparer ajuste toujours les deux aperçus'
+                      : undefined
+                  }
+                >
                   <button
                     aria-pressed={layout.fit}
                     title="Fit : l’aperçu tient entièrement dans le panneau"
@@ -1559,7 +1598,7 @@ export default function App() {
                   </button>
                 </div>
                 <label
-                  className={`toggle${isFree ? ' is-disabled' : ''}`}
+                  className={`toggle${isFree && !compare ? ' is-disabled' : ''}`}
                   title={
                     isFree
                       ? 'Mockup disponible pour les formats prédéfinis'
@@ -1568,14 +1607,39 @@ export default function App() {
                 >
                   <input
                     type="checkbox"
-                    checked={!isFree && layout.frame}
-                    disabled={isFree}
+                    checked={(compare || !isFree) && layout.frame}
+                    disabled={isFree && !compare}
                     onChange={(e) =>
                       setLayout({ ...layout, frame: e.target.checked })
                     }
                   />
                   Mockup
                 </label>
+                <button
+                  className="compare-toggle"
+                  aria-pressed={compare}
+                  title="Afficher deux formats côte à côte"
+                  onClick={() => {
+                    setCompare(!compare);
+                    setFreeOpen(false);
+                  }}
+                >
+                  <svg
+                    aria-hidden="true"
+                    width="15"
+                    height="15"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <rect x="2" y="4" width="8" height="16" rx="2" />
+                    <rect x="13" y="6" width="9" height="12" rx="1.5" />
+                  </svg>
+                  Comparer
+                </button>
                 <button
                   className="icon-button"
                   aria-pressed={full}
@@ -1587,87 +1651,128 @@ export default function App() {
                 </button>
               </div>
             </div>
-            <div className="preview-row">
-              <span className="row-label" aria-hidden="true">
-                Format
-              </span>
-              <div
-                className="segmented"
-                role="group"
-                aria-label="Format d’écran"
-              >
-                {devices.map((d) => (
+            {compare ? (
+              <div className="preview-row compare-row">
+                <span className="row-label" aria-hidden="true">
+                  Format
+                </span>
+                {(['gauche', 'droite'] as const).map((side, i) => (
+                  <Fragment key={side}>
+                    {i === 1 && (
+                      <span className="compare-and" aria-hidden="true">
+                        et
+                      </span>
+                    )}
+                    <select
+                      className="compare-select"
+                      aria-label={`Format ${side}`}
+                      value={pair[i]}
+                      onChange={(e) =>
+                        setPair(
+                          i === 0
+                            ? [e.target.value, pair[1]]
+                            : [pair[0], e.target.value],
+                        )
+                      }
+                    >
+                      {devices.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.title} · {d.width}
+                        </option>
+                      ))}
+                    </select>
+                  </Fragment>
+                ))}
+              </div>
+            ) : (
+              <div className="preview-row">
+                <span className="row-label" aria-hidden="true">
+                  Format
+                </span>
+                <div
+                  className="segmented"
+                  role="group"
+                  aria-label="Format d’écran"
+                >
+                  {devices.map((d) => (
+                    <button
+                      key={d.id}
+                      aria-pressed={device === d.id}
+                      title={`${d.title} · ${d.width} × ${d.height} px`}
+                      aria-label={`${d.title} ${d.width} px`}
+                      onClick={() => {
+                        setDevice(d.id);
+                        setFreeOpen(false);
+                      }}
+                    >
+                      {d.label}
+                    </button>
+                  ))}
                   <button
-                    key={d.id}
-                    aria-pressed={device === d.id}
-                    title={`${d.title} · ${d.width} × ${d.height} px`}
-                    aria-label={`${d.title} ${d.width} px`}
+                    aria-pressed={isFree}
+                    aria-expanded={freeOpen}
+                    aria-label={`Format libre ${layout.free.w} × ${layout.free.h} px`}
                     onClick={() => {
-                      setDevice(d.id);
-                      setFreeOpen(false);
+                      setDevice('free');
+                      setFreeOpen(!isFree || !freeOpen);
                     }}
                   >
-                    {d.label}
+                    {isFree ? `${layout.free.w} × ${layout.free.h}` : 'Libre'}
                   </button>
-                ))}
-                <button
-                  aria-pressed={isFree}
-                  aria-expanded={freeOpen}
-                  aria-label={`Format libre ${layout.free.w} × ${layout.free.h} px`}
-                  onClick={() => {
-                    setDevice('free');
-                    setFreeOpen(!isFree || !freeOpen);
-                  }}
-                >
-                  {isFree ? `${layout.free.w} × ${layout.free.h}` : 'Libre'}
-                </button>
-              </div>
-              {freeOpen && isFree && (
-                <div
-                  className="free-pop"
-                  onBlur={(e) => {
-                    if (!e.currentTarget.contains(e.relatedTarget as Node))
-                      setFreeOpen(false);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Escape' || e.key === 'Enter')
-                      setFreeOpen(false);
-                  }}
-                >
-                  <input
-                    type="number"
-                    aria-label="Largeur en px"
-                    min={240}
-                    max={1920}
-                    defaultValue={layout.free.w}
-                    key={`w${layout.free.w}`}
-                    autoFocus
-                    onBlur={(e) =>
-                      setLayout({
-                        ...layout,
-                        free: clampSize(Number(e.target.value), layout.free.h),
-                      })
-                    }
-                  />
-                  <span>×</span>
-                  <input
-                    type="number"
-                    aria-label="Hauteur en px"
-                    min={320}
-                    max={1600}
-                    defaultValue={layout.free.h}
-                    key={`h${layout.free.h}`}
-                    onBlur={(e) =>
-                      setLayout({
-                        ...layout,
-                        free: clampSize(layout.free.w, Number(e.target.value)),
-                      })
-                    }
-                  />
-                  <span className="free-hint">px · ou étirez l’aperçu</span>
                 </div>
-              )}
-            </div>
+                {freeOpen && isFree && (
+                  <div
+                    className="free-pop"
+                    onBlur={(e) => {
+                      if (!e.currentTarget.contains(e.relatedTarget as Node))
+                        setFreeOpen(false);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape' || e.key === 'Enter')
+                        setFreeOpen(false);
+                    }}
+                  >
+                    <input
+                      type="number"
+                      aria-label="Largeur en px"
+                      min={240}
+                      max={1920}
+                      defaultValue={layout.free.w}
+                      key={`w${layout.free.w}`}
+                      autoFocus
+                      onBlur={(e) =>
+                        setLayout({
+                          ...layout,
+                          free: clampSize(
+                            Number(e.target.value),
+                            layout.free.h,
+                          ),
+                        })
+                      }
+                    />
+                    <span>×</span>
+                    <input
+                      type="number"
+                      aria-label="Hauteur en px"
+                      min={320}
+                      max={1600}
+                      defaultValue={layout.free.h}
+                      key={`h${layout.free.h}`}
+                      onBlur={(e) =>
+                        setLayout({
+                          ...layout,
+                          free: clampSize(
+                            layout.free.w,
+                            Number(e.target.value),
+                          ),
+                        })
+                      }
+                    />
+                    <span className="free-hint">px · ou étirez l’aperçu</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           <div className="stage" ref={stage}>
             {vision !== 'none' && (
@@ -1694,69 +1799,124 @@ export default function App() {
                 </span>
               </div>
             )}
-            <div
-              className="frame-holder"
-              style={{ width: outerW * scale, height: outerH * scale }}
-            >
-              <div
-                className={`device device-${kind}`}
-                style={{
-                  width: outerW,
-                  height: outerH,
-                  transform: `scale(${scale})`,
-                }}
-              >
-                {kind === 'browser' && (
-                  <div className="browser-bar" aria-hidden="true">
-                    <i />
-                    <i />
-                    <i />
-                    <span>gutt.app</span>
-                  </div>
-                )}
-                {kind === 'phone' && (
-                  <span className="device-island" aria-hidden="true" />
-                )}
-                <VisionFilters />
-                <iframe
-                  ref={iframe}
-                  style={{ filter: visionFilter(vision) }}
-                  title="Aperçu responsive"
-                  src={`/?preview=1&scenario=${scenario}`}
-                  width={dev.width}
-                  height={dev.height}
-                />
+            <VisionFilters />
+            {compare ? (
+              <div className="compare-stage">
+                {pairFrames.map(({ d, k, w, h, sc }, i) => (
+                  <figure key={i} className="compare-cell">
+                    <div
+                      className="frame-holder"
+                      style={{ width: w * sc, height: h * sc }}
+                    >
+                      <div
+                        className={`device device-${k}`}
+                        style={{
+                          width: w,
+                          height: h,
+                          transform: `scale(${sc})`,
+                        }}
+                      >
+                        {k === 'browser' && (
+                          <div className="browser-bar" aria-hidden="true">
+                            <i />
+                            <i />
+                            <i />
+                            <span>gutt.app</span>
+                          </div>
+                        )}
+                        {k === 'phone' && (
+                          <span className="device-island" aria-hidden="true" />
+                        )}
+                        <iframe
+                          ref={i === 0 ? iframe : undefined}
+                          style={{ filter: visionFilter(vision) }}
+                          title={`Aperçu ${d.title} ${d.width} px`}
+                          src={`/?preview=1&scenario=${scenario}`}
+                          width={d.width}
+                          height={d.height}
+                        />
+                      </div>
+                    </div>
+                    <figcaption>
+                      {d.title} · {d.width} px · {Math.round(sc * 100)} %
+                    </figcaption>
+                  </figure>
+                ))}
               </div>
-              {isFree && (
-                <>
-                  <span
-                    className="resize-handle handle-x"
-                    aria-hidden="true"
-                    onPointerDown={(e) => startResize(e, 'x')}
+            ) : (
+              <div
+                className="frame-holder"
+                style={{ width: outerW * scale, height: outerH * scale }}
+              >
+                <div
+                  className={`device device-${kind}`}
+                  style={{
+                    width: outerW,
+                    height: outerH,
+                    transform: `scale(${scale})`,
+                  }}
+                >
+                  {kind === 'browser' && (
+                    <div className="browser-bar" aria-hidden="true">
+                      <i />
+                      <i />
+                      <i />
+                      <span>gutt.app</span>
+                    </div>
+                  )}
+                  {kind === 'phone' && (
+                    <span className="device-island" aria-hidden="true" />
+                  )}
+                  <iframe
+                    ref={iframe}
+                    style={{ filter: visionFilter(vision) }}
+                    title="Aperçu responsive"
+                    src={`/?preview=1&scenario=${scenario}`}
+                    width={dev.width}
+                    height={dev.height}
                   />
-                  <span
-                    className="resize-handle handle-y"
-                    aria-hidden="true"
-                    onPointerDown={(e) => startResize(e, 'y')}
-                  />
-                  <span
-                    className="resize-handle handle-xy"
-                    aria-hidden="true"
-                    onPointerDown={(e) => startResize(e, 'xy')}
-                  />
-                </>
-              )}
-            </div>
+                </div>
+                {isFree && (
+                  <>
+                    <span
+                      className="resize-handle handle-x"
+                      aria-hidden="true"
+                      onPointerDown={(e) => startResize(e, 'x')}
+                    />
+                    <span
+                      className="resize-handle handle-y"
+                      aria-hidden="true"
+                      onPointerDown={(e) => startResize(e, 'y')}
+                    />
+                    <span
+                      className="resize-handle handle-xy"
+                      aria-hidden="true"
+                      onPointerDown={(e) => startResize(e, 'xy')}
+                    />
+                  </>
+                )}
+              </div>
+            )}
           </div>
           <div className="pane-foot">
-            {dev.title} · {dev.width} × {dev.height} px CSS
-            {kind !== 'none' ? ` · mockup ${frameLabel[kind]}` : ''} ·{' '}
-            {scale < 1
-              ? `affiché à ${Math.round(scale * 100)} %`
-              : 'taille réelle'}
-            {previewTokens
-              ? ' · aperçu des modifications non enregistrées'
-              : ''}
+            {compare ? (
+              <>
+                Comparaison · {pairDevices[0].title} {pairDevices[0].width} px
+                et {pairDevices[1].title} {pairDevices[1].width} px · même
+                écran, mêmes modifications
+              </>
+            ) : (
+              <>
+                {dev.title} · {dev.width} × {dev.height} px CSS
+                {kind !== 'none' ? ` · mockup ${frameLabel[kind]}` : ''} ·{' '}
+                {scale < 1
+                  ? `affiché à ${Math.round(scale * 100)} %`
+                  : 'taille réelle'}
+                {previewTokens
+                  ? ' · aperçu des modifications non enregistrées'
+                  : ''}
+              </>
+            )}
           </div>
         </section>
       </main>

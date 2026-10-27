@@ -2990,3 +2990,101 @@ select,
   color: #1f6b44;
   font-size: 13px;
 }
+
+/* Aperçu : mode Comparer */
+.compare-toggle {
+  height: 34px;
+  min-height: 34px;
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px !important;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 550;
+  cursor: pointer;
+}
+.compare-toggle:hover {
+  background: var(--surface-2);
+}
+.compare-toggle[aria-pressed='true'] {
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--surface);
+}
+.compare-stage {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 24px;
+  min-height: 100%;
+}
+.compare-cell {
+  margin: 0;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.compare-cell .frame-holder {
+  margin: 0;
+}
+.compare-cell figcaption {
+  font-size: 12px;
+  color: var(--text-2);
+}
+.compare-stage {
+  align-items: center;
+  height: 100%;
+}
+/* Le bouton Comparer élargit la barre : elle passe à la ligne plus tôt. */
+@container preview (max-width: 720px) {
+  .preview-row {
+    flex-wrap: wrap;
+  }
+  .preview-row .preview-tools {
+    margin-left: 0;
+  }
+}
+
+/* Comparer : même gabarit que la ligne Format, rien ne bouge. */
+.compare-select {
+  height: 34px !important;
+  min-height: 34px;
+  width: auto !important;
+  min-width: 0;
+  max-width: 200px;
+  flex: 0 1 200px;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  border-radius: 999px !important;
+  font-size: 13px !important;
+}
+.compare-and {
+  font-size: 12px;
+  color: var(--text-2);
+}
+.segmented.is-disabled {
+  opacity: 0.45;
+}
+.segmented.is-disabled button {
+  cursor: not-allowed;
+}
+/* En-tête de l'aperçu : chaque ligne garde sa hauteur naturelle. */
+.pane-head.preview-head {
+  flex-wrap: nowrap;
+}
+.preview-head > .preview-row {
+  flex: none;
+}
+.preview-row.compare-row {
+  flex-wrap: nowrap;
+}
+.compare-row .compare-select {
+  flex: 1 1 0;
+  min-width: 0;
+}
