@@ -347,9 +347,10 @@ menus sur la même ligne. Les deux appareils ont la même hauteur, l’échelle
 s’affiche sous chacun ; même écran, mêmes modifications, même type de vision.
 Fit / 100 % reste en place, grisé pendant la comparaison ; le plein écran ⤢
 agrandit les deux. Panneau étroit : Comparer en icône seule.
-Deuxième usage, « Avant / après » : même format des deux côtés, valeurs
-enregistrées à gauche, modifications en cours à droite (avec leur nombre). On
-voit l’effet d’une modif avant de l’enregistrer.
+Comparer s’ouvre toujours sur les deux formats. Deuxième usage, « Avant / après » :
+même format des deux côtés, valeurs enregistrées à gauche (avant), modifications
+en cours à droite (après, avec leur nombre), dans le sens de lecture. On voit
+l’effet d’une modif avant de l’enregistrer.
 Écarté après essai : Comparer dans la ligne du titre (la barre passait à la
 ligne et les outils changeaient de place).
 Preuves : test navigateur (deux aperçus qui suivent une modification, changement
@@ -360,19 +361,20 @@ identiques avant et après le clic ; audit de mise en page sans anomalie.
 
 Problème : l’atelier a beaucoup de zones ; une personne qui l’ouvre (intervenant,
 camarade, jury) ne sait pas par où commencer.
-Décision : visite courte en 5 étapes, une par grande zone, mise en évidence :
-1. Design System (choisir une catégorie, modifier une valeur) ; 2. Enregistrer
-(diff avant écriture) ; 3. Aperçu (écrans, formats, Comparer) ; 4. Claude (chat
-ouvert pendant l’étape, modèle et quota) ; 5. Accessibilité (la page de contrôle
-s’ouvre, le menu défile jusqu’au lien), avec en conclusion l’export et le bouton
-« ? ». Ouverte seule au premier lancement, puis avec le bouton « ? » de l’en-tête.
-Passer, Précédent, Suivant, flèches du clavier et Échap.
-Écarté : une première version en 11 étapes (une par bouton), jugée trop longue.
+Décision : visite courte en 6 étapes, dans l’ordre du travail : 1. Design System
+(choisir une catégorie, modifier une valeur) ; 2. Contrôle d’accessibilité, juste
+après la modification et avant d’enregistrer (la page s’ouvre, le menu défile
+jusqu’au lien) ; 3. Enregistrer (diff avant écriture) ; 4. Aperçu (écrans,
+formats) ; 5. Comparer (activé pendant l’étape) ; 6. Claude (chat ouvert, modèle
+et quota), avec en conclusion l’export et le bouton « ? ». Ouverte seule au
+premier lancement, puis avec « ? ». Passer, Précédent, Suivant, flèches et Échap.
+Écarté : 11 étapes (trop long), puis 5 étapes (Comparer invisible, contrôle
+d’accessibilité montré trop tard).
 Fluidité : à chaque étape, la carte et le contour attendent que la zone visée ne
 bouge plus ; la carte réapparaît en fondu, déjà à sa place, sans glisser. En
 quittant la visite, l’atelier retrouve son état d’avant (chat, Comparer, page).
 Correctif général : changer de page dans le Design System repart du haut.
 Preuves : test navigateur (ouverture au premier lancement, pas de réouverture,
-relance par « ? », 5 étapes, page de contrôle affichée, état rétabli) ; position
+relance par « ? », 6 étapes, contrôle en étape 2, Comparer affiché, état rétabli) ; position
 de la carte mesurée à chaque image à 1440, 1280 et 1024 px : une seule position
 par étape, jamais hors écran ; captures relues.

@@ -777,40 +777,42 @@ test('aperçu : Comparer affiche deux formats qui suivent les modifications', as
   await expect(page.locator('iframe')).toHaveCount(1);
 });
 
-test('visite guidée : 5 étapes, ouverte au premier lancement, relancée avec « ? »', async ({
+test('visite guidée : 6 étapes, ouverte au premier lancement, relancée avec « ? »', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/');
   const tour = page.getByRole('dialog', { name: 'Ton Design System' });
   await expect(tour).toBeVisible();
-  await expect(tour).toContainText('Étape 1 sur 5');
-  await page.getByRole('button', { name: 'Suivant', exact: true }).click();
+  await expect(tour).toContainText('Étape 1 sur 6');
+  const next = () =>
+    page.getByRole('button', { name: 'Suivant', exact: true }).click();
+  await next();
+  // Le contrôle vient juste après la modification, avant d'enregistrer.
   await expect(
-    page.getByRole('dialog', { name: 'Enregistre quand tu es prêt' }),
+    page.getByRole('dialog', { name: 'Contrôle l’accessibilité' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Contrôle d’accessibilité' }),
   ).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(page.locator('.tour')).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Couleurs' })).toBeVisible();
   // Vue une fois : ne se rouvre pas seule.
   await page.reload();
   await expect(page.locator('.tour')).toHaveCount(0);
   await page.getByRole('button', { name: 'Visite guidée' }).click();
   await expect(tour).toBeVisible();
-  for (let i = 0; i < 4; i++)
-    await page.getByRole('button', { name: 'Suivant', exact: true }).click();
-  await expect(
-    page.getByRole('heading', { name: 'Contrôle d’accessibilité' }),
-  ).toBeVisible();
+  for (let i = 0; i < 4; i++) await next();
+  await expect(page.getByRole('dialog', { name: 'Compare' })).toBeVisible();
+  await expect(page.locator('.compare-stage')).toHaveCount(1);
+  await next();
+  await expect(page.locator('#chat-panel')).toBeVisible();
   await page.getByRole('button', { name: 'Terminer' }).click();
   await expect(page.locator('.tour')).toHaveCount(0);
-  // Retour à la page d'avant, chat refermé.
-  await expect(page.getByRole('heading', { name: 'Couleurs' })).toBeVisible();
-  await page.getByRole('button', { name: 'Visite guidée' }).click();
-  for (let i = 0; i < 3; i++)
-    await page.getByRole('button', { name: 'Suivant', exact: true }).click();
-  await expect(page.locator('#chat-panel')).toBeVisible();
-  await page.keyboard.press('Escape');
+  // L'atelier revient comme avant : chat fermé, sans comparaison.
   await expect(page.locator('#chat-panel')).toBeHidden();
+  await expect(page.locator('.compare-stage')).toHaveCount(0);
 });
 
 test('aperçu : Avant / après compare l’enregistré et les modifs en cours', async ({
@@ -838,8 +840,19 @@ test('aperçu : Avant / après compare l’enregistré et les modifs en cours', 
     'background-color',
     'rgb(170, 34, 0)',
   );
+  // L'enregistré à gauche, ce qui change à droite.
+  await expect(page.locator('.compare-cell figcaption').nth(0)).toContainText(
+    'Avant · enregistré',
+  );
   await expect(page.locator('.compare-cell figcaption').nth(1)).toContainText(
-    '1 modif en cours',
+    'Après · 1 modif en cours',
+  );
+  // En rouvrant Comparer, on repart sur les deux formats.
+  await page.getByRole('button', { name: 'Comparer' }).click();
+  await page.getByRole('button', { name: 'Comparer' }).click();
+  await expect(page.getByRole('button', { name: 'Formats' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
   );
 });
 

@@ -917,6 +917,23 @@ export default function App() {
     (c) => c.status === 'fail',
   ).length;
   // Visite courte : une étape par grande zone de l'atelier.
+  // Visite courte, dans l'ordre du travail : modifier, contrôler, enregistrer,
+  // voir et comparer, puis demander à Claude.
+  const goToAudit = () => {
+    setChatOpen(false);
+    setCompare(false);
+    setCollapsed((c) => c.filter((x) => x !== 'quality'));
+    setSearch('');
+    setSelection({ kind: 'audit', id: 'a11y' });
+    // Le lien du menu est tout en bas : on le fait apparaître.
+    setTimeout(
+      () =>
+        document
+          .querySelector('[data-tour="quality"]')
+          ?.scrollIntoView({ block: 'nearest' }),
+      0,
+    );
+  };
   const tourSteps: TourStep[] = [
     {
       target: '.ds-layout',
@@ -930,39 +947,46 @@ export default function App() {
       },
     },
     {
+      target: '.ds-layout',
+      title: 'Contrôle l’accessibilité',
+      text: 'Avant d’enregistrer, vérifie : Contrôle qualité › Accessibilité, en bas du menu, donne un score par type de vision. Les corrections se font dans Couleurs.',
+      before: goToAudit,
+    },
+    {
       target: 'save',
       title: 'Enregistre quand tu es prêt',
       text: 'Rien n’est écrit tant que tu ne valides pas. « Enregistrer » (ou Cmd + S) ouvre le diff : tu vérifies, puis tu valides.',
+      before: () => {
+        setSearch('');
+        setSelection({ kind: 'tokens', id: 'colors' });
+      },
     },
     {
       target: 'preview',
       title: 'Vois le résultat',
-      text: 'Change d’écran, teste les formats de 320 à 1440 px, et « Comparer » pour voir mobile et desktop, ou l’avant et l’après de tes modifs.',
-      before: () => setChatOpen(false),
+      text: 'Change d’écran avec les flèches et teste les formats, du mobile 320 au grand écran 1440.',
+      before: () => {
+        setChatOpen(false);
+        setCompare(false);
+      },
+    },
+    {
+      target: 'preview',
+      title: 'Compare',
+      text: '« Formats » : mobile et desktop côte à côte. « Avant / après » : l’écran enregistré à gauche, tes modifs à droite.',
+      before: () => {
+        setChatOpen(false);
+        setCompareMode('formats');
+        setCompare(true);
+      },
     },
     {
       target: '#chat-panel',
       title: 'Demande à Claude',
-      text: 'Décris ce que tu veux changer, Claude propose et tu valides. Choisis le modèle (Sonnet, Opus, Haiku) et surveille ton quota avec le cercle en haut.',
-      before: () => setChatOpen(true),
-    },
-    {
-      target: '.ds-layout',
-      title: 'Contrôle l’accessibilité',
-      text: 'Contrôle qualité › Accessibilité, en bas du menu : un score par type de vision. Pour finir : exporte en haut à droite, et relance cette visite avec « ? ».',
+      text: 'Décris ce que tu veux changer, Claude propose et tu valides. Choisis le modèle et surveille ton quota avec le cercle. Pour finir : exporte en haut à droite, et relance cette visite avec « ? ».',
       before: () => {
-        setChatOpen(false);
-        setCollapsed((c) => c.filter((x) => x !== 'quality'));
-        setSearch('');
-        setSelection({ kind: 'audit', id: 'a11y' });
-        // Le lien du menu est tout en bas : on le fait apparaître.
-        setTimeout(
-          () =>
-            document
-              .querySelector('[data-tour="quality"]')
-              ?.scrollIntoView({ block: 'nearest' }),
-          0,
-        );
+        setCompare(false);
+        setChatOpen(true);
       },
     },
   ];
@@ -1806,6 +1830,8 @@ export default function App() {
                   aria-pressed={compare}
                   title="Afficher deux formats côte à côte"
                   onClick={() => {
+                    // Comparer s'ouvre toujours sur les deux formats.
+                    if (!compare) setCompareMode('formats');
                     setCompare(!compare);
                     setFreeOpen(false);
                   }}
@@ -1921,6 +1947,8 @@ export default function App() {
                   aria-pressed={compare}
                   title="Afficher deux formats côte à côte"
                   onClick={() => {
+                    // Comparer s'ouvre toujours sur les deux formats.
+                    if (!compare) setCompareMode('formats');
                     setCompare(!compare);
                     setFreeOpen(false);
                   }}
