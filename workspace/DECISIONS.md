@@ -255,3 +255,19 @@ Décision : une seule pilule bordée, flèches précédent / suivant et liste
 séparées par de fines lignes, icônes de chevron dessinées plutôt que des
 caractères, survol discret sur chaque zone.
 Preuves : 15 tests navigateur réussis ; audit sans anomalie ; capture relue.
+
+## 27/10/2026 · Figma : connexion directe écartée, import par fichier prévu
+
+Besoin : construire le DS dans Figma et le vérifier dans DS-Studio.
+Écarté : connexion directe (DS-Studio n’est pas un client autorisé par Figma,
+le starter interdit les contournements de session ou de jeton).
+Prévu plus tard : import du JSON exporté par un plugin Figma (format W3C des
+design tokens), liaison variable Figma → token DS-Studio, validation par le diff.
+Limite connue : 18 tokens dans le schéma actuel, au-delà migration nécessaire.
+Le libellé « Figma non connecté » reste affiché : c’est l’état réel.
+
+## 27/10/2026 · En-tête en icônes et exports pour l'app Gutt
+- Brief, Historique, Importer et Exporter sont regroupés en icônes dans une seule pastille, avec info-bulle et nom accessible. Moins de bruit visuel.
+- Exporter ouvre un menu : Tokens JSON (DS-Studio), Variables CSS (tokens.css), Tailwind v4 (theme.css avec @theme), Tailwind v3 (tailwind.config.js).
+- Les exports utilisent uniquement les valeurs enregistrées. Un message prévient si des modifications ne sont pas encore enregistrées.
+- Le menu se ferme au clic extérieur et avec Échap. Testé : tests unitaires des exports et test e2e des téléchargements.

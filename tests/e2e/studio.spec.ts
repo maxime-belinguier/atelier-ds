@@ -191,7 +191,8 @@ test('export navigateur, import valide avec diff, fichier invalide sans écritur
   await expect(page.getByRole('heading', { name: 'Couleurs' })).toBeVisible();
   const before = await state(page);
   const download = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Exporter les tokens' }).click();
+  await page.getByRole('button', { name: 'Exporter', exact: true }).click();
+  await page.getByRole('menuitem', { name: /^Tokens JSON/ }).click();
   const file = await download;
   const { readFile } = await import('node:fs/promises');
   const exported = JSON.parse(await readFile((await file.path())!, 'utf8'));
@@ -606,4 +607,33 @@ test('sélecteur de couleur : HEX d’abord, zone, palette du DS, récentes', as
     })
     .click();
   await expect(page.getByText('Récentes')).toBeVisible();
+});
+
+test('en-tête en icônes : export CSS et Tailwind depuis le menu', async ({
+  page,
+}) => {
+  await page.goto('/');
+  const before = await state(page);
+  const { readFile } = await import('node:fs/promises');
+  for (const [item, file, needle] of [
+    [
+      /^Variables CSS/,
+      'tokens.css',
+      `--color-brand: ${before.tokens['color.brand'].$value};`,
+    ],
+    [/^Tailwind v4/, 'theme.css', '@theme {'],
+    [/^Tailwind v3/, 'tailwind.config.js', '"extend"'],
+  ] as const) {
+    await page.getByRole('button', { name: 'Exporter', exact: true }).click();
+    const download = page.waitForEvent('download');
+    await page.getByRole('menuitem', { name: item }).click();
+    const d = await download;
+    expect(d.suggestedFilename()).toBe(file);
+    expect(await readFile((await d.path())!, 'utf8')).toContain(needle);
+  }
+  // Le menu se ferme avec Échap.
+  await page.getByRole('button', { name: 'Exporter', exact: true }).click();
+  await expect(page.getByRole('menu', { name: 'Exporter' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('menu', { name: 'Exporter' })).toHaveCount(0);
 });

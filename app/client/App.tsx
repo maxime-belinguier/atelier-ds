@@ -13,9 +13,11 @@ import ProjectBrief from './ProjectBrief.js';
 import ScreenPicker from './ScreenPicker.js';
 import ColorPicker from './ColorPicker.js';
 import { useDrafts } from './useTokenDraft.js';
+import { toCssVariables, toTailwindV3, toTailwindV4 } from './exporters.js';
 import {
   bootstrap,
   commit,
+  downloadText,
   exportTokens,
   getState,
   request,
@@ -218,6 +220,48 @@ function modelName(id: string) {
   return m ? m[0].toUpperCase() + m.slice(1).toLowerCase() : 'Claude';
 }
 
+const exportsList: {
+  id: string;
+  label: string;
+  hint: string;
+  file: string;
+  type: string;
+  make: (t: Tokens) => string;
+}[] = [
+  {
+    id: 'json',
+    label: 'Tokens JSON',
+    hint: 'Format DS-Studio, réimportable',
+    file: 'design-system.tokens.json',
+    type: 'application/json',
+    make: () => '',
+  },
+  {
+    id: 'css',
+    label: 'Variables CSS',
+    hint: 'tokens.css, pour tout projet web',
+    file: 'tokens.css',
+    type: 'text/css',
+    make: toCssVariables,
+  },
+  {
+    id: 'tw4',
+    label: 'Tailwind v4',
+    hint: 'theme.css avec @theme',
+    file: 'theme.css',
+    type: 'text/css',
+    make: toTailwindV4,
+  },
+  {
+    id: 'tw3',
+    label: 'Tailwind v3',
+    hint: 'tailwind.config.js',
+    file: 'tailwind.config.js',
+    type: 'text/javascript',
+    make: toTailwindV3,
+  },
+];
+
 function readLayout() {
   try {
     const saved = JSON.parse(localStorage.getItem('ds-studio-layout') || '{}');
@@ -282,6 +326,23 @@ export default function App() {
   const [limits, setLimits] = useState(readLimits);
   const [creditsOpen, setCreditsOpen] = useState(false);
   const [pickerFor, setPickerFor] = useState<TokenKey | null>(null);
+  const [exportOpen, setExportOpen] = useState(false);
+  useEffect(() => {
+    if (!exportOpen) return;
+    const close = (e: MouseEvent) => {
+      if (!(e.target as Element).closest?.('.export-wrap'))
+        setExportOpen(false);
+    };
+    const key = (e: globalThis.KeyboardEvent) => {
+      if (e.key === 'Escape') setExportOpen(false);
+    };
+    addEventListener('mousedown', close);
+    addEventListener('keydown', key);
+    return () => {
+      removeEventListener('mousedown', close);
+      removeEventListener('keydown', key);
+    };
+  }, [exportOpen]);
   const [limitsMissing, setLimitsMissing] = useState(false);
   useEffect(() => {
     if (!creditsOpen) return;
@@ -862,41 +923,155 @@ export default function App() {
           <span className="muted figma-status">
             {boot?.figma.label ?? 'Figma non connecté'}
           </span>
-          <button onClick={() => setBriefOpen(true)}>Brief</button>
-          <button
-            onClick={() => setHistoryOpen(!historyOpen)}
-            aria-expanded={historyOpen}
+          <div
+            className="icon-group"
+            role="group"
+            aria-label="Projet et fichiers"
           >
-            Historique
-          </button>
-          <button onClick={() => void perform(exportTokens)}>
-            Exporter les tokens
-          </button>
-          <label className="file-button">
-            Importer un JSON
-            <input
-              type="file"
-              accept=".json,application/json"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                e.target.value = '';
-                if (file)
-                  void perform(async () => {
-                    if (file.size > 128000)
-                      throw new Error(
-                        'Fichier trop volumineux (128 Ko maximum).',
+            <button
+              className="header-icon"
+              aria-label="Brief"
+              title="Brief du projet"
+              onClick={() => setBriefOpen(true)}
+            >
+              <svg
+                aria-hidden="true"
+                width="17"
+                height="17"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <path d="M14 2v6h6" />
+                <path d="M8 13h8" />
+                <path d="M8 17h5" />
+              </svg>
+            </button>
+            <button
+              className="header-icon"
+              aria-label="Historique"
+              title="Historique des changements"
+              aria-expanded={historyOpen}
+              onClick={() => setHistoryOpen(!historyOpen)}
+            >
+              <svg
+                aria-hidden="true"
+                width="17"
+                height="17"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
+                <path d="M3 3v5h5" />
+                <path d="M12 7v5l3 2" />
+              </svg>
+            </button>
+            <label
+              className="header-icon file-icon"
+              title="Importer un JSON de tokens"
+            >
+              <svg
+                aria-hidden="true"
+                width="17"
+                height="17"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <path d="M17 8l-5-5-5 5" />
+                <path d="M12 3v12" />
+              </svg>
+              <span className="sr-only">Importer un JSON</span>
+              <input
+                type="file"
+                aria-label="Importer un JSON"
+                accept=".json,application/json"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = '';
+                  if (file)
+                    void perform(async () => {
+                      if (file.size > 128000)
+                        throw new Error(
+                          'Fichier trop volumineux (128 Ko maximum).',
+                        );
+                      const tokens = JSON.parse(await file.text());
+                      setProposal(
+                        await request('import', {
+                          revision: state.revision,
+                          tokens,
+                        }),
                       );
-                    const tokens = JSON.parse(await file.text());
-                    setProposal(
-                      await request('import', {
-                        revision: state.revision,
-                        tokens,
-                      }),
-                    );
-                  });
-              }}
-            />
-          </label>
+                    });
+                }}
+              />
+            </label>
+            <div className="export-wrap">
+              <button
+                className="header-icon"
+                aria-label="Exporter"
+                title="Exporter"
+                aria-haspopup="menu"
+                aria-expanded={exportOpen}
+                onClick={() => setExportOpen(!exportOpen)}
+              >
+                <svg
+                  aria-hidden="true"
+                  width="17"
+                  height="17"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <path d="M7 10l5 5 5-5" />
+                  <path d="M12 15V3" />
+                </svg>
+              </button>
+              {exportOpen && (
+                <div className="export-menu" role="menu" aria-label="Exporter">
+                  {pendingCount > 0 && (
+                    <p className="export-note">
+                      Valeurs enregistrées seulement : tes modifications en
+                      cours ne sont pas incluses.
+                    </p>
+                  )}
+                  {exportsList.map((x) => (
+                    <button
+                      key={x.id}
+                      role="menuitem"
+                      onClick={() => {
+                        setExportOpen(false);
+                        void perform(async () => {
+                          if (x.id === 'json') return exportTokens();
+                          downloadText(x.file, x.make(state.tokens), x.type);
+                          setNotice(`${x.file} téléchargé.`);
+                        });
+                      }}
+                    >
+                      <strong>{x.label}</strong>
+                      <span>{x.hint}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </header>
       <div className="feedback" aria-live="polite">

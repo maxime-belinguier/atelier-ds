@@ -2419,6 +2419,101 @@ select,
   color: var(--text-2);
 }
 
+/* En-tête : actions regroupées en icônes */
+.icon-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+}
+.header-icon {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  min-height: 34px;
+  padding: 0 !important;
+  border: 0;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  color: var(--text);
+  background: transparent;
+  cursor: pointer;
+}
+.header-icon:hover,
+.header-icon[aria-expanded='true'] {
+  background: var(--surface-2);
+}
+.file-icon {
+  overflow: hidden;
+}
+.file-icon input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  max-width: 100%;
+  padding: 0;
+  font-size: 0;
+}
+.file-icon:focus-within {
+  outline: 3px solid var(--accent-strong);
+  outline-offset: 2px;
+}
+.export-wrap {
+  position: relative;
+}
+.export-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: -4px;
+  z-index: 25;
+  width: 260px;
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 16px 40px #2c265030;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.export-menu button {
+  height: auto !important;
+  min-height: 0;
+  border: 0;
+  border-radius: 12px;
+  padding: 9px 12px !important;
+  display: flex !important;
+  flex-direction: column;
+  align-items: flex-start !important;
+  gap: 2px;
+  text-align: left;
+  background: transparent;
+}
+.export-menu button:hover {
+  background: var(--surface-2);
+}
+.export-menu strong {
+  font-size: 13px;
+}
+.export-menu span {
+  font-size: 11px;
+  color: var(--text-2);
+  font-weight: 400;
+}
+.export-note {
+  margin: 4px 8px 6px;
+  font-size: 11px;
+  color: #6b4a06;
+}
+
 /* Composants du Design System : mêmes sources dans le catalogue et l'iframe. */
 .ds {
   font-family: var(--font-family);
