@@ -1,14 +1,29 @@
-# Mon projet de fin d’études
+# Mon projet de fin d’études : Gutt
 
-Exemple fictif : Lisière, un service d’ateliers de quartier à Bordeaux.
+Gutt est une web app qui aide à éviter les mauvaises décisions immobilières
+(location ou achat). Projet de M1 repris en refonte complète pour le PFE :
+DA, identité, design system, UX et écrans.
 
-Remplacez ce contexte par votre sujet, vos publics, votre problème et vos hypothèses.
 Ne placez ici aucun secret ni donnée sensible. Ce fichier est envoyé au fournisseur
 IA uniquement lorsque vous utilisez le chat Codex dans l’application.
 
-## À préciser
+## Problème et publics
 
-- Problème et publics prioritaires.
-- Parcours à soutenir et contraintes du terrain.
-- Lien du fichier Figma autorisé (pas de jeton, pas de lien confidentiel dans un dépôt public).
-- Ce que vous souhaitez apprendre ou prouver vendredi.
+- Problème : on prend souvent une décision immobilière vite, sous pression,
+  sans repérer les signaux d’alerte.
+- Public prioritaire : jeunes actifs et étudiants qui louent ou achètent pour la première fois.
+
+## Parcours et contraintes
+
+- Web app responsive : mobile en priorité, ordinateur et tablette ensuite.
+- DA assumée, qui sort des UI génériques, avec une gamification légère.
+- Fonctionnelle à l’oral, accessible au jury par QR code.
+
+## Lien Figma
+
+Renseigné dans le brief privé de l’application, pas dans ce dépôt.
+
+## Ce que je veux prouver vendredi
+
+Que DS-Studio m’aide à poser les premiers tokens du design system de Gutt
+(couleur de marque, surfaces, typo) et à les tester en mobile 320 px et en desktop.
