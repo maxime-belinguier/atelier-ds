@@ -59,7 +59,7 @@ une colonne entière.
 Pistes écartées : trois panneaux redimensionnables (plus de réglages sans
 simplifier), bandeau assistant en haut (mange la hauteur).
 Décision, inspirée de Storybook, du panneau Variables de Figma et de Tokens Studio :
-en-tête (Mon PFE, Historique, Export, Import) ; deux panneaux redimensionnables,
+en-tête (Brief, Historique, Export, Import) ; deux panneaux redimensionnables,
 Design System (menu Tokens / Composants / Écrans, recherche, une ligne par token
 avec nom lisible, pastille ou curseur, contraste, rétablir) et Aperçu (320 à
 1440 px, « Ajuster » qui réduit l’affichage sans changer la largeur CSS réelle,
@@ -147,3 +147,26 @@ Décision : colonne de réglages de largeur fixe pour toutes les lignes, listes
 déroulantes au style de l’atelier, recherche avec bordure, fond blanc et loupe,
 numéro de révision retiré.
 Preuves : 13 tests navigateur réussis ; audit de mise en page sans anomalie.
+
+## 27/10/2026 · Bouton « Brief »
+
+Le bouton « Mon PFE » devient « Brief », plus court et explicite ; le panneau
+s’intitule « Brief du projet ». Test navigateur mis à jour et réussi.
+
+## 27/10/2026 · Aperçu : mockups d’appareil et format libre
+
+Problème : aperçu peu immersif, formats figés, outils qui changeaient de place.
+Piste écartée : liste déroulante de formats avec champs largeur × hauteur
+toujours visibles (moins intuitive, trop encombrante).
+Décision : barre fixe sur deux lignes (écran, Ajuster, Mockup, plein écran ;
+puis formats 320, 375, 430, 768, 1280, 1440 et « Libre ») ; case « Mockup »
+qui affiche un téléphone, une tablette ou une fenêtre de navigateur selon le
+format, dessinés en CSS, génériques, sans logo ; « Libre » ouvre une petite
+bulle largeur × hauteur (600 × 900 par défaut, mémorisée) et des poignées pour
+étirer l’aperçu ; « Ajuster » fait tenir tout l’appareil, hauteur comprise ;
+1280 remplace 1024 comme format ordinateur. La largeur CSS reste exacte : le
+mockup et le zoom ne changent que l’affichage.
+Preuves : 14 tests navigateur (dont mockup par format, case décochée, saisie
+libre, étirement à la souris, taille mémorisée) et 38 tests unitaires/API
+réussis (Linux) ; audit de mise en page sans anomalie ; captures relues.
+Limite : mockups indicatifs, pas des gabarits constructeur exacts.

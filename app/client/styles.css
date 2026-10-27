@@ -1789,6 +1789,225 @@ select,
   color: var(--text-2);
 }
 
+/* ===== Aperçu : barre fixe, formats, cadres d'appareil ===== */
+.preview-head {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+.preview-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+  min-width: 0;
+}
+.preview-row .preview-tools {
+  margin-left: auto;
+}
+.picker-trigger {
+  width: 176px;
+  justify-content: flex-start;
+}
+.picker-trigger strong {
+  flex: 1;
+  text-align: left;
+}
+.toggle.is-disabled {
+  opacity: 0.45;
+}
+.tool-button {
+  height: 34px;
+  min-height: 34px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+.tool-button[aria-pressed='true'] {
+  background: var(--accent-soft);
+  border-color: var(--accent-border);
+  color: var(--accent-text);
+}
+.tool-button:disabled {
+  opacity: 0.45;
+}
+.free-pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 14px 34px #2c26502a;
+  padding: 10px;
+  font-size: 12px;
+  color: var(--text-2);
+}
+.free-pop input {
+  width: 72px;
+  height: 32px;
+  border-radius: 10px;
+  padding: 0 8px;
+  font-size: 12px;
+}
+.free-hint {
+  font-size: 11px;
+  white-space: nowrap;
+}
+.frame-holder {
+  position: relative;
+  margin: 0 auto;
+}
+.device {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: top left;
+}
+.device iframe {
+  position: static;
+  box-sizing: content-box;
+  display: block;
+  border: 0;
+  background: white;
+  transform: none;
+}
+.frame-holder .device-none iframe {
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  box-shadow: 0 8px 20px #2c265012;
+}
+.device-phone {
+  background: #17161f;
+  border-radius: 54px;
+  padding: 12px;
+  box-shadow:
+    0 0 0 1px #2c2a38,
+    0 24px 60px #1c1a2b40;
+}
+.device-phone iframe {
+  border-radius: 42px;
+}
+.device-island {
+  position: absolute;
+  top: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 96px;
+  height: 28px;
+  border-radius: 999px;
+  background: #17161f;
+  z-index: 1;
+  pointer-events: none;
+}
+.device-tablet {
+  background: #1f1e28;
+  border-radius: 36px;
+  padding: 18px;
+  box-shadow:
+    0 0 0 1px #2c2a38,
+    0 24px 60px #1c1a2b38;
+}
+.device-tablet iframe {
+  border-radius: 16px;
+}
+.device-browser {
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid #d9d6ea;
+  background: #f3f2f8;
+  box-shadow: 0 24px 60px #1c1a2b2e;
+}
+.browser-bar {
+  height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 14px;
+}
+.browser-bar i {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #ff5f57;
+}
+.browser-bar i:nth-child(2) {
+  background: #febc2e;
+}
+.browser-bar i:nth-child(3) {
+  background: #28c840;
+}
+.browser-bar span {
+  margin-left: 14px;
+  flex: 1;
+  max-width: 420px;
+  height: 24px;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 12px;
+  color: #8a879c;
+  display: flex;
+  align-items: center;
+  padding-left: 12px;
+}
+.resize-handle {
+  position: absolute;
+  background: var(--accent-strong);
+  border-radius: 6px;
+  opacity: 0.75;
+  touch-action: none;
+  z-index: 2;
+}
+.resize-handle:hover {
+  opacity: 1;
+}
+.handle-x {
+  right: -14px;
+  top: 50%;
+  width: 6px;
+  height: 48px;
+  transform: translateY(-50%);
+  cursor: ew-resize;
+}
+.handle-y {
+  bottom: -14px;
+  left: 50%;
+  height: 6px;
+  width: 48px;
+  transform: translateX(-50%);
+  cursor: ns-resize;
+}
+.handle-xy {
+  right: -14px;
+  bottom: -14px;
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+  cursor: nwse-resize;
+}
+.stage {
+  padding: 24px;
+}
+@container preview (max-width: 560px) {
+  .preview-row {
+    flex-wrap: wrap;
+  }
+  .preview-row .preview-tools {
+    margin-left: 0;
+  }
+  .free-pop {
+    left: 0;
+    right: auto;
+    flex-wrap: wrap;
+  }
+}
+
 /* Composants du Design System : mêmes sources dans le catalogue et l'iframe. */
 .ds {
   font-family: var(--font-family);

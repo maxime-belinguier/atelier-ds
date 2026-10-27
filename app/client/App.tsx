@@ -36,13 +36,32 @@ import {
 } from './tokenMeta.js';
 
 const devices = [
-  { id: 'xs', label: '320', title: 'Mobile compact', width: 320, height: 760 },
-  { id: 'sm', label: '375', title: 'Mobile', width: 375, height: 760 },
-  { id: 'md', label: '430', title: 'Grand mobile', width: 430, height: 820 },
+  { id: 'xs', label: '320', title: 'Mobile compact', width: 320, height: 640 },
+  { id: 'sm', label: '375', title: 'Mobile', width: 375, height: 812 },
+  { id: 'md', label: '430', title: 'Grand mobile', width: 430, height: 932 },
   { id: 'tab', label: '768', title: 'Tablette', width: 768, height: 1024 },
-  { id: 'lg', label: '1024', title: 'Ordinateur', width: 1024, height: 820 },
+  { id: 'lg', label: '1280', title: 'Ordinateur', width: 1280, height: 800 },
   { id: 'xl', label: '1440', title: 'Grand écran', width: 1440, height: 900 },
 ];
+type FrameKind = 'phone' | 'tablet' | 'browser' | 'none';
+const frameKind = (w: number): Exclude<FrameKind, 'none'> =>
+  w < 600 ? 'phone' : w < 1000 ? 'tablet' : 'browser';
+const frameLabel = {
+  phone: 'téléphone',
+  tablet: 'tablette',
+  browser: 'navigateur',
+};
+// Épaisseur du cadre autour de l'écran : [horizontal, vertical], en px.
+const frameInset: Record<FrameKind, [number, number]> = {
+  phone: [24, 24],
+  tablet: [36, 36],
+  browser: [2, 40],
+  none: [2, 2],
+};
+const clampSize = (w: number, h: number) => ({
+  w: Math.round(Math.min(1920, Math.max(240, w || 375))),
+  h: Math.round(Math.min(1600, Math.max(320, h || 812))),
+});
 
 const sourceLabels: Record<string, string> = {
   manual: 'Fait à la main',
@@ -185,9 +204,11 @@ function readLayout() {
           ? saved.split
           : 50,
       fit: saved.fit !== false,
+      frame: saved.frame !== false,
+      free: clampSize(saved.free?.w ?? 600, saved.free?.h ?? 900),
     };
   } catch {
-    return { split: 50, fit: true };
+    return { split: 50, fit: true, frame: true, free: clampSize(600, 900) };
   }
 }
 
@@ -215,10 +236,12 @@ export default function App() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [device, setDevice] = useState('sm');
+  const [freeOpen, setFreeOpen] = useState(false);
   const [scenario, setScenario] = useState('cards');
   const [layout, setLayout] = useState(readLayout);
   const [full, setFull] = useState(false);
   const [stageWidth, setStageWidth] = useState(0);
+  const [stageHeight, setStageHeight] = useState(0);
   const [workspaceWidth, setWorkspaceWidth] = useState(0);
   const [saving, setSaving] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -303,11 +326,13 @@ export default function App() {
     if (!el || !ws) return;
     const ro = new ResizeObserver(() => {
       setStageWidth(el.clientWidth);
+      setStageHeight(el.clientHeight);
       setWorkspaceWidth(ws.clientWidth);
     });
     ro.observe(el);
     ro.observe(ws);
     setStageWidth(el.clientWidth);
+    setStageHeight(el.clientHeight);
     setWorkspaceWidth(ws.clientWidth);
     return () => ro.disconnect();
   }, [ready]);
@@ -459,12 +484,42 @@ export default function App() {
     0,
   );
   const staleProposal = !!proposal && proposal.revision !== state.revision;
-  const dev = devices.find((d) => d.id === device) ?? devices[1];
-  const available = Math.max(0, stageWidth - 32);
+  const isFree = device === 'free';
+  const preset = devices.find((d) => d.id === device) ?? devices[1];
+  const dev = isFree
+    ? { title: 'Format libre', width: layout.free.w, height: layout.free.h }
+    : preset;
+  const kind: FrameKind =
+    !isFree && layout.frame ? frameKind(dev.width) : 'none';
+  const [insetX, insetY] = frameInset[kind];
+  const outerW = dev.width + insetX;
+  const outerH = dev.height + insetY;
+  // « Ajuster » fait tenir tout l'appareil (largeur et hauteur) dans le panneau.
+  const availableW = Math.max(0, stageWidth - 64);
+  const availableH = Math.max(0, stageHeight - 64);
   const scale =
-    layout.fit && available > 0 && dev.width > available
-      ? available / dev.width
+    layout.fit && availableW > 0 && availableH > 0
+      ? Math.min(1, availableW / outerW, availableH / outerH)
       : 1;
+  function startResize(
+    e: PointerEvent<HTMLSpanElement>,
+    axis: 'x' | 'y' | 'xy',
+  ) {
+    e.preventDefault();
+    const target = e.currentTarget;
+    target.setPointerCapture(e.pointerId);
+    const start = { x: e.clientX, y: e.clientY, ...layout.free };
+    document.body.classList.add('is-resizing');
+    target.onpointermove = (m) => {
+      const dx = axis === 'y' ? 0 : (m.clientX - start.x) / scale;
+      const dy = axis === 'x' ? 0 : (m.clientY - start.y) / scale;
+      setLayout((l) => ({ ...l, free: clampSize(start.w + dx, start.h + dy) }));
+    };
+    target.onpointerup = () => {
+      target.onpointermove = null;
+      document.body.classList.remove('is-resizing');
+    };
+  }
   const query = search.trim().toLowerCase();
   const matches = query
     ? (Object.keys(tokenLabels) as TokenKey[]).filter(
@@ -741,7 +796,7 @@ export default function App() {
           <span className="muted figma-status">
             {boot?.figma.label ?? 'Figma non connecté'}
           </span>
-          <button onClick={() => setBriefOpen(true)}>Mon PFE</button>
+          <button onClick={() => setBriefOpen(true)}>Brief</button>
           <button
             onClick={() => setHistoryOpen(!historyOpen)}
             aria-expanded={historyOpen}
@@ -933,77 +988,194 @@ export default function App() {
 
         <section className="pane preview-pane" aria-labelledby="preview-title">
           <div className="pane-head preview-head">
-            <h2 id="preview-title" tabIndex={-1}>
-              Aperçu
-            </h2>
-            <ScreenPicker
-              screens={screens}
-              value={scenario}
-              onChange={(id) => {
-                setScenario(id);
-                if (selection.kind === 'screen')
-                  setSelection({ kind: 'screen', id });
-              }}
-            />
-            <div
-              className="segmented"
-              role="group"
-              aria-label="Largeur d’écran"
-            >
-              {devices.map((d) => (
-                <button
-                  key={d.id}
-                  aria-pressed={device === d.id}
-                  title={`${d.title} · ${d.width} px`}
-                  aria-label={`${d.title} ${d.width} px`}
-                  onClick={() => setDevice(d.id)}
-                >
-                  {d.label}
-                </button>
-              ))}
-            </div>
-            <div className="preview-tools">
-              <label className="toggle">
-                <input
-                  type="checkbox"
-                  checked={layout.fit}
-                  onChange={(e) =>
-                    setLayout({ ...layout, fit: e.target.checked })
+            <div className="preview-row">
+              <h2 id="preview-title" tabIndex={-1}>
+                Aperçu
+              </h2>
+              <ScreenPicker
+                screens={screens}
+                value={scenario}
+                onChange={(id) => {
+                  setScenario(id);
+                  if (selection.kind === 'screen')
+                    setSelection({ kind: 'screen', id });
+                }}
+              />
+              <div className="preview-tools">
+                <label className="toggle">
+                  <input
+                    type="checkbox"
+                    checked={layout.fit}
+                    onChange={(e) =>
+                      setLayout({ ...layout, fit: e.target.checked })
+                    }
+                  />
+                  Ajuster
+                </label>
+                <label
+                  className={`toggle${isFree ? ' is-disabled' : ''}`}
+                  title={
+                    isFree
+                      ? 'Mockup disponible pour les formats prédéfinis'
+                      : `Mockup ${frameLabel[frameKind(dev.width)]}`
                   }
-                />
-                Ajuster
-              </label>
-              <button
-                className="icon-button"
-                aria-pressed={full}
-                aria-label={full ? 'Quitter le plein écran' : 'Plein écran'}
-                title={full ? 'Quitter le plein écran' : 'Plein écran'}
-                onClick={() => setFull(!full)}
+                >
+                  <input
+                    type="checkbox"
+                    checked={!isFree && layout.frame}
+                    disabled={isFree}
+                    onChange={(e) =>
+                      setLayout({ ...layout, frame: e.target.checked })
+                    }
+                  />
+                  Mockup
+                </label>
+                <button
+                  className="icon-button"
+                  aria-pressed={full}
+                  aria-label={full ? 'Quitter le plein écran' : 'Plein écran'}
+                  title={full ? 'Quitter le plein écran' : 'Plein écran'}
+                  onClick={() => setFull(!full)}
+                >
+                  {full ? '⤡' : '⤢'}
+                </button>
+              </div>
+            </div>
+            <div className="preview-row">
+              <div
+                className="segmented"
+                role="group"
+                aria-label="Largeur d’écran"
               >
-                {full ? '⤡' : '⤢'}
-              </button>
+                {devices.map((d) => (
+                  <button
+                    key={d.id}
+                    aria-pressed={device === d.id}
+                    title={`${d.title} · ${d.width} × ${d.height} px`}
+                    aria-label={`${d.title} ${d.width} px`}
+                    onClick={() => {
+                      setDevice(d.id);
+                      setFreeOpen(false);
+                    }}
+                  >
+                    {d.label}
+                  </button>
+                ))}
+                <button
+                  aria-pressed={isFree}
+                  aria-expanded={freeOpen}
+                  aria-label={`Format libre ${layout.free.w} × ${layout.free.h} px`}
+                  onClick={() => {
+                    setDevice('free');
+                    setFreeOpen(!isFree || !freeOpen);
+                  }}
+                >
+                  {isFree ? `${layout.free.w} × ${layout.free.h}` : 'Libre'}
+                </button>
+              </div>
+              {freeOpen && isFree && (
+                <div
+                  className="free-pop"
+                  onBlur={(e) => {
+                    if (!e.currentTarget.contains(e.relatedTarget as Node))
+                      setFreeOpen(false);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape' || e.key === 'Enter')
+                      setFreeOpen(false);
+                  }}
+                >
+                  <input
+                    type="number"
+                    aria-label="Largeur en px"
+                    min={240}
+                    max={1920}
+                    defaultValue={layout.free.w}
+                    key={`w${layout.free.w}`}
+                    autoFocus
+                    onBlur={(e) =>
+                      setLayout({
+                        ...layout,
+                        free: clampSize(Number(e.target.value), layout.free.h),
+                      })
+                    }
+                  />
+                  <span>×</span>
+                  <input
+                    type="number"
+                    aria-label="Hauteur en px"
+                    min={320}
+                    max={1600}
+                    defaultValue={layout.free.h}
+                    key={`h${layout.free.h}`}
+                    onBlur={(e) =>
+                      setLayout({
+                        ...layout,
+                        free: clampSize(layout.free.w, Number(e.target.value)),
+                      })
+                    }
+                  />
+                  <span className="free-hint">px · ou étirez l’aperçu</span>
+                </div>
+              )}
             </div>
           </div>
           <div className="stage" ref={stage}>
             <div
               className="frame-holder"
-              style={{
-                width: dev.width * scale,
-                height: dev.height * scale,
-              }}
+              style={{ width: outerW * scale, height: outerH * scale }}
             >
-              <iframe
-                ref={iframe}
-                title="Aperçu responsive"
-                src={`/?preview=1&scenario=${scenario}`}
-                width={dev.width}
-                height={dev.height}
-                style={{ transform: `scale(${scale})` }}
-              />
+              <div
+                className={`device device-${kind}`}
+                style={{
+                  width: outerW,
+                  height: outerH,
+                  transform: `scale(${scale})`,
+                }}
+              >
+                {kind === 'browser' && (
+                  <div className="browser-bar" aria-hidden="true">
+                    <i />
+                    <i />
+                    <i />
+                    <span>gutt.app</span>
+                  </div>
+                )}
+                {kind === 'phone' && (
+                  <span className="device-island" aria-hidden="true" />
+                )}
+                <iframe
+                  ref={iframe}
+                  title="Aperçu responsive"
+                  src={`/?preview=1&scenario=${scenario}`}
+                  width={dev.width}
+                  height={dev.height}
+                />
+              </div>
+              {isFree && (
+                <>
+                  <span
+                    className="resize-handle handle-x"
+                    aria-hidden="true"
+                    onPointerDown={(e) => startResize(e, 'x')}
+                  />
+                  <span
+                    className="resize-handle handle-y"
+                    aria-hidden="true"
+                    onPointerDown={(e) => startResize(e, 'y')}
+                  />
+                  <span
+                    className="resize-handle handle-xy"
+                    aria-hidden="true"
+                    onPointerDown={(e) => startResize(e, 'xy')}
+                  />
+                </>
+              )}
             </div>
           </div>
           <div className="pane-foot">
-            {dev.title} · {dev.width} px CSS ·{' '}
+            {dev.title} · {dev.width} × {dev.height} px CSS
+            {kind !== 'none' ? ` · mockup ${frameLabel[kind]}` : ''} ·{' '}
             {scale < 1
               ? `affiché à ${Math.round(scale * 100)} %`
               : 'taille réelle'}
@@ -1181,7 +1353,7 @@ export default function App() {
           <header className="drawer-head">
             <div>
               <span className="drawer-kicker">Brief privé · sur ce poste</span>
-              <h2 id="brief-title">Mon PFE</h2>
+              <h2 id="brief-title">Brief du projet</h2>
             </div>
             <button
               className="drawer-close"

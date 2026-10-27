@@ -86,7 +86,7 @@ test('largeurs réelles, ajustement visuel, interactions et formulaire', async (
     ['Mobile 375 px', 375],
     ['Grand mobile 430 px', 430],
     ['Tablette 768 px', 768],
-    ['Ordinateur 1024 px', 1024],
+    ['Ordinateur 1280 px', 1280],
   ] as const) {
     await page.getByRole('button', { name, exact: true }).click();
     await expect(page.locator('iframe')).toHaveAttribute(
@@ -114,10 +114,12 @@ test('largeurs réelles, ajustement visuel, interactions et formulaire', async (
   }
   // « Ajuster » réduit l'affichage sans changer la largeur CSS réelle.
   const holder = page.locator('.frame-holder');
-  expect(await holder.evaluate((el) => el.clientWidth)).toBeLessThan(1024);
+  expect(await holder.evaluate((el) => el.clientWidth)).toBeLessThan(1280);
   await page.getByLabel('Ajuster').uncheck();
-  expect(await holder.evaluate((el) => el.clientWidth)).toBe(1024);
-  await expect(page.locator('iframe')).toHaveAttribute('width', '1024');
+  expect(await holder.evaluate((el) => el.clientWidth)).toBeGreaterThanOrEqual(
+    1280,
+  );
+  await expect(page.locator('iframe')).toHaveAttribute('width', '1280');
   await page.getByLabel('Ajuster').check();
   await page
     .getByRole('button', { name: 'Mobile 375 px', exact: true })
@@ -238,8 +240,8 @@ test('brief privé dans son panneau, persistant, sans compte IA', async ({
   page,
 }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Mon PFE' }).click();
-  const brief = page.getByRole('dialog', { name: 'Mon PFE' });
+  await page.getByRole('button', { name: 'Brief', exact: true }).click();
+  const brief = page.getByRole('dialog', { name: 'Brief du projet' });
   await brief
     .getByLabel('Nom du PFE', { exact: true })
     .fill('Mon atelier accessible');
@@ -254,7 +256,7 @@ test('brief privé dans son panneau, persistant, sans compte IA', async ({
   await page.keyboard.press('Escape');
   await expect(brief).not.toBeVisible();
   await page.reload();
-  await page.getByRole('button', { name: 'Mon PFE' }).click();
+  await page.getByRole('button', { name: 'Brief', exact: true }).click();
   await expect(brief.getByLabel('Nom du PFE', { exact: true })).toHaveValue(
     'Mon atelier accessible',
   );
@@ -472,4 +474,51 @@ test('assistant : choix du modèle et de l’effort, tokens affichés par répon
   expect(sent.model).toBe('opus');
   expect(sent.effort).toBe('high');
   expect(sent.history).toEqual([]);
+});
+
+test('aperçu : mockups d’appareil par format, format libre saisi et étiré', async ({
+  page,
+}) => {
+  await page.goto('/');
+  const frame = page.locator('.device');
+  const mockup = page.getByLabel('Mockup');
+  await expect(frame).toHaveClass(/device-phone/);
+  await page.getByRole('button', { name: 'Tablette 768 px' }).click();
+  await expect(frame).toHaveClass(/device-tablet/);
+  await page.getByRole('button', { name: 'Grand écran 1440 px' }).click();
+  await expect(frame).toHaveClass(/device-browser/);
+  await mockup.uncheck();
+  await expect(frame).toHaveClass(/device-none/);
+  await mockup.check();
+  await expect(frame).toHaveClass(/device-browser/);
+  // Format libre : saisie, cadre indisponible, puis étirement à la souris.
+  await page.getByRole('button', { name: /^Format libre/ }).click();
+  await expect(mockup).toBeDisabled();
+  await page.getByLabel('Largeur en px').fill('700');
+  await page.getByLabel('Hauteur en px').focus();
+  await expect(page.locator('iframe')).toHaveAttribute('width', '700');
+  await expect
+    .poll(() =>
+      page
+        .locator('iframe')
+        .evaluate((f: HTMLIFrameElement) => f.contentWindow?.innerWidth),
+    )
+    .toBe(700);
+  await page.keyboard.press('Escape');
+  const handle = page.locator('.handle-x');
+  const box = (await handle.boundingBox())!;
+  await page.mouse.move(box.x + 3, box.y + 20);
+  await page.mouse.down();
+  await page.mouse.move(box.x - 60, box.y + 20, { steps: 5 });
+  await page.mouse.up();
+  const width = Number(await page.locator('iframe').getAttribute('width'));
+  expect(width).toBeLessThan(700);
+  await expect(
+    page.getByRole('button', { name: /^Format libre/ }),
+  ).toContainText(`${width} ×`);
+  // La taille libre est mémorisée en revenant d'un format prédéfini.
+  await page.getByRole('button', { name: 'Mobile 375 px' }).click();
+  await expect(frame).toHaveClass(/device-phone/);
+  await page.getByRole('button', { name: /^Format libre/ }).click();
+  await expect(page.locator('iframe')).toHaveAttribute('width', String(width));
 });
