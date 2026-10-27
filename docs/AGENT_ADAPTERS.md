@@ -36,16 +36,27 @@ Le protocole et la version ont été exécutés, pas seulement décrits. Pour ch
 la version acceptée, refaire le smoke test, le test hostile, le refus sans auth,
 la proposition/validation via API et les essais sur chaque OS cible.
 
-## Claude Code — NOT IMPLEMENTED
+## Claude Code — expérimental, TESTED sous Linux avec 2.1.311
 
-Point d’extension : `unvalidatedAdapter('claude')`. L’interface affiche son indisponibilité.
-La [documentation officielle headless](https://code.claude.com/docs/en/headless)
-décrit `claude -p` et des sorties structurées. Elle ne valide pas un contrôle des
-permissions par notre interface. Avant activation : vérifier authentification
-sans exporter le cache, désactiver les outils ou construire un protocole de demandes
-d’approbation réellement bloquant, normaliser les erreurs et le JSON, puis tester
-le refus, l’arrêt, le quota, les écritures hors scope et la non-connexion Figma.
-Ne pas remplacer cette qualification par `--dangerously-skip-permissions`.
+Ajout étudiant (27/10/2026). `connectors/agents/claude.ts` appelle `claude -p`
+avec la sortie JSON, le contexte passé par stdin et un profil sans outils :
+`--tools ""`, `--no-chrome`, `--disable-slash-commands`, `--strict-mcp-config`
+avec une liste MCP vide, `--setting-sources ""`, `--permission-mode dontAsk`,
+`--permission-prompts none`, `--no-session-persistence` et un prompt système
+dédié. Aucun `--dangerously-skip-permissions`. `--bare` n’est pas utilisé car il
+empêche la lecture du trousseau macOS, donc la connexion par abonnement.
+
+Le processus tourne dans un dossier temporaire vide, avec une liste limitée de
+variables d’environnement ; aucune clé d’API n’est transmise. Le résultat est
+refusé si plus d’un tour ou un refus de permission apparaît (signe d’un appel
+d’outil), si le JSON est invalide ou hors format. La proposition passe par le
+même diff et la même validation humaine que Codex, avec la source `claude`.
+
+Preuves : tests unitaires (CLI absent, profil, sortie, outil refusé, faux CLI
+réel, stderr masqué), test HTTP sans auto-commit, essai réel avec le CLI 2.1.311
+(proposition puis diff ouvert, révision inchangée) et demande hostile refusée.
+Limites : macOS du poste étudiant à vérifier ; toute version du CLI est acceptée,
+pas seulement la version testée ; ce profil n’est pas un confinement formel.
 
 ## Gemini CLI — NOT IMPLEMENTED
 

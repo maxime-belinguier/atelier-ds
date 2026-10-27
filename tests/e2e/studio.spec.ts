@@ -1,78 +1,94 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
-test('boucle centrale réelle : diff, validation, propagation, recharge, annulation sélective', async ({
+const state = async (page: Page) =>
+  (await page.request.get('/api/state')).json();
+const diff = (page: Page) =>
+  page.getByRole('dialog', { name: 'Valider les changements' });
+
+test('boucle centrale : aperçu immédiat, diff, validation, recharge, retour en arrière ciblé', async ({
   page,
 }) => {
   await page.goto('/');
   await expect(
-    page.getByRole('heading', { name: 'Une source. Toutes les vues.' }),
+    page.getByRole('heading', { name: 'Design System', exact: true }),
   ).toBeVisible();
   await expect(
     page.getByText('Figma non connecté', { exact: true }),
   ).toBeVisible();
-  const catalogue = page.locator('.ds-panel');
   const mobile = page.frameLocator('iframe');
-  const mainButton = catalogue.getByRole('button', {
-    name: 'Action principale',
+  const keep = mobile.getByRole('button', {
+    name: 'Garder ce logement',
     exact: true,
   });
-  await expect(mainButton).toHaveCSS('background-color', 'rgb(49, 84, 196)');
-  await page.getByLabel('Valeur du token').fill('#8A3B20');
-  await page.getByRole('button', { name: 'Proposer', exact: true }).click();
-  const dialog = page.getByRole('dialog');
-  await expect(dialog).toBeVisible();
-  await expect(dialog).toContainText('#3154C4');
-  await expect(dialog).toContainText('#8A3B20');
-  await expect(mainButton).toHaveCSS('background-color', 'rgb(49, 84, 196)');
-  await dialog.getByRole('button', { name: 'Ne pas appliquer' }).click();
-  await expect(mainButton).toHaveCSS('background-color', 'rgb(49, 84, 196)');
-  await page.getByRole('button', { name: 'Proposer', exact: true }).click();
-  await dialog.getByRole('button', { name: 'Valider et enregistrer' }).click();
-  await expect(mainButton).toHaveCSS('background-color', 'rgb(138, 59, 32)');
-  await expect(
-    catalogue.getByRole('button', { name: 'Réserver une place', exact: true }),
-  ).toHaveCSS('background-color', 'rgb(138, 59, 32)');
-  await expect(
-    mobile.getByRole('button', { name: 'Réserver une place', exact: true }),
-  ).toHaveCSS('background-color', 'rgb(138, 59, 32)');
-  await expect(
-    mobile.getByRole('button', { name: 'Découvrir', exact: true }),
-  ).toHaveCSS('background-color', 'rgb(138, 59, 32)');
+  await expect(keep).toHaveCSS('background-color', 'rgb(49, 84, 196)');
+  const brand = page.getByLabel('Couleur de marque', { exact: true });
+  await brand.fill('#8A3B20');
+  // Aperçu immédiat dans l'iframe, sans aucune écriture.
+  await expect(keep).toHaveCSS('background-color', 'rgb(138, 59, 32)');
+  expect((await state(page)).revision).toBe(0);
+  await expect(page.getByText('1 modif non enregistrée')).toBeVisible();
+  await page.getByRole('button', { name: 'Enregistrer (1)' }).click();
+  await expect(diff(page)).toContainText('#3154C4');
+  await expect(diff(page)).toContainText('#8A3B20');
+  await diff(page).getByRole('button', { name: 'Ne pas appliquer' }).click();
+  await expect(diff(page)).not.toBeVisible();
+  // Refuser le diff ne perd pas la modification en cours.
+  await expect(brand).toHaveValue('#8A3B20');
+  expect((await state(page)).revision).toBe(0);
+  await page.getByRole('button', { name: 'Enregistrer (1)' }).click();
+  await diff(page)
+    .getByRole('button', { name: 'Valider et enregistrer' })
+    .click();
+  await expect(diff(page)).not.toBeVisible();
+  await expect(page.getByText('1 modif non enregistrée')).not.toBeVisible();
+  await expect(page.getByText('Enregistré', { exact: true })).toBeVisible();
+  expect((await state(page)).tokens['color.brand'].$value).toBe('#8A3B20');
+  await page.getByRole('button', { name: 'Boutons' }).click();
+  const main = page
+    .locator('.ds-pane')
+    .getByRole('button', { name: 'Action principale', exact: true });
+  await expect(main).toHaveCSS('background-color', 'rgb(138, 59, 32)');
   await page.reload();
-  await expect(mainButton).toHaveCSS('background-color', 'rgb(138, 59, 32)');
-  await page
-    .getByRole('combobox', { name: 'Token', exact: true })
-    .selectOption('space.md');
-  await page.getByLabel('Valeur du token').fill('22');
-  await page.getByRole('button', { name: 'Proposer', exact: true }).click();
-  await dialog.getByRole('button', { name: 'Valider et enregistrer' }).click();
+  await expect(keep).toHaveCSS('background-color', 'rgb(138, 59, 32)');
+  await page.getByRole('button', { name: /^Espacements/ }).click();
+  await page.getByLabel('Espacement moyen', { exact: true }).fill('22');
+  // Raccourci clavier d'enregistrement : ouvre le même diff.
+  await page.keyboard.press('Control+s');
+  await diff(page)
+    .getByRole('button', { name: 'Valider et enregistrer' })
+    .click();
+  await expect(diff(page)).not.toBeVisible();
   await page.getByRole('button', { name: /Historique/ }).click();
   await page
-    .getByRole('button', { name: 'Annuler la révision 1', exact: true })
+    .getByRole('button', {
+      name: 'Revenir en arrière sur le changement n°1',
+      exact: true,
+    })
     .click();
-  await dialog.getByRole('button', { name: 'Valider et enregistrer' }).click();
-  await expect(mainButton).toHaveCSS('background-color', 'rgb(49, 84, 196)');
-  await expect(mainButton).toHaveCSS('padding-left', '22px');
-  await expect(
-    mobile.getByRole('button', { name: 'Réserver une place', exact: true }),
-  ).toHaveCSS('background-color', 'rgb(49, 84, 196)');
+  await diff(page)
+    .getByRole('button', { name: 'Valider et enregistrer' })
+    .click();
+  await expect(diff(page)).not.toBeVisible();
+  await page.getByRole('button', { name: 'Boutons' }).click();
+  await expect(main).toHaveCSS('background-color', 'rgb(49, 84, 196)');
+  await expect(main).toHaveCSS('padding-left', '22px');
+  await expect(keep).toHaveCSS('background-color', 'rgb(49, 84, 196)');
   await page.screenshot({ path: 'test-results/studio.png', fullPage: true });
 });
 
-test('largeurs réelles, interactions, formulaire et desktop responsive', async ({
+test('largeurs réelles, ajustement visuel, interactions et formulaire', async ({
   page,
 }) => {
   await page.goto('/');
   const frame = page.frameLocator('iframe');
-  for (const [value, width] of [
-    ['0', 320],
-    ['1', 375],
-    ['2', 430],
-    ['3', 1024],
+  for (const [name, width] of [
+    ['Mobile compact 320 px', 320],
+    ['Mobile 375 px', 375],
+    ['Grand mobile 430 px', 430],
+    ['Tablette 768 px', 768],
+    ['Ordinateur 1024 px', 1024],
   ] as const) {
-    await page
-      .getByRole('combobox', { name: 'Viewport', exact: true })
-      .selectOption(value);
+    await page.getByRole('button', { name, exact: true }).click();
     await expect(page.locator('iframe')).toHaveAttribute(
       'width',
       String(width),
@@ -96,27 +112,45 @@ test('largeurs réelles, interactions, formulaire et desktop responsive', async 
       );
     expect(columns).toBe(width >= 700 ? 2 : 1);
   }
+  // « Ajuster » réduit l'affichage sans changer la largeur CSS réelle.
+  const holder = page.locator('.frame-holder');
+  expect(await holder.evaluate((el) => el.clientWidth)).toBeLessThan(1024);
+  await page.getByLabel('Ajuster').uncheck();
+  expect(await holder.evaluate((el) => el.clientWidth)).toBe(1024);
+  await expect(page.locator('iframe')).toHaveAttribute('width', '1024');
+  await page.getByLabel('Ajuster').check();
   await page
-    .getByRole('combobox', { name: 'Viewport', exact: true })
-    .selectOption('1');
+    .getByRole('button', { name: 'Mobile 375 px', exact: true })
+    .click();
   await frame
-    .getByRole('button', { name: 'Réserver une place', exact: true })
+    .getByRole('button', { name: 'Garder ce logement', exact: true })
     .click();
   await expect(
-    frame.getByRole('button', { name: 'Réservation confirmée ✓' }),
+    frame.getByRole('button', { name: 'Logement gardé ✓' }),
   ).toBeVisible();
-  await frame.getByRole('button', { name: 'Favoris', exact: true }).click();
+  await frame.getByRole('button', { name: 'À vérifier', exact: true }).click();
   await expect(
-    frame.getByText('Vos ateliers favoris apparaîtront ici.'),
+    frame.getByText('Les points à vérifier avant de signer.'),
   ).toBeVisible();
-  await page
-    .getByRole('combobox', { name: 'Scénario', exact: true })
-    .selectOption('form');
-  await frame.getByLabel('Votre prénom').fill('Camille');
-  await frame.getByLabel('Adresse e-mail').fill('camille@example.com');
+  // Sélecteur d'écran : liste filtrable, puis suivant / précédent.
+  await page.getByRole('button', { name: 'Écran affiché : Mes biens' }).click();
+  await page.getByLabel('Rechercher un écran').fill('ajouter');
+  await page.getByRole('option', { name: /Ajouter un logement/ }).click();
+  await expect(
+    page.getByRole('button', { name: 'Écran affiché : Ajouter un logement' }),
+  ).toBeFocused();
+  await page.getByRole('button', { name: 'Écran précédent' }).click();
+  await expect(page.locator('iframe')).toHaveAttribute('src', /scenario=cards/);
+  await page.getByRole('button', { name: 'Écran suivant' }).click();
+  await expect(page.locator('iframe')).toHaveAttribute('src', /scenario=form/);
+  await frame.getByLabel('Adresse ou quartier').fill('Chartrons');
+  await frame.getByLabel('Loyer charges comprises (€)').fill('720');
+  await frame.getByLabel('Surface (m²)').fill('40');
   await frame.getByRole('checkbox').check();
-  await frame.getByRole('button', { name: 'S’inscrire', exact: true }).click();
-  await expect(frame.getByText(/Merci ! Démonstration locale/)).toBeVisible();
+  await frame
+    .getByRole('button', { name: 'Analyser ce logement', exact: true })
+    .click();
+  await expect(frame.getByText(/18,0 €\/m²/)).toBeVisible();
   await page.setViewportSize({ width: 700, height: 900 });
   expect(
     await page
@@ -125,31 +159,35 @@ test('largeurs réelles, interactions, formulaire et desktop responsive', async 
   ).toBe(true);
 });
 
-test('entrée couleur invalide sans mutation et clavier du diff', async ({
+test('valeur invalide signalée sur la ligne, sans diff ni écriture', async ({
   page,
 }) => {
   await page.goto('/');
-  await page.getByLabel('Valeur du token').fill('red');
-  await page.getByRole('button', { name: 'Proposer', exact: true }).click();
-  await expect(page.getByRole('alert')).toContainText('Données invalides');
-  await expect(page.getByRole('dialog')).not.toBeVisible();
-  await page.getByLabel('Valeur du token').fill('#123456');
-  await page.getByRole('button', { name: 'Proposer', exact: true }).click();
+  const before = await state(page);
+  const brand = page.getByLabel('Couleur de marque', { exact: true });
+  await brand.fill('red');
+  await expect(page.getByText('Couleur attendue : #RRGGBB')).toBeVisible();
+  await expect(brand).toHaveAttribute('aria-invalid', 'true');
+  await expect(
+    page.getByRole('button', { name: /^Enregistrer \(/ }),
+  ).toBeDisabled();
+  await expect(diff(page)).not.toBeVisible();
+  expect((await state(page)).revision).toBe(before.revision);
+  await brand.fill('#123456');
+  await page.getByRole('button', { name: 'Enregistrer (1)' }).click();
   await expect(
     page.getByRole('button', { name: 'Ne pas appliquer' }),
   ).toBeFocused();
   await page.keyboard.press('Escape');
-  await expect(page.getByRole('dialog')).not.toBeVisible();
+  await expect(diff(page)).not.toBeVisible();
 });
 
 test('export navigateur, import valide avec diff, fichier invalide sans écriture', async ({
   page,
 }) => {
   await page.goto('/');
-  await expect(
-    page.getByRole('heading', { name: 'Tokens sémantiques' }),
-  ).toBeVisible();
-  const before = await (await page.request.get('/api/state')).json();
+  await expect(page.getByRole('heading', { name: 'Couleurs' })).toBeVisible();
+  const before = await state(page);
   const download = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Exporter les tokens' }).click();
   const file = await download;
@@ -162,14 +200,13 @@ test('export navigateur, import valide avec diff, fichier invalide sans écritur
     mimeType: 'application/json',
     buffer: Buffer.from(JSON.stringify(exported)),
   });
-  const dialog = page.getByRole('dialog');
-  await expect(dialog).toContainText('color.success');
-  expect((await (await page.request.get('/api/state')).json()).revision).toBe(
-    before.revision,
-  );
-  await dialog.getByRole('button', { name: 'Valider et enregistrer' }).click();
-  await expect(dialog).not.toBeVisible();
-  const after = await (await page.request.get('/api/state')).json();
+  await expect(diff(page)).toContainText('color.success');
+  expect((await state(page)).revision).toBe(before.revision);
+  await diff(page)
+    .getByRole('button', { name: 'Valider et enregistrer' })
+    .click();
+  await expect(diff(page)).not.toBeVisible();
+  const after = await state(page);
   expect(after.tokens['color.success'].$value).toBe('#125533');
   await page.locator('input[type=file]').setInputFiles({
     name: 'invalid.json',
@@ -177,126 +214,109 @@ test('export navigateur, import valide avec diff, fichier invalide sans écritur
     buffer: Buffer.from('{bad'),
   });
   await expect(page.getByRole('alert')).toBeVisible();
-  expect((await (await page.request.get('/api/state')).json()).revision).toBe(
-    after.revision,
-  );
+  expect((await state(page)).revision).toBe(after.revision);
 });
 
-test('V2 : contraste proposé immédiat sans modifier les composants enregistrés', async ({
+test('aperçu et contraste immédiats, valeur enregistrée inchangée', async ({
   page,
 }) => {
   await page.goto('/');
-  await page
-    .getByRole('combobox', { name: 'Token', exact: true })
-    .selectOption('color.brand');
-  await page.getByLabel('Valeur du token').fill('#FFFFFF');
+  await page.getByLabel('Couleur de marque', { exact: true }).fill('#FFFFFF');
   await expect(
-    page.getByText('Contraste proposé :', { exact: false }),
-  ).toContainText('1.00:1');
+    page.getByText('Contraste texte sur marque : 1.00:1', { exact: false }),
+  ).toContainText('contraste à améliorer');
   await expect(
-    page.getByText('Contraste proposé :', { exact: false }),
-  ).toContainText('Contraste à améliorer');
-  await expect(page.getByRole('dialog')).not.toBeVisible();
-  const current = await (await page.request.get('/api/state')).json();
-  expect(current.tokens['color.brand'].$value).not.toBe('#FFFFFF');
+    page
+      .frameLocator('iframe')
+      .getByRole('button', { name: 'Garder ce logement', exact: true }),
+  ).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  await expect(diff(page)).not.toBeVisible();
+  expect((await state(page)).tokens['color.brand'].$value).not.toBe('#FFFFFF');
 });
 
-test('V2 : brief privé persistant, indépendant du mode IA', async ({
+test('brief privé dans son panneau, persistant, sans compte IA', async ({
   page,
 }) => {
   await page.goto('/');
-  await page.getByText('Mon PFE · brief privé', { exact: true }).click();
-  await page
+  await page.getByRole('button', { name: 'Mon PFE' }).click();
+  const brief = page.getByRole('dialog', { name: 'Mon PFE' });
+  await brief
     .getByLabel('Nom du PFE', { exact: true })
     .fill('Mon atelier accessible');
-  await page
+  await brief
     .getByLabel('Public concerné', { exact: true })
     .fill('Étudiants en mobilité');
-  await page
+  await brief
     .getByLabel('Objectif et critères de réussite', { exact: true })
     .fill('Réserver en moins de trois étapes');
-  await page.getByRole('button', { name: 'Enregistrer le brief' }).click();
-  await expect(page.getByText('Brief enregistré sur ce poste.')).toBeVisible();
+  await brief.getByRole('button', { name: 'Enregistrer le brief' }).click();
+  await expect(brief.getByText('Brief enregistré sur ce poste.')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(brief).not.toBeVisible();
   await page.reload();
-  await page.getByText('Mon PFE · brief privé', { exact: true }).click();
-  await expect(page.getByLabel('Nom du PFE', { exact: true })).toHaveValue(
+  await page.getByRole('button', { name: 'Mon PFE' }).click();
+  await expect(brief.getByLabel('Nom du PFE', { exact: true })).toHaveValue(
     'Mon atelier accessible',
   );
-  await expect(
-    page.getByRole('combobox', { name: 'Mode de travail' }),
-  ).toHaveValue('manual');
 });
 
-test('V2 : recherche, brouillon récupéré après recharge et abandon sans écriture', async ({
+test('recherche, modifications reprises après recharge et « Tout annuler » sans écriture', async ({
   page,
 }) => {
   await page.goto('/');
-  const before = await (await page.request.get('/api/state')).json();
+  const before = await state(page);
   await page.getByLabel('Rechercher un token').fill('space');
-  await expect(
-    page.getByText('3 résultat(s).', { exact: false }),
-  ).toBeVisible();
-  await page
-    .getByRole('combobox', { name: 'Token', exact: true })
-    .selectOption('space.lg');
-  await page.getByLabel('Valeur du token').fill('31');
-  await expect(
-    page.getByText('Brouillon non enregistré.', { exact: false }),
-  ).toBeVisible();
+  await expect(page.getByText('3 tokens pour « space ».')).toBeVisible();
+  await page.getByLabel('Grand espacement', { exact: true }).fill('31');
+  await expect(page.getByText('1 modif non enregistrée')).toBeVisible();
   await page.reload();
+  await page.getByRole('button', { name: /^Espacements/ }).click();
   await expect(
-    page.getByRole('combobox', { name: 'Token', exact: true }),
-  ).toHaveValue('space.lg');
-  await expect(page.getByLabel('Valeur du token')).toHaveValue('31');
+    page.getByLabel('Grand espacement', { exact: true }),
+  ).toHaveValue('31');
+  await expect(page.getByText('1 modif non enregistrée')).toBeVisible();
+  await page
+    .getByRole('button', {
+      name: 'Annuler les modifications non enregistrées',
+    })
+    .click();
   await expect(
-    page.getByText('Brouillon récupéré', { exact: false }),
-  ).toBeVisible();
-  await page.getByRole('button', { name: 'Abandonner le brouillon' }).click();
-  await expect(page.getByLabel('Valeur du token')).toHaveValue(
-    String(before.tokens['space.lg'].$value),
-  );
-  expect((await (await page.request.get('/api/state')).json()).revision).toBe(
-    before.revision,
-  );
+    page.getByLabel('Grand espacement', { exact: true }),
+  ).toHaveValue(String(before.tokens['space.lg'].$value));
+  expect((await state(page)).revision).toBe(before.revision);
 });
 
-test('V2 : conflit multi-onglets visible dans le diff, aucune perte de données', async ({
+test('conflit multi-onglets visible dans le diff, aucune perte de données', async ({
   page,
   context,
 }) => {
   await page.goto('/');
-  await page
-    .getByRole('combobox', { name: 'Token', exact: true })
-    .selectOption('color.brand');
-  await page.getByLabel('Valeur du token').fill('#223355');
-  await page.getByRole('button', { name: 'Proposer', exact: true }).click();
+  await page.getByLabel('Couleur de marque', { exact: true }).fill('#223355');
+  await page.getByRole('button', { name: 'Enregistrer (1)' }).click();
   const other = await context.newPage();
   await other.goto('/');
-  await other
-    .getByRole('combobox', { name: 'Token', exact: true })
-    .selectOption('color.brand');
-  await other.getByLabel('Valeur du token').fill('#664422');
-  await other.getByRole('button', { name: 'Proposer', exact: true }).click();
-  await other.getByRole('button', { name: 'Valider et enregistrer' }).click();
-  await expect(other.getByRole('dialog')).not.toBeVisible();
-  const dialog = page.getByRole('dialog');
-  await expect(dialog.getByRole('alert')).toContainText('Une autre validation');
+  await other.getByLabel('Couleur de marque', { exact: true }).fill('#664422');
+  await other.getByRole('button', { name: 'Enregistrer (1)' }).click();
+  await diff(other)
+    .getByRole('button', { name: 'Valider et enregistrer' })
+    .click();
+  await expect(diff(other)).not.toBeVisible();
+  await expect(diff(page).getByRole('alert')).toContainText(
+    'Une autre validation',
+  );
   await expect(
-    dialog.getByRole('button', { name: 'Valider et enregistrer' }),
+    diff(page).getByRole('button', { name: 'Valider et enregistrer' }),
   ).toBeDisabled();
-  await dialog.getByRole('button', { name: 'Ne pas appliquer' }).click();
-  expect(
-    (await (await page.request.get('/api/state')).json()).tokens['color.brand']
-      .$value,
-  ).toBe('#664422');
+  await diff(page).getByRole('button', { name: 'Ne pas appliquer' }).click();
+  expect((await state(page)).tokens['color.brand'].$value).toBe('#664422');
   await other.close();
 });
 
-test('V2 : capacité de session périmée simulée sans rejeu ambigu', async ({
+test('capacité de session périmée simulée sans rejeu ambigu', async ({
   page,
 }) => {
   await page.goto('/');
-  await page.getByRole('heading', { name: 'Tokens sémantiques' }).waitFor();
+  await page.getByRole('heading', { name: 'Couleurs' }).waitFor();
   const boot = await (await page.request.get('/api/bootstrap')).json();
   // Un seul refus certain avant mutation, comme une capacité périmée après restart.
   let requests = 0;
@@ -313,17 +333,14 @@ test('V2 : capacité de session périmée simulée sans rejeu ambigu', async ({
     expect(route.request().headers()['x-ds-studio']).toBe(boot.csrf);
     return route.continue();
   });
-  await page
-    .getByRole('combobox', { name: 'Token', exact: true })
-    .selectOption('color.focus');
-  await page.getByLabel('Valeur du token').fill('#776622');
-  await page.getByRole('button', { name: 'Proposer', exact: true }).click();
-  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.getByLabel('Contour du focus', { exact: true }).fill('#776622');
+  await page.getByRole('button', { name: 'Enregistrer (1)' }).click();
+  await expect(diff(page)).toBeVisible();
   expect(requests).toBe(2);
   await page.keyboard.press('Escape');
 });
 
-test('V2 : clavier, mobile 375 px et absence de stockage navigateur', async ({
+test('clavier, mobile 375 px et absence de stockage navigateur', async ({
   page,
 }) => {
   await page.addInitScript(() => {
@@ -336,7 +353,7 @@ test('V2 : clavier, mobile 375 px et absence de stockage navigateur', async ({
   });
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto('/');
-  await page.getByRole('heading', { name: 'Tokens sémantiques' }).waitFor();
+  await page.getByRole('heading', { name: 'Couleurs' }).waitFor();
   await page.keyboard.press('Tab');
   await expect(
     page.getByRole('link', { name: 'Aller aux tokens' }),
@@ -345,11 +362,59 @@ test('V2 : clavier, mobile 375 px et absence de stockage navigateur', async ({
   await expect(
     page.getByRole('heading', { name: 'Design System', exact: true }),
   ).toBeFocused();
-  await page.getByLabel('Valeur du token').fill('#114477');
-  await page.getByRole('button', { name: 'Proposer', exact: true }).click();
-  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.getByLabel('Couleur de marque', { exact: true }).fill('#114477');
+  await page.getByRole('button', { name: 'Enregistrer (1)' }).click();
+  await expect(diff(page)).toBeVisible();
   await page.keyboard.press('Escape');
   expect(
     await page.locator('body').evaluate((el) => el.scrollWidth <= innerWidth),
   ).toBe(true);
+});
+
+test('historique : panneau latéral modal, fermeture Échap et fond', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: /Historique/ }).click();
+  const drawer = page.getByRole('dialog', { name: 'Historique' });
+  await expect(drawer).toBeVisible();
+  await expect(drawer).toContainText('Vous pouvez revenir en arrière');
+  await page.keyboard.press('Escape');
+  await expect(drawer).not.toBeVisible();
+  await page.getByRole('button', { name: /Historique/ }).click();
+  await drawer.getByRole('button', { name: 'Fermer l’historique' }).click();
+  await expect(drawer).not.toBeVisible();
+  await page.getByRole('button', { name: /Historique/ }).click();
+  await page.mouse.click(20, 400);
+  await expect(drawer).not.toBeVisible();
+});
+
+test('panneaux redimensionnables au clavier, plein écran et assistant flottant', async ({
+  page,
+}) => {
+  await page.goto('/');
+  const separator = page.getByRole('separator', {
+    name: 'Largeur du panneau Design System',
+  });
+  const pane = page.locator('.ds-pane');
+  const before = Number(await separator.getAttribute('aria-valuenow'));
+  const width = await pane.evaluate((el) => el.getBoundingClientRect().width);
+  await separator.focus();
+  await page.keyboard.press('Shift+ArrowRight');
+  await expect(separator).toHaveAttribute('aria-valuenow', String(before + 10));
+  expect(
+    await pane.evaluate((el) => el.getBoundingClientRect().width),
+  ).toBeGreaterThan(width);
+  await page.keyboard.press('Home');
+  await expect(separator).toHaveAttribute('aria-valuenow', '28');
+  await page.getByRole('button', { name: 'Plein écran' }).click();
+  await expect(pane).toBeHidden();
+  await page.getByRole('button', { name: 'Quitter le plein écran' }).click();
+  await expect(pane).toBeVisible();
+  await page.getByRole('button', { name: 'Ouvrir l’assistant' }).click();
+  const assistant = page.getByRole('complementary', { name: 'Assistant' });
+  await expect(assistant).toBeVisible();
+  await expect(page.getByLabel('Votre demande')).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(assistant).toBeHidden();
 });

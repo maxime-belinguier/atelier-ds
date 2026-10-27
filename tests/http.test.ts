@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { Store } from '../app/server/store.js';
 import { tokensSchema } from '../app/shared/model.js';
 import { createStudioServer } from '../app/server/http.js';
+import type { AgentAdapter } from '../connectors/agents/types.js';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const seed = tokensSchema.parse(
   JSON.parse(
@@ -20,6 +21,7 @@ const seed = tokensSchema.parse(
 async function fixture(
   t: { after: (fn: () => Promise<void>) => void },
   dev = false,
+  claude?: AgentAdapter,
 ) {
   const directory = await mkdtemp(path.join(tmpdir(), 'ds-http-'));
   const store = new Store(directory, seed);
@@ -35,6 +37,16 @@ async function fixture(
       },
       async reply() {
         throw new Error('Codex indisponible : authentification nécessaire.');
+      },
+    },
+    // Jamais le vrai CLI dans les tests : aucun appel réseau ni quota.
+    claude: claude ?? {
+      id: 'claude',
+      async status() {
+        return { available: false, detail: 'Non connecté (simulation)' };
+      },
+      async reply() {
+        throw new Error('Claude indisponible : connexion nécessaire.');
       },
     },
   });
@@ -167,6 +179,33 @@ test('IA sans compte et adaptateurs non implémentés échouent sans mutation', 
   assert.equal((await post('agent', { ...body, agent: 'claude' })).status, 500);
   assert.equal((await post('agent', { ...body, agent: 'gemini' })).status, 500);
   assert.equal(store.snapshot().revision, 0);
+});
+
+test('Claude simulé : proposition sourcée claude, jamais appliquée sans validation', async (t) => {
+  const { post, store } = await fixture(t, false, {
+    id: 'claude',
+    async status() {
+      return { available: true, detail: 'simulation' };
+    },
+    async reply() {
+      return {
+        message: 'Proposition',
+        changes: [{ key: 'color.brand', value: '#1F4D3A' }],
+      };
+    },
+  });
+  const before = store.snapshot().tokens['color.brand'].$value;
+  const response = await post('agent', {
+    agent: 'claude',
+    revision: 0,
+    message: 'Marque en vert',
+    history: [],
+  });
+  assert.equal(response.status, 200);
+  const result = await response.json();
+  assert.equal(result.proposal.source, 'claude');
+  assert.equal(store.snapshot().revision, 0);
+  assert.equal(store.snapshot().tokens['color.brand'].$value, before);
 });
 
 test('mode dev : frontend servi, workspace et backend non distribués', async (t) => {

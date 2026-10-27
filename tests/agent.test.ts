@@ -86,3 +86,125 @@ test('sortie UTF-8 scindée entre buffers conservée', async () => {
   );
   assert.equal(result, 'é');
 });
+
+// ---- Claude Code (expérimental) ----
+import { mkdtemp, writeFile, chmod, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import {
+  ClaudeAdapter,
+  claudeArgs,
+  parseClaudeOutput,
+} from '../connectors/agents/claude.js';
+
+const ok = (result: string, extra = {}) =>
+  JSON.stringify({
+    type: 'result',
+    subtype: 'success',
+    is_error: false,
+    num_turns: 1,
+    permission_denials: [],
+    result,
+    ...extra,
+  });
+
+test('Claude : CLI absent, adaptateur indisponible et mode manuel conservé', async () => {
+  const a = new ClaudeAdapter('ds-studio-definitely-missing-cli');
+  const s = await a.status();
+  assert.equal(s.available, false);
+  assert.match(s.detail, /CLI Claude absent/);
+  await assert.rejects(() => a.reply('test', {} as never), /CLI Claude absent/);
+});
+
+test('Claude : profil sans outils ni permission automatique', () => {
+  const i = claudeArgs.indexOf('--tools');
+  assert(i >= 0 && claudeArgs[i + 1] === '');
+  for (const flag of [
+    '--no-chrome',
+    '--strict-mcp-config',
+    '--disable-slash-commands',
+    '--no-session-persistence',
+  ])
+    assert(claudeArgs.includes(flag));
+  assert.equal(claudeArgs[claudeArgs.indexOf('--setting-sources') + 1], '');
+  assert.equal(
+    claudeArgs[claudeArgs.indexOf('--permission-mode') + 1],
+    'dontAsk',
+  );
+  assert(
+    !claudeArgs.some(
+      (a) =>
+        a.includes('dangerously') ||
+        a.includes('bypassPermissions') ||
+        a.includes('acceptEdits') ||
+        a === '--bare',
+    ),
+  );
+});
+
+test('Claude : sortie valide, bloc de code toléré', () => {
+  const r = parseClaudeOutput(
+    ok(
+      '```json\n{"message":"ok","changes":[{"key":"color.brand","value":"#1F4D3A"}]}\n```',
+    ),
+  );
+  assert.equal(r.changes[0].value, '#1F4D3A');
+});
+
+test('Claude : outil, erreur ou format invalide refusés', () => {
+  assert.throws(
+    () =>
+      parseClaudeOutput(ok('{"message":"x","changes":[]}', { num_turns: 2 })),
+    /outil inattendu/,
+  );
+  assert.throws(
+    () =>
+      parseClaudeOutput(
+        ok('{"message":"x","changes":[]}', { permission_denials: [{}] }),
+      ),
+    /outil inattendu/,
+  );
+  assert.throws(
+    () => parseClaudeOutput(ok('x', { is_error: true, subtype: 'error' })),
+    /Échec Claude/,
+  );
+  assert.throws(() => parseClaudeOutput('pas du json'), /illisible/);
+  assert.throws(() => parseClaudeOutput(ok('Bonjour')), /hors format/);
+});
+
+test(
+  'Claude : faux CLI réel, contexte via stdin, stderr jamais exposé',
+  { skip: process.platform === 'win32' && 'script shebang POSIX' },
+  async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'ds-fake-claude-'));
+    const bin = path.join(dir, 'claude');
+    await writeFile(
+      bin,
+      `#!${process.execPath}
+if (process.argv.includes('--version')) { console.log('9.9.9 (Claude Code)'); process.exit(0); }
+let input = '';
+process.stdin.on('data', (b) => (input += b));
+process.stdin.on('end', () => {
+  const { message } = JSON.parse(input);
+  if (message === 'fail') { process.stderr.write('PRIVATE_ACCOUNT_DETAIL'); process.exit(1); }
+  process.stdout.write(${JSON.stringify(ok('__R__'))}.replace('"__R__"', JSON.stringify(JSON.stringify({ message: 'reçu ' + message, changes: [] }))));
+});
+`,
+    );
+    await chmod(bin, 0o755);
+    try {
+      const a = new ClaudeAdapter(bin);
+      assert.equal((await a.status()).available, true);
+      const ctx = { tokens: {}, brief: '', rules: '', history: [] } as never;
+      assert.equal((await a.reply('test', ctx)).message, 'reçu test');
+      await assert.rejects(
+        () => a.reply('fail', ctx),
+        (e) =>
+          /Claude indisponible/.test((e as Error).message) &&
+          !(e as Error).message.includes('PRIVATE'),
+      );
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  },
+);

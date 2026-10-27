@@ -19,8 +19,7 @@ export default function ProjectBrief() {
     void load();
   }, []);
   return (
-    <details className="project-brief">
-      <summary>Mon PFE · brief privé</summary>
+    <div className="project-brief">
       <p>
         Définissez votre contexte. Stocké sur ce poste, hors Git. Le lien Figma
         est un repère, pas une synchronisation.
@@ -111,10 +110,11 @@ export default function ProjectBrief() {
         Exporter le brief enregistré (.md)
       </button>
       <p className="privacy-note">
-        Si vous choisissez Codex, ce brief rejoint le contexte envoyé au
-        fournisseur. Ne saisissez pas de données sensibles. Pour votre agent
-        externe, exportez vos choix dans workspace/PFE.md après relecture.
+        Si vous utilisez l’assistant (Claude ou Codex), ce brief rejoint le
+        contexte envoyé au fournisseur. Ne saisissez pas de données sensibles.
+        Pour votre agent externe, exportez vos choix dans workspace/PFE.md après
+        relecture.
       </p>
-    </details>
+    </div>
   );
 }

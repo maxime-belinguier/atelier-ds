@@ -2,8 +2,8 @@
 
 Un atelier **web local** pour explorer, modifier et faire évoluer un Design System.
 Ce starter pédagogique est conçu pour devenir **votre outil**, pas pour dicter vos
-choix. Trois panneaux : assistant facultatif, catalogue de composants et viewport
-responsive interactif. Exemple fictif fourni : **Lisière**.
+choix. Version personnalisée pour **Gutt** (PFE) : panneau Design System (tokens,
+composants, écrans) et panneau Aperçu redimensionnables, assistant en bulle flottante.
 
 **Le mode manuel fonctionne sans compte IA, sans Figma et sans Internet après installation.**
 Une IA cloud nécessite un compte, Internet et du quota. Ce n’est pas un modèle local.
@@ -84,12 +84,13 @@ contenant des espaces est accepté. N’utilisez ni `sudo` ni installation de se
 
 ## Votre première boucle, en deux minutes
 
-1. Dans **Design System**, choisissez `color.brand`, remplacez la valeur par `#8A3B20`.
-2. Cliquez **Proposer**. Le diff montre l’ancienne et la nouvelle valeur, sans écriture.
-3. Cliquez **Valider et enregistrer**. Boutons, réservation et navigation changent dans les deux vues.
-4. Testez la réservation, puis les viewports 320, 375, 430 et 1024 px (défilement horizontal si nécessaire).
-5. Rechargez ou redémarrez : la valeur reste. Dans **Historique**, annulez la révision,
-   examinez son diff et validez. Les changements des autres tokens sont conservés.
+1. Dans **Design System › Couleurs**, remplacez « Couleur de marque » par `#8A3B20`.
+   L’aperçu se met à jour tout de suite ; le voyant orange en haut indique « non enregistrée ».
+2. Cliquez **Enregistrer (1)** en haut (ou Ctrl/Cmd + S). Le diff montre l’ancienne et la nouvelle valeur, sans écriture.
+3. Cliquez **Valider et enregistrer**. Composants et aperçu utilisent la valeur enregistrée.
+4. Testez les largeurs 320 à 1440 px dans l’Aperçu, avec ou sans **Ajuster**.
+5. Rechargez : la valeur reste. Dans **Historique**, revenez en arrière sur ce changement :
+   les autres tokens sont conservés.
 
 La propagation inter-vues utilise les valeurs enregistrées sur disque (diffusion
 locale et relecture, au plus environ 1,2 seconde sans diffusion). Aucun rafraîchissement
@@ -151,7 +152,8 @@ Inspirez-vous des deux skills fournis, sans copier vos identifiants ou vos conve
 | Catalogue et viewport responsive, formulaire et navigation          | **TESTED**, Chromium sous Linux                                                                    |
 | Import/export JSON local                                            | **TESTED**, API + navigateur                                                                       |
 | Chat Codex, JSON proposé avant acceptation                          | **TESTED**, CLI 0.164.0, compte enseignant disponible pendant la qualification ; quota non garanti |
-| Claude Code / Gemini dans l’application                             | **NOT IMPLEMENTED**, adaptateurs indisponibles et contrat documenté                                |
+| Claude Code dans l’application                                      | **TESTED (expérimental)**, Linux, CLI 2.1.311, sans outils ; voir docs/AGENT_ADAPTERS.md            |
+| Gemini dans l’application                                           | **NOT IMPLEMENTED**, adaptateur indisponible et contrat documenté                                  |
 | Figma MCP et synchronisation                                        | **NOT IMPLEMENTED**, statut non connecté, contrat et procédure future documentés                   |
 | Skills et harness personnalisable                                   | **IMPLEMENTED**, structure et liens vérifiés ; pas une validation des choix d’un étudiant          |
 | Qualification automatisée Windows / macOS                           | **TESTED en CI** pour API, navigateur et contrôleur ; **PARTIAL** pour Finder/WSH natifs           |

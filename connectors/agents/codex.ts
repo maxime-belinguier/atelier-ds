@@ -60,6 +60,7 @@ export function runCli(
   options: SpawnOptions = {},
   signal?: AbortSignal,
   timeout = 120_000,
+  label: 'Codex' | 'Claude' = 'Codex',
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const child = spawn(binary, args, {
@@ -108,8 +109,8 @@ export function runCli(
       finish(
         new Error(
           (error as NodeJS.ErrnoException).code === 'ENOENT'
-            ? 'CLI Codex absent du PATH. Le mode manuel reste disponible.'
-            : 'Impossible de démarrer Codex.',
+            ? `CLI ${label} absent du PATH. Le mode manuel reste disponible.`
+            : `Impossible de démarrer ${label}.`,
         ),
       ),
     );
@@ -129,7 +130,9 @@ export function runCli(
           (code === 0
             ? undefined
             : new Error(
-                'Codex indisponible : vérifiez « codex login status », Internet et le quota. Aucune écriture appliquée.',
+                label === 'Codex'
+                  ? 'Codex indisponible : vérifiez « codex login status », Internet et le quota. Aucune écriture appliquée.'
+                  : 'Claude indisponible : lancez « claude » dans un terminal pour vérifier la connexion, Internet et le quota. Aucune écriture appliquée.',
               )),
       ),
     );

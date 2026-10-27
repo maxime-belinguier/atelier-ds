@@ -1,3 +1,4 @@
+import './zodConfig.js';
 import { createRoot } from 'react-dom/client';
 import App, { Preview } from './App.js';
 import './styles.css';
