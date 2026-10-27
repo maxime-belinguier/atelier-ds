@@ -214,3 +214,21 @@ Composants, Écrans) à côté de la recherche, chacune sur la moitié de la lig
 en panneau large, le menu latéral ne change pas.
 Preuves : 14 tests navigateur réussis (dont choix d’une section par la liste à
 375 px) ; audit de mise en page sans anomalie ; captures relues.
+
+## 27/10/2026 · Sélecteur de couleur
+
+Problème : le sélecteur natif du navigateur ne mettait pas le code HEX en avant
+et ne proposait aucune palette.
+Inspiration : ma maquette Figma rapide, retravaillée.
+Décision : clic sur la pastille d’un token, fenêtre avec le code HEX en premier,
+déjà sélectionné (accepte « 4782e1 », « #4782E1 » ou la forme courte « #48E ») ;
+zone saturation / luminosité et barre de teinte, utilisables au clavier ;
+pipette si le navigateur la propose ; deux palettes sans onglet pour éviter un
+clic : « Récentes » (10 dernières couleurs, mémorisées dans le navigateur) et
+« Dans ton DS » (couleurs des autres tokens, pour rester cohérent) ; bouton
+« Revenir à » la valeur enregistrée. Aperçu immédiat, enregistrement toujours
+par le diff. Écarté : les onglets « Récentes / Mes couleurs » de la maquette.
+Preuves : 15 tests navigateur (dont HEX court, clavier, palette du DS, récentes,
+aucune écriture) et 41 tests unitaires/API réussis ; fenêtre vérifiée dans le
+panneau à 375, 1280 (panneau étroit) et 1440 px ; audit sans anomalie.
+Limite : pipette absente sur Safari.

@@ -11,6 +11,7 @@ import {
 import { DSProvider, Scenario, components, screens } from './DesignSystem.js';
 import ProjectBrief from './ProjectBrief.js';
 import ScreenPicker from './ScreenPicker.js';
+import ColorPicker from './ColorPicker.js';
 import { useDrafts } from './useTokenDraft.js';
 import {
   bootstrap,
@@ -280,6 +281,7 @@ export default function App() {
   const [assistant, setAssistant] = useState(readAssistant);
   const [limits, setLimits] = useState(readLimits);
   const [creditsOpen, setCreditsOpen] = useState(false);
+  const [pickerFor, setPickerFor] = useState<TokenKey | null>(null);
   const [limitsMissing, setLimitsMissing] = useState(false);
   useEffect(() => {
     if (!creditsOpen) return;
@@ -649,6 +651,7 @@ export default function App() {
     };
   }
 
+  const colorKeys = tokenGroups[0].keys;
   const renderRow = (k: TokenKey) => {
     const saved = state.tokens[k].$value;
     const raw = drafts.drafts[k] ?? String(saved);
@@ -679,23 +682,33 @@ export default function App() {
         <div className="token-control">
           {type === 'color' && (
             <>
-              <label
-                className="swatch-picker"
-                style={{
-                  background: err ? String(saved) : String(preview[k].$value),
-                }}
-              >
-                <input
-                  type="color"
-                  aria-label={`Choisir visuellement : ${label}`}
-                  value={
-                    err
-                      ? String(saved)
-                      : String(preview[k].$value).toLowerCase()
-                  }
-                  onChange={(e) => drafts.set(k, e.target.value.toUpperCase())}
+              <div className="swatch-wrap">
+                <button
+                  type="button"
+                  className="swatch-button"
+                  style={{
+                    background: err ? String(saved) : String(preview[k].$value),
+                  }}
+                  aria-label={`Ouvrir le sélecteur de couleur : ${label}`}
+                  aria-expanded={pickerFor === k}
+                  onClick={() => setPickerFor(pickerFor === k ? null : k)}
                 />
-              </label>
+                {pickerFor === k && (
+                  <ColorPicker
+                    label={label}
+                    value={err ? String(saved) : String(preview[k].$value)}
+                    initial={String(saved)}
+                    palette={colorKeys
+                      .filter((c) => c !== k)
+                      .map((c) => ({
+                        label: tokenLabels[c],
+                        value: String(preview[c].$value),
+                      }))}
+                    onChange={(hex) => drafts.set(k, hex)}
+                    onClose={() => setPickerFor(null)}
+                  />
+                )}
+              </div>
               <input
                 className="hex-input"
                 aria-label={label}

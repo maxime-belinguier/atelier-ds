@@ -546,3 +546,50 @@ test('aperçu : mockups d’appareil par format, format libre saisi et étiré',
   await page.getByRole('button', { name: /^Format libre/ }).click();
   await expect(page.locator('iframe')).toHaveAttribute('width', String(width));
 });
+
+test('sélecteur de couleur : HEX d’abord, zone, palette du DS, récentes', async ({
+  page,
+}) => {
+  await page.goto('/');
+  const before = await state(page);
+  await page
+    .getByRole('button', {
+      name: 'Ouvrir le sélecteur de couleur : Couleur de marque',
+    })
+    .click();
+  const hex = page.getByLabel('Code HEX : Couleur de marque');
+  await expect(hex).toBeFocused();
+  // Forme courte acceptée, aperçu immédiat, rien d'enregistré.
+  await hex.fill('48e');
+  await expect(
+    page.getByLabel('Couleur de marque', { exact: true }),
+  ).toHaveValue('#4488EE');
+  await expect(
+    page
+      .frameLocator('iframe')
+      .getByRole('button', { name: 'Garder ce logement', exact: true }),
+  ).toHaveCSS('background-color', 'rgb(68, 136, 238)');
+  // Zone saturation / luminosité au clavier.
+  await page.getByRole('slider', { name: 'Saturation et luminosité' }).focus();
+  await page.keyboard.press('Shift+ArrowDown');
+  await expect(hex).not.toHaveValue('#4488EE');
+  // Couleur du DS en un clic.
+  await page
+    .getByRole('button', {
+      name: /^Utiliser #[0-9A-F]{6} \(Couleur d’alerte\)/,
+    })
+    .click();
+  await expect(
+    page.getByLabel('Couleur de marque', { exact: true }),
+  ).toHaveValue(before.tokens['color.danger'].$value);
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog', { name: /^Couleur :/ })).toHaveCount(0);
+  expect((await state(page)).revision).toBe(before.revision);
+  // La couleur choisie apparaît dans « Récentes » à la réouverture.
+  await page
+    .getByRole('button', {
+      name: 'Ouvrir le sélecteur de couleur : Texte principal',
+    })
+    .click();
+  await expect(page.getByText('Récentes')).toBeVisible();
+});
