@@ -281,3 +281,10 @@ Le libellé « Figma non connecté » reste affiché : c’est l’état réel.
 - Zones cliquables : mesurées dans l'écran affiché par l'aperçu. 24 px minimum (2.5.8), 44 px conseillés (Apple). Une case reliée à son libellé compte la zone du libellé.
 - Score = part des critères WCAG obligatoires respectés. Bouton « Modifier » pour aller au token concerné.
 - Premier constat : les bordures sont à 1,74:1 sur les cartes. Ça ne pose problème que si la bordure est le seul repère du champ.
+
+## 27/10/2026 · Export « Documentation » du Design System
+- Nouveau format dans le menu Exporter : Documentation, une page HTML autonome (gutt-design-system.html), sans script.
+- Contenu : couleurs avec HEX et variable CSS, typographie, espacements et formes, chaque composant Gutt rendu avec ses tokens, tableau d'accessibilité avec score.
+- Valeurs enregistrées uniquement, comme les autres exports. Mise en page prévue pour l'impression : Fichier, Imprimer, Enregistrer en PDF.
+- Base pour le livrable Design System du PFE.
+- Technique : les styles des composants sont sortis dans ds-components.css, partagé par l'atelier, l'aperçu et la doc.

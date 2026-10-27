@@ -13,6 +13,8 @@ import ProjectBrief from './ProjectBrief.js';
 import ScreenPicker from './ScreenPicker.js';
 import ColorPicker from './ColorPicker.js';
 import { useDrafts } from './useTokenDraft.js';
+import { buildDocHtml } from './docExport.js';
+import dsCss from './ds-components.css?raw';
 import {
   auditTokens,
   measureTargets,
@@ -266,7 +268,33 @@ const exportsList: {
     type: 'text/javascript',
     make: toTailwindV3,
   },
+  {
+    id: 'doc',
+    label: 'Documentation',
+    hint: 'Page HTML, imprimable en PDF',
+    file: 'gutt-design-system.html',
+    type: 'text/html',
+    make: () => '',
+  },
 ];
+
+// Documentation : composants rendus en HTML statique avec les valeurs
+// enregistrées, styles des composants inclus.
+async function makeDoc(tokens: Tokens) {
+  const { renderToStaticMarkup } = await import('react-dom/server');
+  return buildDocHtml({
+    tokens,
+    componentCss: dsCss,
+    components: components.map((c) => ({
+      label: c.label,
+      description: c.description,
+      tokens: c.tokens,
+      html: renderToStaticMarkup(
+        <DSProvider tokens={tokens}>{c.render()}</DSProvider>,
+      ),
+    })),
+  });
+}
 
 function readLayout() {
   try {
@@ -1090,7 +1118,11 @@ export default function App() {
                         setExportOpen(false);
                         void perform(async () => {
                           if (x.id === 'json') return exportTokens();
-                          downloadText(x.file, x.make(state.tokens), x.type);
+                          const text =
+                            x.id === 'doc'
+                              ? await makeDoc(state.tokens)
+                              : x.make(state.tokens);
+                          downloadText(x.file, text, x.type);
                           setNotice(`${x.file} téléchargé.`);
                         });
                       }}

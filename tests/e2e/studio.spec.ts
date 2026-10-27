@@ -656,3 +656,25 @@ test('audit d’accessibilité : score, contrastes et zones cliquables', async (
     page.getByRole('region', { name: 'Zones cliquables' }),
   ).toContainText('WCAG 2.5.8');
 });
+
+test('export Documentation : page HTML complète et autonome', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Exporter', exact: true }).click();
+  const download = page.waitForEvent('download');
+  await page.getByRole('menuitem', { name: /^Documentation/ }).click();
+  const d = await download;
+  expect(d.suggestedFilename()).toBe('gutt-design-system.html');
+  const { readFile } = await import('node:fs/promises');
+  const html = await readFile((await d.path())!, 'utf8');
+  for (const needle of [
+    '<h2>Couleurs</h2>',
+    '<h2>Composants</h2>',
+    '<h2>Accessibilité</h2>',
+    'class="ds-button primary"',
+    '.ds-button {',
+  ])
+    expect(html).toContain(needle);
+  expect(html).not.toMatch(/<script/);
+});
