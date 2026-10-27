@@ -378,3 +378,41 @@ Preuves : test navigateur (ouverture au premier lancement, pas de réouverture,
 relance par « ? », 6 étapes, contrôle en étape 2, Comparer affiché, état rétabli) ; position
 de la carte mesurée à chaque image à 1440, 1280 et 1024 px : une seule position
 par étape, jamais hors écran ; captures relues.
+
+## 27/10/2026 · Paramètres de l’atelier
+
+Problème : aucun endroit pour régler l’atelier (assistant, apparence, Figma,
+préférences de démarrage).
+Décision : roue crantée dans l’en-tête, qui ouvre une grande modale centrée
+(880 × 600 max) avec 4 onglets à gauche. Réglages appliqués tout de suite, gardés
+dans le navigateur ; le Design System n’est jamais modifié.
+- Assistants IA : Claude est l’assistant du chat. Bouton « Changer de compte »
+  (ou « Connecter ») : sur Mac, l’atelier ouvre le Terminal avec la commande
+  officielle « claude » ; ailleurs, il affiche la commande à copier. Commande en
+  liste fermée côté serveur. Modèle et effort de Claude par défaut. Codex et
+  Gemini apparaissent en « Bientôt » pour montrer que l’atelier est prévu pour
+  plusieurs IA. L’atelier ne lit, ne reçoit et ne stocke aucun identifiant.
+  Écarté : installer et connecter Codex et Gemini depuis l’atelier (beaucoup de
+  travail, non testable ici, inutile pour le PFE, et la première connexion
+  Gemini exige de toute façon le Terminal).
+- Apparence : 9 fonds pastel (lavande, neutre, crème, blanc, ciel, glacier,
+  pêche, rose poudré, sable), 4 accents et 4 polices prêts, plus fond et accent
+  au choix. Les variantes (texte blanc sur accent, texte d’accent sur fond) sont
+  calculées pour rester à 4,5:1 ; un avertissement s’affiche si le fond nuit à la
+  lisibilité. Les écrans Gutt de l’aperçu ne changent pas.
+- Figma : état réel « Non connecté », lien du fichier (depuis le Brief), et la
+  connexion prévue par un plugin Figma.
+- Général : format et type de vision au démarrage, relancer la visite,
+  raccourcis clavier, réinitialiser les préférences (tokens, historique et
+  brief non touchés).
+Écart assumé avec le starter : mon intervenant demande de connecter Figma par
+API. L’API REST des variables Figma est réservée aux comptes Enterprise (doc
+officielle) ; l’API des plugins marche sur tous les plans. Prochaine étape : un
+plugin Figma DS-Studio qui envoie les variables à l’atelier (diff puis
+validation) et met à jour Figma depuis les tokens.
+Preuves : test API (commande fixe, assistant inconnu et commande injectée
+refusés) ; test navigateur (onglets, Connecter, apparence appliquée et mémorisée
+après rechargement, DS inchangé, état Figma, format de démarrage, Échap) ;
+captures relues ; audit de mise en page sans anomalie.
+Limite : l’ouverture du Terminal reste à essayer sur mon Mac (macOS ne peut pas
+être testé ici).

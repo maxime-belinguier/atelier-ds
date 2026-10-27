@@ -11,6 +11,11 @@ import { CodexAdapter } from '../../connectors/agents/codex.js';
 import { ClaudeAdapter } from '../../connectors/agents/claude.js';
 import { unvalidatedAdapter } from '../../connectors/agents/unvalidated.js';
 import {
+  loginCommands,
+  openTerminal,
+  type TerminalOpener,
+} from '../../connectors/agents/login.js';
+import {
   claudeEfforts,
   claudeModels,
   type AgentAdapter,
@@ -23,6 +28,7 @@ export async function createStudioServer(options: {
   store: Store;
   agent?: AgentAdapter;
   claude?: AgentAdapter;
+  terminal?: TerminalOpener;
   dev?: boolean;
   control?: { record: RecordInfo; stop: () => void };
 }) {
@@ -176,6 +182,15 @@ export async function createStudioServer(options: {
         if (url.pathname === '/api/commit') {
           const b = z.object({ id: z.string().uuid() }).strict().parse(body);
           return send(200, await store.commit(b.id));
+        }
+        if (url.pathname === '/api/agent-login') {
+          const b = z
+            .object({ agent: z.enum(['claude']) })
+            .strict()
+            .parse(body);
+          const command = loginCommands[b.agent];
+          const opened = await (options.terminal ?? openTerminal)(command);
+          return send(200, { opened, command });
         }
         if (url.pathname === '/api/agent') {
           const b = z

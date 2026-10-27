@@ -864,3 +864,61 @@ test('badge d’alerte : icône en plus du rouge (WCAG 1.4.1)', async ({
     page.frameLocator('iframe').locator('.ds-badge.danger svg'),
   ).toHaveCount(1);
 });
+
+test('paramètres : onglets, apparence appliquée et mémorisée, Échap', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Paramètres' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Paramètres' });
+  await expect(dialog).toBeVisible();
+  await expect(
+    dialog.getByRole('tab', { name: 'Assistants IA' }),
+  ).toHaveAttribute('aria-selected', 'true');
+  for (const name of ['Claude', 'Codex (ChatGPT)', 'Gemini'])
+    await expect(dialog.getByText(name, { exact: true })).toBeVisible();
+  // Claude : Terminal sur Mac, sinon la commande à taper. Les autres : bientôt.
+  const claude = dialog.locator('.agent-card', { hasText: 'Claude' });
+  await claude
+    .getByRole('button', { name: /Connecter|Changer de compte/ })
+    .click();
+  await expect(claude.locator('.agent-result')).toContainText(
+    /claude|Terminal ouvert/,
+  );
+  await expect(
+    dialog.locator('.agent-card', { hasText: 'Gemini' }).getByRole('button'),
+  ).toHaveCount(0);
+  await dialog.getByRole('tab', { name: 'Apparence' }).click();
+  await dialog.getByRole('button', { name: 'Bleu' }).click();
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        getComputedStyle(document.documentElement)
+          .getPropertyValue('--accent')
+          .trim(),
+      ),
+    )
+    .toBe('#3B6FF5');
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  await page.reload();
+  expect(
+    await page.evaluate(() =>
+      getComputedStyle(document.documentElement)
+        .getPropertyValue('--accent')
+        .trim(),
+    ),
+  ).toBe('#3B6FF5');
+  // Le Design System n'est pas touché par l'apparence de l'atelier.
+  expect((await state(page)).tokens['color.brand'].$value).not.toBe('#3B6FF5');
+  await page.getByRole('button', { name: 'Paramètres' }).click();
+  await page.getByRole('tab', { name: 'Figma' }).click();
+  await expect(page.getByText('Non connecté', { exact: true })).toBeVisible();
+  await page.getByRole('tab', { name: 'Général' }).click();
+  await page.getByLabel('Format d’aperçu au démarrage').selectOption('xl');
+  await page.getByRole('button', { name: 'Fermer les paramètres' }).click();
+  await expect(
+    page.getByRole('button', { name: 'Grand écran 1440 px' }),
+  ).toHaveAttribute('aria-pressed', 'true');
+});

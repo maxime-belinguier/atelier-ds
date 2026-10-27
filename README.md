@@ -93,6 +93,8 @@ contenant des espaces est accepté. N’utilisez ni `sudo` ni installation de se
   navigateur, mode Fit ou 100 %, et mode Comparer (deux formats côte à côte, ou
   avant / après des modifications en cours).
 - **Visite guidée** : au premier lancement, puis avec le bouton « ? » de l'en-tête.
+- **Paramètres** (roue crantée) : assistant IA, apparence de l'atelier, état Figma,
+  préférences de démarrage, raccourcis et réinitialisation.
 - **En-tête** : bouton Brief, puis Historique, Importer et Exporter en icônes.
 - **Exports** (valeurs enregistrées uniquement) : Tokens JSON, Variables CSS,
   Tailwind v4, Tailwind v3 et Documentation (page HTML imprimable en PDF).

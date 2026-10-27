@@ -26,10 +26,16 @@ async function fixture(
   const directory = await mkdtemp(path.join(tmpdir(), 'ds-http-'));
   const store = new Store(directory, seed);
   await store.init();
+  // Jamais de vrai Terminal dans les tests : on note seulement la commande.
+  const terminal: string[] = [];
   const app = await createStudioServer({
     root,
     store,
     dev,
+    terminal: async (command) => {
+      terminal.push(command);
+      return false;
+    },
     agent: {
       id: 'codex',
       async status() {
@@ -73,7 +79,7 @@ async function fixture(
       },
       body: JSON.stringify(body),
     });
-  return { origin, post, store };
+  return { origin, post, store, terminal };
 }
 test('API manuelle complète sans IA ni Figma, export égal au disque', async (t) => {
   const { origin, post, store } = await fixture(t);
@@ -311,4 +317,21 @@ test('mode manuel disponible immédiatement même si la détection IA ne répond
   });
   assert.equal(response.status, 200);
   assert.equal(typeof (await response.json()).csrf, 'string');
+});
+
+test('connexion d’un assistant : commande officielle fixe, rien d’autre', async (t) => {
+  const { post, terminal } = await fixture(t);
+  const ok = await post('agent-login', { agent: 'claude' });
+  assert.equal(ok.status, 200);
+  assert.deepEqual(await ok.json(), { opened: false, command: 'claude' });
+  assert.deepEqual(terminal, ['claude']);
+  // Autre assistant ou commande fournie par le navigateur : refusé.
+  for (const agent of ['codex', 'gemini'])
+    assert.equal((await post('agent-login', { agent })).status, 400);
+  assert.equal(
+    (await post('agent-login', { agent: 'claude', command: 'rm -rf ~' }))
+      .status,
+    400,
+  );
+  assert.deepEqual(terminal, ['claude']);
 });

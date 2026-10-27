@@ -2934,7 +2934,7 @@ select,
 @keyframes row-flash {
   0%,
   60% {
-    background: #fff1e8;
+    background: var(--accent-soft);
     box-shadow: inset 3px 0 0 var(--accent-strong);
   }
   100% {
@@ -3186,4 +3186,347 @@ select,
 }
 .tour-card:not(.is-on) {
   pointer-events: none;
+}
+
+/* L'atelier suit la police choisie dans les Paramètres. */
+body,
+.app-shell {
+  font-family: var(--font-ui);
+}
+
+/* Paramètres : grande modale centrée, onglets à gauche */
+.settings-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: #1b17304d;
+  backdrop-filter: blur(3px);
+}
+.settings {
+  position: relative;
+  width: min(880px, 100%);
+  height: min(600px, calc(100dvh - 48px));
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  border-radius: 22px;
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: 0 24px 70px #2c265045;
+}
+.settings-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 22px 14px;
+  background: var(--bg);
+  border-right: 1px solid var(--border);
+}
+.settings-nav h2 {
+  margin: 0 8px 12px;
+  font-size: 18px;
+}
+.settings-nav [role='tablist'] {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.settings-nav [role='tab'] {
+  height: 38px;
+  border: 0;
+  border-radius: 999px;
+  padding: 0 14px !important;
+  text-align: left;
+  background: transparent;
+  font-weight: 550;
+}
+.settings-nav [role='tab']:hover {
+  background: var(--surface);
+}
+.settings-nav [role='tab'][aria-selected='true'] {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+.settings-note {
+  margin: auto 8px 0;
+  font-size: 11.5px;
+  color: var(--text-2);
+}
+.settings-panel {
+  overflow: auto;
+  padding: 26px 30px 30px;
+}
+.settings-panel h3 {
+  margin: 0 0 4px;
+  font-size: 22px;
+}
+.settings-panel h4 {
+  margin: 22px 0 8px;
+  font-size: 13px;
+}
+.settings-lead {
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: var(--text-2);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.settings-hint {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--text-2);
+}
+.settings-warn {
+  margin: 12px 0 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #fdf3df;
+  color: #6b4400;
+  font-size: 12.5px;
+}
+.settings-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 34px;
+  height: 34px;
+  padding: 0 !important;
+  border-radius: 999px;
+  font-size: 20px;
+  line-height: 1;
+}
+.settings-link {
+  margin-top: 10px;
+  height: 34px;
+  border-radius: 999px;
+  padding: 0 14px !important;
+}
+.settings-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.settings-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  flex: 1 1 200px;
+}
+.settings-cards {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.agent-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 14px;
+}
+.agent-pick {
+  flex: 1 1 280px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 2px 12px;
+  align-items: center;
+  cursor: pointer;
+}
+.agent-card.is-off .agent-pick {
+  cursor: default;
+}
+.agent-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  max-width: 100%;
+}
+.agent-connect {
+  height: 34px;
+  border-radius: 999px;
+  padding: 0 14px !important;
+  white-space: nowrap;
+}
+.agent-card.is-off .agent-connect {
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--surface);
+}
+.agent-result {
+  margin: 0;
+  max-width: 340px;
+  font-size: 12px;
+  color: var(--text-2);
+  text-align: right;
+}
+.agent-result code {
+  font-size: 12px;
+  color: var(--text);
+}
+.settings-copy {
+  height: 24px;
+  margin: 0 2px 0 6px;
+  padding: 0 8px !important;
+  border-radius: 999px;
+  font-size: 11px;
+}
+.agent-pick input {
+  grid-row: span 2;
+  accent-color: var(--accent-strong);
+  width: 16px;
+  height: 16px;
+}
+.agent-card.is-on {
+  border-color: var(--accent-strong);
+  background: var(--accent-soft);
+}
+.agent-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.agent-how {
+  font-size: 12px;
+  color: var(--text-2);
+}
+.agent-state {
+  font-size: 11px;
+  font-weight: 650;
+  padding: 2px 9px;
+  border-radius: 999px;
+}
+.agent-state.ok {
+  background: #e3f4ea;
+  color: #1f6b44;
+}
+.agent-state.off {
+  background: var(--bg-deep);
+  color: var(--text-2);
+}
+.swatch-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.swatch-pick,
+.font-pick {
+  height: 38px;
+  display: inline-flex !important;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px 0 8px !important;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  font-size: 13px;
+  cursor: pointer;
+}
+.font-pick {
+  padding: 0 14px !important;
+}
+.swatch-pick > span {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px #0000001f;
+}
+.swatch-pick[aria-pressed='true'],
+.font-pick[aria-pressed='true'] {
+  border-color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--text);
+}
+.swatch-pick.custom input {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  cursor: pointer;
+}
+.settings-steps {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+  display: grid;
+  gap: 6px;
+}
+.settings-file a {
+  font-weight: 600;
+  color: var(--accent-text);
+}
+.shortcuts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px 16px;
+  margin: 0;
+  font-size: 13px;
+}
+.shortcuts dt {
+  white-space: nowrap;
+}
+.shortcuts dd {
+  margin: 0;
+  color: var(--text-2);
+}
+kbd {
+  display: inline-block;
+  min-width: 22px;
+  padding: 1px 6px;
+  border: 1px solid var(--border-strong);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  background: var(--surface);
+  font: 12px var(--font-ui);
+  text-align: center;
+}
+@media (max-width: 700px) {
+  .settings {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
+    height: calc(100dvh - 32px);
+  }
+  .settings-nav {
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+    padding: 16px;
+  }
+  .settings-nav [role='tablist'] {
+    flex-direction: row;
+    overflow-x: auto;
+  }
+  .settings-note {
+    display: none;
+  }
+}
+
+/* Carte assistant : choix à gauche, bouton à droite, message sur toute la largeur. */
+.settings .agent-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.settings .agent-actions {
+  display: contents;
+}
+.settings .agent-connect {
+  grid-column: 2;
+  grid-row: 1;
+}
+.settings .agent-result {
+  grid-column: 1 / -1;
+  max-width: none;
+  text-align: left;
+  padding-left: 28px;
 }

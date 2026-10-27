@@ -15,6 +15,8 @@ import ScreenPicker from './ScreenPicker.js';
 import ColorPicker from './ColorPicker.js';
 import { useDrafts } from './useTokenDraft.js';
 import Tour, { tourKey, type TourStep } from './Tour.js';
+import Settings, { type Prefs } from './Settings.js';
+import { applyTheme, readTheme, saveTheme, type Theme } from './theme.js';
 import { buildDocHtml } from './docExport.js';
 import { VisionFilters, visionFilter, visions, type Vision } from './vision.js';
 import dsCss from './ds-components.css?raw';
@@ -190,6 +192,27 @@ type ChatEntry = {
   usage?: { model: string; inputTokens: number; outputTokens: number };
   effort?: AssistantPrefs['effort'];
 };
+// Préférences de démarrage choisies dans les Paramètres.
+const prefsKey = 'ds-studio-prefs';
+function readPrefs(): Prefs {
+  try {
+    const p = JSON.parse(localStorage.getItem(prefsKey) || '{}');
+    return {
+      device: typeof p.device === 'string' ? p.device : 'sm',
+      profile: typeof p.profile === 'string' ? p.profile : 'aa',
+    };
+  } catch {
+    return { device: 'sm', profile: 'aa' };
+  }
+}
+function readAgent() {
+  try {
+    const a = localStorage.getItem('ds-studio-agent');
+    return a === 'codex' || a === 'gemini' ? a : 'claude';
+  } catch {
+    return 'claude';
+  }
+}
 function readAssistant(): AssistantPrefs {
   try {
     const saved = JSON.parse(
@@ -346,7 +369,10 @@ export default function App() {
   const [proposal, setProposal] = useState<Proposal>();
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
-  const [device, setDevice] = useState('sm');
+  const [prefs, setPrefs] = useState(readPrefs);
+  const [device, setDevice] = useState(() =>
+    devices.some((d) => d.id === prefs.device) ? prefs.device : 'sm',
+  );
   const [freeOpen, setFreeOpen] = useState(false);
   // Mode Comparer : deux formats côte à côte (mobile et desktop par défaut).
   const [compare, setCompare] = useState(false);
@@ -369,7 +395,7 @@ export default function App() {
   const [chatOpen, setChatOpen] = useState(false);
   const [unread, setUnread] = useState(false);
   const [agents, setAgents] = useState<Bootstrap['agents']>([]);
-  const [agent, setAgent] = useState('claude');
+  const [agent, setAgent] = useState(readAgent);
   const [message, setMessage] = useState('');
   const [chat, setChat] = useState<ChatEntry[]>([]);
   const [assistant, setAssistant] = useState(readAssistant);
@@ -397,7 +423,26 @@ export default function App() {
   });
   // Profil de vision vérifié dans l'audit ; les daltonismes et la vision sans
   // couleur s'appliquent aussi à l'aperçu.
-  const [profile, setProfile] = useState<Profile>('aa');
+  const [profile, setProfile] = useState<Profile>(() =>
+    profiles.some((p) => p.id === prefs.profile)
+      ? (prefs.profile as Profile)
+      : 'aa',
+  );
+  // Paramètres de l'atelier (modale) et apparence.
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [theme, setTheme] = useState<Theme>(readTheme);
+  useEffect(() => {
+    applyTheme(theme);
+    saveTheme(theme);
+  }, [theme]);
+  useEffect(() => {
+    try {
+      localStorage.setItem(prefsKey, JSON.stringify(prefs));
+      localStorage.setItem('ds-studio-agent', agent);
+    } catch {
+      /* stockage indisponible : préférences valables pour la session */
+    }
+  }, [prefs, agent]);
   // Nouvelle page du Design System : on repart du haut.
   useEffect(() => {
     document.querySelector('.ds-content')?.scrollTo({ top: 0 });
@@ -983,7 +1028,7 @@ export default function App() {
     {
       target: '#chat-panel',
       title: 'Demande à Claude',
-      text: 'Décris ce que tu veux changer, Claude propose et tu valides. Choisis le modèle et surveille ton quota avec le cercle. Pour finir : exporte en haut à droite, et relance cette visite avec « ? ».',
+      text: 'Décris ce que tu veux changer, Claude propose et tu valides. Choisis le modèle et surveille ton quota avec le cercle. Pour finir, en haut à droite : exporte, règle l’atelier avec la roue crantée, et relance cette visite avec « ? ».',
       before: () => {
         setCompare(false);
         setChatOpen(true);
@@ -1390,6 +1435,28 @@ export default function App() {
                 </div>
               )}
             </div>
+            <button
+              className="header-icon"
+              aria-label="Paramètres"
+              title="Paramètres de l’atelier"
+              aria-haspopup="dialog"
+              onClick={() => setSettingsOpen(true)}
+            >
+              <svg
+                aria-hidden="true"
+                width="17"
+                height="17"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="12" cy="12" r="3" />
+                <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" />
+              </svg>
+            </button>
             <button
               className="header-icon"
               aria-label="Visite guidée"
@@ -2149,6 +2216,62 @@ export default function App() {
         </section>
       </main>
 
+      {settingsOpen && (
+        <Settings
+          onClose={() => setSettingsOpen(false)}
+          agents={agents}
+          onRefreshAgents={() =>
+            request<Bootstrap['agents']>('agents')
+              .then(setAgents)
+              .catch((e) => setError(e.message))
+          }
+          onConnect={(id) =>
+            request<{ opened: boolean; command: string }>('agent-login', {
+              agent: id,
+            })
+          }
+          agent={agent}
+          onAgent={setAgent}
+          models={models}
+          efforts={efforts}
+          assistant={assistant}
+          onAssistant={(a) => setAssistant(a as AssistantPrefs)}
+          theme={theme}
+          onTheme={setTheme}
+          devices={devices}
+          profiles={profiles}
+          prefs={prefs}
+          onPrefs={(p) => {
+            setPrefs(p);
+            if (p.device !== prefs.device) setDevice(p.device);
+            if (p.profile !== prefs.profile) setProfile(p.profile as Profile);
+          }}
+          onTour={() => {
+            setSettingsOpen(false);
+            tourPrev.current = { compare, chatOpen, selection };
+            setTourOpen(true);
+          }}
+          onReset={() => {
+            try {
+              for (const k of [
+                'ds-studio-theme',
+                'ds-studio-assistant',
+                'ds-studio-agent',
+                prefsKey,
+                'ds-studio-layout',
+                'ds-studio-nav-collapsed',
+                'ds-studio-color-mode',
+                tourKey,
+              ])
+                localStorage.removeItem(k);
+            } catch {
+              /* rien à effacer */
+            }
+            // Recharge : les modifications en cours restent (onglet).
+            location.reload();
+          }}
+        />
+      )}
       {tourOpen && (
         <Tour
           steps={tourSteps}
