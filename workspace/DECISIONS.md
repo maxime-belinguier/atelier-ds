@@ -171,12 +171,6 @@ libre, étirement à la souris, taille mémorisée) et 38 tests unitaires/API
 réussis (Linux) ; audit de mise en page sans anomalie ; captures relues.
 Limite : mockups indicatifs, pas des gabarits constructeur exacts.
 
-## 27/10/2026 · Case « Voir en entier »
-
-La case « Ajuster » devient « Voir en entier » (remplacée ensuite par Fit | 100 %), qui décrit le résultat plutôt
-que l’action ; une info-bulle précise que la largeur réelle ne change pas.
-Tests navigateur mis à jour et réussis ; audit sans anomalie.
-
 ## 27/10/2026 · Jauge des crédits Claude et zoom Fit | 100 %
 
 Problème : impossible de savoir où en est son abonnement Claude ; le libellé
@@ -186,8 +180,9 @@ d’utilisation (session de 5 h et semaine) et l’heure de remise à zéro. Un 
 cercle dans l’en-tête de l’assistant montre la fenêtre la plus entamée (vert,
 orange dès 70 %, corail dès 90 %) ; un clic ouvre le détail des deux jauges.
 Valeurs bornées, mémorisées dans le navigateur, mises à jour après chaque
-réponse. Dans l’Aperçu, la case devient un sélecteur « Fit | 100 % », le
-vocabulaire des outils de design (Figma : Zoom to fit).
+réponse. Dans l’Aperçu, la case « Ajuster » (puis « Voir en entier », jugé flou)
+devient un sélecteur « Fit | 100 % », le vocabulaire des outils de design
+(Figma : Zoom to fit).
 Sécurité : tout appel d’outil visible dans le flux de Claude est refusé.
 Preuves : 40 tests unitaires/API (dont lecture des limites et refus d’outil) et
 14 tests navigateur réussis ; essai réel ; audit de mise en page sans anomalie.
@@ -256,83 +251,103 @@ séparées par de fines lignes, icônes de chevron dessinées plutôt que des
 caractères, survol discret sur chaque zone.
 Preuves : 15 tests navigateur réussis ; audit sans anomalie ; capture relue.
 
-## 27/10/2026 · Figma : connexion directe écartée, import par fichier prévu
+## 27/10/2026 · Figma : lecture par Claude, import validé par le diff
 
 Besoin : construire le DS dans Figma et le vérifier dans DS-Studio.
-Écarté : connexion directe (DS-Studio n’est pas un client autorisé par Figma,
-le starter interdit les contournements de session ou de jeton).
-Prévu plus tard : import du JSON exporté par un plugin Figma (format W3C des
-design tokens), liaison variable Figma → token DS-Studio, validation par le diff.
-Limite connue : 18 tokens dans le schéma actuel, au-delà migration nécessaire.
-Le libellé « Figma non connecté » reste affiché : c’est l’état réel.
+Constat : l’app elle-même ne se connecte pas à Figma (le starter ne fournit qu’un
+contrat vide, et interdit les contournements de session ou de jeton). En revanche,
+Claude lit mon fichier Figma par le connecteur officiel (testé : compte reconnu,
+fichier « Gutt App PFE » lu, encore aucune variable dedans).
+Décision : je crée mes variables dans Figma avec les mêmes noms que l’app
+(color/brand, space/md, radius/control…). Claude les lit et prépare un JSON que
+j’importe ; l’app montre le diff et je valide.
+Limite : 18 tokens dans le schéma actuel, au-delà migration nécessaire. Le
+libellé « Figma non connecté » reste affiché : c’est l’état réel de l’app.
 
-## 27/10/2026 · En-tête en icônes et exports pour l'app Gutt
-- Brief, Historique, Importer et Exporter sont regroupés en icônes dans une seule pastille, avec info-bulle et nom accessible. Moins de bruit visuel.
-- Exporter ouvre un menu : Tokens JSON (DS-Studio), Variables CSS (tokens.css), Tailwind v4 (theme.css avec @theme), Tailwind v3 (tailwind.config.js).
-- Les exports utilisent uniquement les valeurs enregistrées. Un message prévient si des modifications ne sont pas encore enregistrées.
-- Le menu se ferme au clic extérieur et avec Échap. Testé : tests unitaires des exports et test e2e des téléchargements.
-- Brief sorti du groupe d'icônes : bouton à part avec icône et texte « Brief », même hauteur que le groupe. Le brief est le contenu du projet, pas une action sur les fichiers. Le groupe garde Historique, Importer et Exporter.
+## 27/10/2026 · En-tête en icônes et exports pour l’app Gutt
 
-## 27/10/2026 · Audit d'accessibilité
-- Nouvelle section « Vérifier › Accessibilité » dans le menu du Design System, avec un badge rouge qui compte les points à corriger.
-- Calcul en direct sur les valeurs, modifications en cours comprises. Repère : WCAG 2.2 niveau AA.
-- Contrastes (12 paires) : texte 4,5:1 (1.4.3), éléments d'interface 3:1 (1.4.11). Aperçu « Aa » avec les vraies couleurs.
-- Texte : 16 px conseillés sur mobile, titres au moins 1,25 fois le texte. Ce sont des conseils, ils ne comptent pas dans le score.
-- Zones cliquables : mesurées dans l'écran affiché par l'aperçu. 24 px minimum (2.5.8), 44 px conseillés (Apple). Une case reliée à son libellé compte la zone du libellé.
-- Score = part des critères WCAG obligatoires respectés. Bouton « Modifier » pour aller au token concerné.
-- Premier constat : les bordures sont à 1,74:1 sur les cartes. Ça ne pose problème que si la bordure est le seul repère du champ.
+Problème : trop de boutons texte dans l’en-tête, et un seul export (JSON) alors
+que l’app Gutt sera codée en CSS / Tailwind.
+Décision : bouton « Brief » à part (c’est le contenu du projet), puis Historique,
+Importer et Exporter en icônes dans une seule pastille, avec info-bulle et nom
+accessible. Exporter ouvre un menu : Tokens JSON (réimportable), Variables CSS,
+Tailwind v4 (@theme), Tailwind v3 (config) et Documentation. Les exports
+utilisent les valeurs enregistrées ; le menu prévient s’il reste des
+modifications non enregistrées. Fermeture au clic extérieur et avec Échap.
+Documentation : page HTML autonome, sans script, imprimable en PDF (couleurs,
+typographie, espacements, chaque composant rendu avec ses tokens, bilan
+d’accessibilité). Base pour le livrable Design System du PFE. Les styles des
+composants sont sortis dans ds-components.css, partagé par l’atelier, l’aperçu
+et la doc.
+Preuves : tests unitaires des exports, tests navigateur des téléchargements et
+de la page Documentation ; PDF généré et relu.
 
-## 27/10/2026 · Export « Documentation » du Design System
-- Nouveau format dans le menu Exporter : Documentation, une page HTML autonome (gutt-design-system.html), sans script.
-- Contenu : couleurs avec HEX et variable CSS, typographie, espacements et formes, chaque composant Gutt rendu avec ses tokens, tableau d'accessibilité avec score.
-- Valeurs enregistrées uniquement, comme les autres exports. Mise en page prévue pour l'impression : Fichier, Imprimer, Enregistrer en PDF.
-- Base pour le livrable Design System du PFE.
-- Technique : les styles des composants sont sortis dans ds-components.css, partagé par l'atelier, l'aperçu et la doc.
+## 27/10/2026 · Menu du Design System : catégories lisibles et repliables
 
-## 27/10/2026 · Simulation de la vision des couleurs
-- Réglage dans Vérifier › Accessibilité : Normale, Deutéranopie, Protanopie, Tritanopie, Sans couleur.
-- Le filtre s'applique à l'aperçu de l'écran Gutt. Une étiquette « Vue : … » avec ✕ reste visible en haut à gauche de l'aperçu tant qu'un filtre est actif.
-- Rien n'est enregistré : c'est une loupe de vérification, les tokens ne changent pas.
-- Méthode : matrices de Machado, Oliveira et Fernandes (2009), sévérité maximale ; niveaux de gris pour « Sans couleur ».
-- Premier constat : en deutéranopie, le badge rouge « 3 points à vérifier » perd sa couleur d'alerte. Le texte reste lisible, mais le rouge seul ne suffit pas comme signal.
+Problème : catégories (Tokens, Composants, Écrans…) peu distinctes des éléments ;
+liste longue ; barre de recherche qui se tassait quand le menu s’allongeait.
+Décision : titres de catégorie en majuscules, couleur d’accent, trait de
+séparation ; chaque titre se replie au clic (chevron, nombre d’éléments affiché
+une fois replié), choix mémorisé ; l’élément affiché reste visible même si sa
+catégorie est repliée. Recherche fixée à 36 px. Nouvelle catégorie « Contrôle
+qualité » (au lieu de « Vérifier », trop vague).
+Preuves : test navigateur (repli, mémorisation, hauteur de la recherche) ;
+audit de mise en page sans anomalie.
 
-## 27/10/2026 · Menu du Design System plus lisible
-- Titres de catégorie (Tokens, Composants, Écrans, Contrôle qualité) en majuscules, couleur d'accent et trait de séparation entre les groupes.
-- Wording : « Vérifier » devient « Contrôle qualité ». Le menu garde « Accessibilité » (terme attendu par le jury, tient sur une ligne) et la page s'appelle « Test d'accessibilité », avec une phrase simple : « Ton Design System est-il lisible et utilisable par tous ? ».
-- README mis à jour : section « Ajouts de la version Gutt » et état réel des nouvelles fonctions.
+## 27/10/2026 · Accessibilité : créer dans Couleurs, contrôler dans Accessibilité
 
-## 27/10/2026 · Catégories repliables et barre de recherche corrigée
-- Bug corrigé : la barre de recherche se tassait quand le menu devenait long (éléments du menu compressibles). Elle garde maintenant sa hauteur de 36 px.
-- Chaque titre de catégorie (Tokens, Composants, Écrans, Contrôle qualité) se replie et se déplie au clic, avec un chevron. Replié, il affiche le nombre d'éléments.
-- L'élément affiché reste visible même si sa catégorie est repliée : on ne perd jamais où on est.
-- Le choix est mémorisé dans le navigateur. Accessible au clavier (aria-expanded).
+Problème : je dois prouver que le DS est lisible par tous, et savoir quoi
+corriger, selon le type de vision.
+Étapes écartées : un audit qui informe sans permettre de corriger ; des
+corrections faites dans l’écran de contrôle (mélange création et vérification) ;
+une seule notion de « conforme » sans dire pour qui.
+Décision, principe UX : on crée dans Couleurs, on contrôle dans Accessibilité.
+- Couleurs : menu « Type de vision » en haut, « Vision classique » par défaut,
+  puis Malvoyance, Deutéranopie, Protanopie, Tritanopie, Sans couleur. Chaque
+  couleur affiche son statut ; si elle bloque, une proposition et « Appliquer »
+  apparaissent sous la ligne. Appliquer crée un brouillon, validé par
+  « Enregistrer » et le diff.
+- Contrôle qualité › Accessibilité : un score par type de vision (6 cartes), la
+  liste des problèmes et « Corriger dans Couleurs / Typographie », qui ouvre la
+  bonne ligne et la met en évidence. Aucune modification ici. Zones cliquables
+  mesurées sur l’écran affiché (24 px minimum, WCAG 2.5.8 ; 44 px conseillés).
+- Badge rouge dans le menu : nombre de points à corriger en vision classique.
+Règles :
+- Vision classique : WCAG 2.2 AA, contraste 4,5:1 pour le texte (1.4.3), 3:1
+  pour l’interface (1.4.11). Malvoyance : AAA, 7:1 pour le texte (1.4.6) ;
+  l’interface reste à 3:1, WCAG n’a pas de niveau AAA pour elle.
+- Daltonismes et sans couleur : les couleurs de sens (alerte, réussite, marque,
+  focus) doivent rester différentes une fois simulées ; rappel WCAG 1.4.1 (ne
+  pas compter sur la couleur seule). Simulation : matrices de Machado, Oliveira
+  et Fernandes (2009), sévérité maximale ; niveaux de gris pour « Sans couleur ».
+  Le même filtre s’applique à l’aperçu, avec une étiquette « Vue : … » et un ✕.
+- Écart perçu : distance CIE76 (Lab). Seuil de 20 = hypothèse de l’atelier,
+  pas une norme ; c’est écrit dans l’app.
+- Propositions : même teinte, seule la clarté change, et la couleur reste
+  lisible sur les cartes.
+- Texte : 16 px conseillés sur mobile, titres au moins 1,25 fois le texte
+  (conseils, hors score).
+Premiers constats sur Gutt : bordures à 1,74:1 sur les cartes (problème seulement
+si la bordure est le seul repère du champ) ; en deutéranopie, alerte et réussite
+se rapprochent : ajouter une icône aux badges.
+Preuves : 53 tests unitaires/API (seuils, corrections qui passent vraiment le
+seuil, simulation) et tests navigateur (bilan sans édition, correction appliquée
+en brouillon, filtre de l’aperçu, retour en vision classique).
+Limite : contrôle sur les tokens, pas un audit WCAG complet de l’app.
 
-## 27/10/2026 · Test d'accessibilité par profil de vision, avec corrections
-- Parcours en 2 étapes : 1. « Pour qui je vérifie ? » (Malvoyance, Malvoyance forte, Deutéranopie, Protanopie, Tritanopie, Sans couleur). 2. « Ce qui passe et ce qui bloque » pour ce profil.
-- Malvoyance : contrastes WCAG 2.2 AA (4,5:1 texte, 3:1 interface). Malvoyance forte : AAA, 7:1 pour le texte (1.4.6) ; l'interface reste à 3:1, WCAG n'a pas de niveau AAA pour elle.
-- Daltonismes et sans couleur : les couleurs de sens (alerte, réussite, marque, focus) doivent rester différentes une fois simulées. Pastilles = couleurs telles que perçues. Rappel WCAG 1.4.1 : ne pas compter sur la couleur seule.
-- Écart perçu : distance CIE76 dans l'espace Lab. Seuil de 20 choisi pour l'atelier : c'est une hypothèse, pas une norme, et c'est écrit dans l'app.
-- Chaque problème a une proposition qui garde la teinte et ne change que la clarté (et reste lisible sur les cartes). « Appliquer en brouillon » : l'aperçu suit, rien n'est écrit avant « Enregistrer » et le diff.
-- Le choix du profil remplace le bloc « Vision des couleurs » : un daltonisme choisi s'applique aussi à l'aperçu. Le ✕ de l'étiquette revient à « Malvoyance ».
-- Le badge rouge du menu suit toujours la norme de base (AA).
+## 27/10/2026 · Aperçu : mode Comparer
 
-## 27/10/2026 · Créer dans Couleurs, contrôler dans Accessibilité
-- Principe UX : on crée dans Couleurs, on contrôle dans Accessibilité. Les corrections ne se font plus dans l'écran de contrôle.
-- Couleurs : sélecteur « Vérifier pour » (6 profils) en haut. Chaque couleur affiche son statut pour ce profil (« ✓ … OK » ou « À corriger »), avec la proposition et un bouton « Appliquer » sous la ligne. Appliquer crée un brouillon, validé ensuite avec « Enregistrer ».
-- Un daltonisme choisi dans « Vérifier pour » s'applique aussi à l'aperçu ; le ✕ de l'étiquette revient à « Malvoyance ».
-- Accessibilité devient « Contrôle d'accessibilité » : un score par profil (6 cartes), la liste des problèmes de chaque profil et un bouton « Corriger dans Couleurs / Typographie » qui ouvre la bonne ligne et la met en évidence. Aucune modification possible ici.
-- Les zones cliquables restent dans le contrôle (mesure de l'écran affiché).
-
-## 27/10/2026 · « Type de vision » avec la vue classique par défaut
-- Le menu « Vérifier pour » devient « Type de vision », pour montrer qu'on passe d'une vue à l'autre.
-- Premier choix et valeur par défaut : « Vision classique » (norme de base WCAG AA, aperçu normal).
-- « Malvoyance » correspond maintenant au contraste renforcé (AAA, 7:1 pour le texte). Suivent Deutéranopie, Protanopie, Tritanopie et Sans couleur.
-
-## 27/10/2026 · Aperçu : mode Comparer (2 formats côte à côte)
-- Bouton « Comparer » dans la barre de l'Aperçu. Deux formats seulement : à trois, le desktop devient illisible dans un panneau d'environ 700 px.
-- Par défaut : Mobile 375 à gauche, Grand écran 1440 à droite. Deux menus « Gauche » et « Droite » pour changer de format.
-- Les deux appareils sont affichés à la même hauteur, avec leur échelle sous chacun. Même écran, mêmes modifications en cours, même type de vision. Le plein écran ⤢ les agrandit.
-- En mode Comparer, Fit / 100 % est masqué (toujours ajusté) ; le Mockup reste disponible.
-- La barre de l'Aperçu passe à la ligne plus tôt pour ne jamais déborder.
-- Correctif layout du mode Comparer : plus aucun saut. Fit / 100 % reste en place (grisé pendant la comparaison), « Comparer » est placé après Mockup, et la ligne « Format » garde son libellé et sa hauteur : « Format [Gauche] et [Droite] », sur une seule ligne. Vérifié par mesure : position du bouton et hauteur de l'en-tête identiques avant et après le clic.
-- Placement final de « Comparer » (validé par Maxime) : à droite de la ligne Format. La ligne du titre redevient comme avant (écran, Fit / 100 %, Mockup, plein écran). Panneau étroit : Comparer passe en icône seule (nom accessible conservé).
+Problème : passer d’un format à l’autre empêche de voir mobile et desktop
+ensemble.
+Décision : bouton « Comparer » à droite de la ligne Format. Deux formats
+seulement (à trois, le desktop devient illisible dans un panneau d’environ
+700 px) : Mobile 375 et Grand écran 1440 par défaut, modifiables avec deux
+menus sur la même ligne. Les deux appareils ont la même hauteur, l’échelle
+s’affiche sous chacun ; même écran, mêmes modifications, même type de vision.
+Fit / 100 % reste en place, grisé pendant la comparaison ; le plein écran ⤢
+agrandit les deux. Panneau étroit : Comparer en icône seule.
+Écarté après essai : Comparer dans la ligne du titre (la barre passait à la
+ligne et les outils changeaient de place).
+Preuves : test navigateur (deux aperçus qui suivent une modification, changement
+de format, retour à un seul aperçu) ; position et hauteur de la barre mesurées
+identiques avant et après le clic ; audit de mise en page sans anomalie.
