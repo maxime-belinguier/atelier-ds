@@ -777,17 +777,17 @@ test('aperçu : Comparer affiche deux formats qui suivent les modifications', as
   await expect(page.locator('iframe')).toHaveCount(1);
 });
 
-test('visite guidée : ouverte au premier lancement, relancée avec « ? »', async ({
+test('visite guidée : 5 étapes, ouverte au premier lancement, relancée avec « ? »', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/');
   const tour = page.getByRole('dialog', { name: 'Ton Design System' });
   await expect(tour).toBeVisible();
-  await expect(tour).toContainText('Étape 1 sur 11');
+  await expect(tour).toContainText('Étape 1 sur 5');
   await page.getByRole('button', { name: 'Suivant', exact: true }).click();
   await expect(
-    page.getByRole('dialog', { name: 'Modifie une valeur' }),
+    page.getByRole('dialog', { name: 'Enregistre quand tu es prêt' }),
   ).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(page.locator('.tour')).toHaveCount(0);
@@ -796,21 +796,20 @@ test('visite guidée : ouverte au premier lancement, relancée avec « ? »', as
   await expect(page.locator('.tour')).toHaveCount(0);
   await page.getByRole('button', { name: 'Visite guidée' }).click();
   await expect(tour).toBeVisible();
-  for (let i = 0; i < 10; i++)
+  for (let i = 0; i < 4; i++)
     await page.getByRole('button', { name: 'Suivant', exact: true }).click();
   await expect(
-    page.getByRole('dialog', { name: 'Besoin d’un rappel ?' }),
+    page.getByRole('heading', { name: 'Contrôle d’accessibilité' }),
   ).toBeVisible();
   await page.getByRole('button', { name: 'Terminer' }).click();
   await expect(page.locator('.tour')).toHaveCount(0);
-  // Quitter en pleine étape « Compare » rend l'atelier comme avant.
+  // Retour à la page d'avant, chat refermé.
+  await expect(page.getByRole('heading', { name: 'Couleurs' })).toBeVisible();
   await page.getByRole('button', { name: 'Visite guidée' }).click();
-  for (let i = 0; i < 5; i++)
+  for (let i = 0; i < 3; i++)
     await page.getByRole('button', { name: 'Suivant', exact: true }).click();
-  await expect(page.getByRole('dialog', { name: 'Compare' })).toBeVisible();
-  await expect(page.locator('.compare-stage')).toHaveCount(1);
+  await expect(page.locator('#chat-panel')).toBeVisible();
   await page.keyboard.press('Escape');
-  await expect(page.locator('.compare-stage')).toHaveCount(0);
   await expect(page.locator('#chat-panel')).toBeHidden();
 });
 

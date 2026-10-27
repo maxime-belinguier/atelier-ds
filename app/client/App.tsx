@@ -916,66 +916,40 @@ export default function App() {
   const auditFails = [...auditTokens(preview), ...targets].filter(
     (c) => c.status === 'fail',
   ).length;
+  // Visite courte : une étape par grande zone de l'atelier.
   const tourSteps: TourStep[] = [
     {
-      target: 'menu',
+      target: '.ds-layout',
       title: 'Ton Design System',
-      text: 'Tokens, composants et écrans Gutt. Clique sur une catégorie pour la replier.',
+      text: 'Choisis une catégorie dans le menu, puis modifie une couleur ou une taille : l’aperçu suit tout de suite.',
       before: () => {
+        setChatOpen(false);
+        setCompare(false);
         setSearch('');
         setSelection({ kind: 'tokens', id: 'colors' });
       },
     },
     {
-      target: 'tokens',
-      title: 'Modifie une valeur',
-      text: 'Change une couleur ou une taille : l’aperçu suit tout de suite. Rien n’est encore enregistré.',
-    },
-    {
       target: 'save',
       title: 'Enregistre quand tu es prêt',
-      text: 'Tes modifs s’accumulent ici. « Enregistrer » (ou Cmd + S) ouvre le diff : tu valides avant toute écriture.',
+      text: 'Rien n’est écrit tant que tu ne valides pas. « Enregistrer » (ou Cmd + S) ouvre le diff : tu vérifies, puis tu valides.',
     },
     {
-      target: '.screen-picker',
-      title: 'Change d’écran',
-      text: 'Passe d’un écran Gutt à l’autre avec les flèches, ou cherche-le dans la liste.',
+      target: 'preview',
+      title: 'Vois le résultat',
+      text: 'Change d’écran, teste les formats de 320 à 1440 px, et « Comparer » pour voir mobile et desktop, ou l’avant et l’après de tes modifs.',
       before: () => setChatOpen(false),
     },
     {
-      target: 'formats',
-      title: 'Teste chaque format',
-      text: 'Du petit mobile (320) au grand écran (1440), ou « Libre » pour une taille sur mesure. La case Mockup ajoute le téléphone ou le navigateur autour.',
-      before: () => setCompare(false),
-    },
-    {
-      target: 'compare',
-      title: 'Compare',
-      text: '« Formats » : mobile et desktop côte à côte. « Avant / après » : l’écran enregistré à gauche, tes modifs en cours à droite.',
-      before: () => {
-        setChatOpen(false);
-        setCompare(true);
-      },
-    },
-    {
-      target: 'chat-models',
+      target: '#chat-panel',
       title: 'Demande à Claude',
-      text: 'Décris ce que tu veux changer, Claude propose et tu valides le diff. Modèle : Sonnet au quotidien, Opus pour les demandes complexes, Haiku pour aller vite. L’effort règle le temps de réflexion.',
-      before: () => {
-        setCompare(false);
-        setChatOpen(true);
-      },
-    },
-    {
-      target: 'chat-quota',
-      title: 'Surveille ton quota',
-      text: 'Le cercle montre ta consommation Claude (session de 5 h et semaine). Orange dès 70 %, corail dès 90 %. Clique dessus pour le détail et l’heure de remise à zéro.',
+      text: 'Décris ce que tu veux changer, Claude propose et tu valides. Choisis le modèle (Sonnet, Opus, Haiku) et surveille ton quota avec le cercle en haut.',
       before: () => setChatOpen(true),
     },
     {
       target: '.ds-layout',
       title: 'Contrôle l’accessibilité',
-      text: 'En bas du menu, Contrôle qualité › Accessibilité : un score par type de vision et la liste de ce qui bloque. Les corrections se font dans Couleurs.',
+      text: 'Contrôle qualité › Accessibilité, en bas du menu : un score par type de vision. Pour finir : exporte en haut à droite, et relance cette visite avec « ? ».',
       before: () => {
         setChatOpen(false);
         setCollapsed((c) => c.filter((x) => x !== 'quality'));
@@ -990,16 +964,6 @@ export default function App() {
           0,
         );
       },
-    },
-    {
-      target: 'export',
-      title: 'Exporte',
-      text: 'JSON, variables CSS, Tailwind, ou la documentation imprimable en PDF.',
-    },
-    {
-      target: 'help',
-      title: 'Besoin d’un rappel ?',
-      text: 'Relance cette visite quand tu veux avec ce bouton.',
     },
   ];
   const colorKeys = tokenGroups[0].keys;

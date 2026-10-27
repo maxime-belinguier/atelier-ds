@@ -360,23 +360,19 @@ identiques avant et après le clic ; audit de mise en page sans anomalie.
 
 Problème : l’atelier a beaucoup de zones ; une personne qui l’ouvre (intervenant,
 camarade, jury) ne sait pas par où commencer.
-Décision : visite en 11 étapes posée sur les vraies zones, mises en évidence :
-menu, tokens, enregistrement, choix de l’écran, formats et mockup, Comparer
-(formats ou avant / après, activé pendant l’étape), Claude (modèle Sonnet / Opus /
-Haiku et effort, chat ouvert pendant l’étape), quota Claude (cercle de
-consommation, 5 h et semaine), accessibilité, export, aide. La carte se place
-sous les petits éléments et à côté des grandes zones. Ouverte seule au premier
-lancement, puis à volonté avec le bouton « ? » de l’en-tête. Passer, Précédent,
-Suivant, flèches du clavier et Échap. Aucune valeur modifiée pendant la visite.
+Décision : visite courte en 5 étapes, une par grande zone, mise en évidence :
+1. Design System (choisir une catégorie, modifier une valeur) ; 2. Enregistrer
+(diff avant écriture) ; 3. Aperçu (écrans, formats, Comparer) ; 4. Claude (chat
+ouvert pendant l’étape, modèle et quota) ; 5. Accessibilité (la page de contrôle
+s’ouvre, le menu défile jusqu’au lien), avec en conclusion l’export et le bouton
+« ? ». Ouverte seule au premier lancement, puis avec le bouton « ? » de l’en-tête.
+Passer, Précédent, Suivant, flèches du clavier et Échap.
+Écarté : une première version en 11 étapes (une par bouton), jugée trop longue.
 Fluidité : à chaque étape, la carte et le contour attendent que la zone visée ne
-bouge plus (chat qui s’ouvre, aperçu qui change) ; la carte disparaît d’un coup
-puis réapparaît en fondu, déjà à sa place, sans jamais glisser. En quittant la
-visite, l’atelier retrouve son état d’avant (chat, Comparer, page affichée).
-Étape accessibilité : la visite ouvre la catégorie Contrôle qualité, affiche la
-page « Contrôle d’accessibilité » depuis son début et fait défiler le menu
-jusqu’au lien, tout en bas. Toute zone hors de vue défile pour apparaître.
+bouge plus ; la carte réapparaît en fondu, déjà à sa place, sans glisser. En
+quittant la visite, l’atelier retrouve son état d’avant (chat, Comparer, page).
 Correctif général : changer de page dans le Design System repart du haut.
-Preuves : test navigateur (ouverture au premier lancement, pas de réouverture
-après, relance par « ? », 11 étapes, fermeture, état rétabli) ; position de la
-carte mesurée à chaque image pendant les transitions, à 1440, 1280 et 1024 px :
-une seule position visible par étape, jamais hors écran ; captures relues.
+Preuves : test navigateur (ouverture au premier lancement, pas de réouverture,
+relance par « ? », 5 étapes, page de contrôle affichée, état rétabli) ; position
+de la carte mesurée à chaque image à 1440, 1280 et 1024 px : une seule position
+par étape, jamais hors écran ; captures relues.
