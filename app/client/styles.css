@@ -2756,6 +2756,7 @@ select,
 @media (max-width: 900px) {
   .ds-sidebar .side-group,
   .ds-sidebar .sidebar-search + .ds-nav-select + .side-group {
+    --group-pt: 0px;
     border-top: 0;
     padding: 0 0 0 10px;
     margin: 0 4px 0 8px;
@@ -3531,44 +3532,240 @@ kbd {
   padding-left: 28px;
 }
 
-/* Titres de catégorie : même gabarit, ouverts, fermés ou surlignés. */
+/* Catégorie repliée qui contient la page ouverte : titre en surbrillance.
+   La pastille est dessinée par ::before pour ne changer ni marges, ni
+   padding, ni séparateur : le texte et la hauteur restent identiques. */
+.ds-sidebar {
+  --group-pt: 14px;
+}
 .ds-sidebar button.side-group {
   position: relative;
   isolation: isolate;
+}
+.ds-sidebar .sidebar-search + .ds-nav-select + .side-group {
+  --group-pt: 0px;
+}
+.ds-sidebar button.side-group.has-current::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  top: calc(var(--group-pt) - 6px);
+  bottom: -6px;
+  left: -10px;
+  right: -6px;
+  background: var(--accent-soft);
+  border-radius: 999px;
+  pointer-events: none;
+}
+.ds-sidebar button.side-group.has-current .side-group-count {
+  background: var(--surface);
+  color: var(--accent-text);
+}
+.ds-sidebar button.side-group {
   align-self: stretch;
   min-width: 0;
   gap: 4px;
-  letter-spacing: 0.1px;
-  margin-right: 6px;
 }
 .ds-sidebar button.side-group > span:first-child {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-/* Catégorie fermée qui contient la page ouverte : pastille dessinée derrière
-   le titre, sans changer sa taille ni sa place (aucun saut). */
-.ds-sidebar button.side-group.has-current::before {
-  content: '';
-  position: absolute;
-  z-index: -1;
-  left: -10px;
-  right: -6px;
-  bottom: -6px;
-  height: 30px;
+.ds-sidebar button.side-group {
+  letter-spacing: 0.1px;
+  margin-right: 6px;
+}
+
+/* Tokens ajoutés (Claude, Figma ou à la main) */
+.added-tag {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 7px;
   border-radius: 999px;
   background: var(--accent-soft);
-}
-.ds-sidebar button.side-group.has-current .side-group-count {
-  background: var(--surface);
   color: var(--accent-text);
 }
-/* Hauteur fixe : le compteur affiché une fois fermé ne change rien. */
+.patch-absent {
+  font-size: 12px;
+  color: var(--text-2);
+}
+.row-delete {
+  font-size: 18px;
+}
+.add-token-open {
+  margin-top: 10px;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border-style: dashed;
+}
+.add-token {
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  display: grid;
+  gap: 8px;
+}
+.add-token-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.add-token-fields input,
+.add-token-fields select {
+  height: 34px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+.add-token-fields input:not(.hex-input):not(.number-input) {
+  flex: 1 1 120px;
+}
+.add-token-prefix {
+  font-size: 12px;
+  color: var(--text-2);
+}
+.add-token-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.add-token-actions button {
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+}
+
+/* Figma : onglet des Paramètres */
+.figma-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.figma-actions button {
+  height: 34px;
+  padding: 0 14px !important;
+  border-radius: 999px;
+}
+.figma-actions .settings-link {
+  margin-top: 0;
+}
+.figma-message {
+  margin: 12px 0 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #e3f4ea;
+  color: #1f6b44;
+  font-size: 12.5px;
+}
+.figma-preview {
+  margin-top: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 14px;
+}
+.figma-preview h4 {
+  margin-top: 0;
+}
+.figma-preview .diff-scroll {
+  max-height: 260px;
+  overflow: auto;
+}
+.figma-preview table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.figma-preview th,
+.figma-preview td {
+  text-align: left;
+  padding: 6px 8px;
+  border-top: 1px solid var(--border);
+}
+.figma-pill svg {
+  color: var(--text);
+}
+
+/* Chat : démarrages rapides, réponses mises en forme */
+.chat-empty p {
+  margin: 0 0 10px;
+}
+.chat-starters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.chat-starters button,
+.chat-copy,
+.audit-ask {
+  height: 34px;
+  padding: 0 12px !important;
+  border-radius: 999px;
+  font-size: 12px;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.chat-copy {
+  height: 28px;
+  margin-top: 6px;
+  font-size: 11px;
+}
+.audit-ask {
+  margin-bottom: 12px;
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+}
+.audit-ask:hover {
+  background: var(--ink-hover);
+}
+.rich-text {
+  margin-top: 4px;
+  color: var(--text);
+}
+.rich-text p {
+  white-space: pre-wrap;
+  margin: 0 0 6px;
+}
+.rich-text h4 {
+  margin: 10px 0 4px;
+  font-size: 13px;
+}
+.rich-text ul,
+.rich-text ol {
+  margin: 0 0 6px;
+  padding-left: 18px;
+}
+.rich-text li {
+  margin: 2px 0;
+}
+.rich-text code {
+  font-size: 12px;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: var(--bg-deep);
+}
+.chat-message .rich-text strong {
+  font-size: inherit;
+}
+.audit-ask {
+  width: auto;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Hauteur fixe des titres de catégorie : le compteur affiché une fois fermé
+   ne change pas la hauteur (aucun saut d'un demi-pixel). */
 .ds-sidebar button.side-group {
   line-height: 17px;
-  height: auto;
 }
 .ds-sidebar button.side-group .side-group-count {
   line-height: 15px;
-  padding: 1px 7px;
+  padding-top: 1px;
+  padding-bottom: 1px;
 }

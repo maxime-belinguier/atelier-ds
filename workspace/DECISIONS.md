@@ -332,17 +332,15 @@ une fois replié, sauf s’il n’y en a qu’un), choix mémorisé. Une catégo
 repliée masque tout ; si elle contient la page ouverte, son titre est mis en
 surbrillance (corrigé le 28/10 : avant, la page ouverte restait visible, ce qui
 donnait l’impression que le repli ne marchait pas).
-La surbrillance est une pastille dessinée derrière le titre : le titre garde
-exactement la même taille et la même place ouvert, fermé ou surligné (mesuré :
-position et hauteur identiques dans les 3 états ; corrigé le 28/10, le titre
-sautait de quelques pixels). La surbrillance est une
-pastille dessinée sous le titre (::before) : marges, padding et trait restent
-identiques, le texte ne bouge plus (corrigé le 28/10 : avant, le titre actif se
-décalait et perdait son trait). Recherche fixée à 36 px. Nouvelle catégorie « Contrôle
+La surbrillance est une pastille dessinée sous le titre (::before) : marges,
+padding et trait restent identiques, le texte ne bouge plus (corrigé le 28/10 :
+avant, le titre actif se décalait et perdait son trait). Hauteur du titre fixée
+à 17 px pour que le compteur, affiché une fois fermé, ne la change pas. Recherche fixée à 36 px. Nouvelle catégorie « Contrôle
 qualité » (au lieu de « Vérifier », trop vague).
 Preuves : test navigateur (repli, mémorisation, hauteur de la recherche) ;
 audit de mise en page sans anomalie ; 28/10 : position du texte mesurée
-identique (x = 41 px) catégorie active ou non, en haut et en milieu de menu.
+identique (x = 41 px, hauteur 17 px) ouverte, fermée ou surlignée, en haut et
+en milieu de menu.
 Écarté : changer padding et marges du titre actif (provoquait le saut).
 
 ## 27/10/2026 · Accessibilité : créer dans Couleurs, contrôler dans Accessibilité

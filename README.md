@@ -149,7 +149,8 @@ restauration automatique n’est tentée. Sauvegardez aussi `.ds-studio/` hors d
 Ne modifiez pas le journal `state.json` à la main. L'icône **Exporter** propose le JSON
 courant et d'autres formats ; l'icône **Importer** prépare un diff qui demande validation.
 Le format est un sous-ensemble local à clés plates et valeurs explicites, **pas un
-importeur universel DTCG ni un export Figma automatique**. Voir [TOKENS](docs/TOKENS.md).
+importeur universel DTCG**. Pour Figma, utilisez la synchro (bouton Figma), pas ce
+fichier. Voir [TOKENS](docs/TOKENS.md).
 Pour sauvegarder tout l’historique, arrêtez le serveur et copiez `.ds-studio/` dans
 un emplacement privé. Exporter les tokens seuls ne sauvegarde pas l’historique.
 
