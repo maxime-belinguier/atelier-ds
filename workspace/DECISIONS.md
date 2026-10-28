@@ -288,8 +288,10 @@ Problème : catégories (Tokens, Composants, Écrans…) peu distinctes des él�
 liste longue ; barre de recherche qui se tassait quand le menu s’allongeait.
 Décision : titres de catégorie en majuscules, couleur d’accent, trait de
 séparation ; chaque titre se replie au clic (chevron, nombre d’éléments affiché
-une fois replié), choix mémorisé ; l’élément affiché reste visible même si sa
-catégorie est repliée. Recherche fixée à 36 px. Nouvelle catégorie « Contrôle
+une fois replié, sauf s’il n’y en a qu’un), choix mémorisé. Une catégorie
+repliée masque tout ; si elle contient la page ouverte, son titre est mis en
+surbrillance (corrigé le 28/10 : avant, la page ouverte restait visible, ce qui
+donnait l’impression que le repli ne marchait pas). Recherche fixée à 36 px. Nouvelle catégorie « Contrôle
 qualité » (au lieu de « Vérifier », trop vague).
 Preuves : test navigateur (repli, mémorisation, hauteur de la recherche) ;
 audit de mise en page sans anomalie.

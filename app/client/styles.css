@@ -3530,3 +3530,39 @@ kbd {
   text-align: left;
   padding-left: 28px;
 }
+
+/* Catégorie repliée qui contient la page ouverte : titre en surbrillance. */
+.ds-sidebar button.side-group.has-current {
+  background: var(--accent-soft);
+  border-radius: 999px;
+  padding: 6px 10px 6px 12px;
+  margin-left: 0;
+  margin-right: 0;
+  border-top-color: transparent;
+}
+.ds-sidebar button.side-group.has-current .side-group-count {
+  background: var(--surface);
+  color: var(--accent-text);
+}
+.ds-sidebar button.side-group {
+  align-self: stretch;
+  min-width: 0;
+  gap: 4px;
+}
+.ds-sidebar button.side-group > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ds-sidebar button.side-group.has-current {
+  margin-left: 4px;
+  margin-right: 4px;
+}
+.ds-sidebar button.side-group {
+  letter-spacing: 0.1px;
+  margin-right: 6px;
+}
+.ds-sidebar button.side-group.has-current {
+  margin-left: 6px;
+  padding-left: 10px;
+}

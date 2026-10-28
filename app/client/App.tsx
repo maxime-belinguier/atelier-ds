@@ -922,21 +922,37 @@ export default function App() {
     };
   }
 
-  const show = (id: string, active: boolean) =>
-    !collapsed.includes(id) || (active && !query);
+  // Catégorie repliée : tout est masqué. Si elle contient la page ouverte, son
+  // titre est mis en avant pour qu'on sache où l'on est.
+  const show = (id: string, _active: boolean) => !collapsed.includes(id);
+  const groupOf: Record<Selection['kind'], string> = {
+    tokens: 'tokens',
+    component: 'components',
+    screen: 'screens',
+    audit: 'quality',
+  };
   const groupHead = (id: string, label: string, count: number) => {
     const open = !collapsed.includes(id);
+    const holdsCurrent = !open && !query && groupOf[selection.kind] === id;
     return (
       <button
-        className="side-group"
+        className={`side-group${holdsCurrent ? ' has-current' : ''}`}
         aria-expanded={open}
-        title={open ? `Replier ${label}` : `Déplier ${label}`}
+        title={
+          open
+            ? `Replier ${label}`
+            : holdsCurrent
+              ? `Déplier ${label} (page ouverte ici)`
+              : `Déplier ${label}`
+        }
         onClick={() =>
           setCollapsed((c) => (open ? [...c, id] : c.filter((x) => x !== id)))
         }
       >
         <span>{label}</span>
-        {!open && <span className="side-group-count">{count}</span>}
+        {!open && count > 1 && (
+          <span className="side-group-count">{count}</span>
+        )}
         <svg
           aria-hidden="true"
           width="12"

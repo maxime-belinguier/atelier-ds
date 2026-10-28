@@ -669,7 +669,7 @@ test('export Documentation : page HTML complète et autonome', async ({
   expect(html).not.toMatch(/<script/);
 });
 
-test('menu : catégories repliables, mémorisées, élément affiché gardé', async ({
+test('menu : catégories repliables, mémorisées, page ouverte signalée', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -682,12 +682,15 @@ test('menu : catégories repliables, mémorisées, élément affiché gardé', a
   await head.click();
   await expect(head).toHaveAttribute('aria-expanded', 'false');
   await expect(nav.getByRole('button', { name: 'Boutons' })).toHaveCount(0);
-  // L'élément affiché reste visible même si sa catégorie est repliée.
-  await nav.getByRole('button', { name: /^Tokens/ }).click();
-  await expect(nav.getByRole('button', { name: /^Couleurs/ })).toBeVisible();
-  await expect(nav.getByRole('button', { name: /^Typographie/ })).toHaveCount(
-    0,
-  );
+  // Repliée, la catégorie masque tout, même la page ouverte ; son titre est
+  // alors mis en avant.
+  const tokens = nav.getByRole('button', { name: /^Tokens/ });
+  await tokens.click();
+  await expect(nav.getByRole('button', { name: /^Couleurs/ })).toHaveCount(0);
+  await expect(tokens).toHaveClass(/has-current/);
+  await expect(
+    nav.getByRole('button', { name: /^Composants/ }),
+  ).not.toHaveClass(/has-current/);
   await page.reload();
   await expect(
     nav.getByRole('button', { name: /^Composants/ }),
