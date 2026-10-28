@@ -3511,7 +3511,7 @@ kbd {
 }
 @media (max-width: 700px) {
   .settings {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto minmax(0, 1fr);
     height: calc(100dvh - 32px);
   }
@@ -3523,6 +3523,13 @@ kbd {
   .settings-nav [role='tablist'] {
     flex-direction: row;
     overflow-x: auto;
+  }
+  .settings-nav [role='tab'] {
+    flex: none;
+    white-space: nowrap;
+  }
+  .settings-panel {
+    padding: 20px 16px 24px;
   }
   .settings-note {
     display: none;
@@ -4308,7 +4315,8 @@ kbd {
   text-shadow: 0 1px 1px #0003;
 }
 
-/* Paramètres : identité de l'app, projets et données */
+/* Paramètres : identité de l'app, projets et données.
+   Mêmes cartes que les assistants (14 px, bordure forte), mêmes boutons de 34 px. */
 .brand-symbol {
   overflow: hidden;
   white-space: nowrap;
@@ -4318,50 +4326,89 @@ kbd {
   height: 100%;
   object-fit: cover;
 }
-.identity-preview {
+.identity-card,
+.projects-list li {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-control);
+  padding: 12px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 14px;
   background: var(--surface);
-  margin-bottom: 12px;
 }
-.identity-preview strong {
+.identity-card strong {
   font-size: 15px;
+  letter-spacing: -0.3px;
 }
 .identity-note {
   margin-left: auto;
   font-size: 12px;
   color: var(--text-2);
 }
+.settings-field {
+  margin-top: 14px;
+}
+.settings-field > .settings-label + * {
+  margin-top: 6px;
+}
+.settings-label,
+.settings-control {
+  font-size: 12px;
+  font-weight: 600;
+}
+.settings-control {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.settings-row label.settings-narrow {
+  flex: 0 1 200px;
+}
+.settings-field .segmented,
+.settings-panel > .segmented {
+  align-self: flex-start;
+}
+.settings .settings-field .figma-actions {
+  margin-top: 6px;
+}
+.settings .file-button.settings-link {
+  display: inline-flex;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 550;
+}
+/* Dans les Paramètres, le segmenté a la hauteur des champs voisins (38 px). */
+.settings .segmented {
+  height: 38px;
+  align-items: center;
+}
+.settings .segmented button {
+  height: 30px;
+  padding: 0 14px;
+  font-size: 13px;
+}
 .projects-list {
   list-style: none;
-  margin: 0 0 8px;
+  margin: 0;
   padding: 0;
   display: grid;
-  gap: 6px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
 }
 .projects-list li {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 42px;
-  padding: 4px 8px 4px 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-control);
-  background: var(--surface);
+  padding: 8px 10px 8px 14px;
 }
 .projects-list input {
   flex: 1;
   min-width: 0;
-  min-height: 34px;
+  width: 0;
+  height: 34px;
   border: 1px solid transparent;
-  border-radius: 8px;
-  padding: 0 8px;
+  border-radius: 999px;
+  padding: 0 12px;
   background: transparent;
   color: var(--text);
+  font-weight: 600;
 }
 .projects-list input:hover,
 .projects-list input:focus {
@@ -4369,30 +4416,21 @@ kbd {
   background: var(--surface-2);
 }
 .projects-list button {
-  min-height: 34px;
-}
-.project-tag {
-  font-size: 11px;
-  font-weight: 600;
-  padding: 2px 8px;
+  height: 34px;
+  padding: 0 14px !important;
   border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--accent-text);
+  white-space: nowrap;
 }
-button.danger {
+.projects-list button.danger {
   border-color: var(--err-text);
   color: var(--err-text);
 }
 .data-path {
   display: block;
-  padding: 8px 10px;
-  margin: 4px 0 8px;
-  border-radius: 8px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
   background: var(--bg-deep);
   font-size: 12px;
   word-break: break-all;
-}
-[data-mode='dark'] button.danger {
-  border-color: #ff8a80;
-  color: #ff8a80;
 }

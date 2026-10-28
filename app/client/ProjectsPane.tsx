@@ -87,6 +87,7 @@ export default function ProjectsPane({
               />
               <input
                 aria-label={`Nom du projet ${p.name}`}
+                title="Modifier le nom, puis Entrée ou « Renommer »"
                 maxLength={60}
                 value={name}
                 onChange={(e) => setNames({ ...names, [p.id]: e.target.value })}
@@ -98,7 +99,7 @@ export default function ProjectsPane({
                     );
                 }}
               />
-              {isOpen && <span className="project-tag">Ouvert</span>}
+              {isOpen && <span className="agent-state ok">Ouvert</span>}
               {changed && (
                 <button
                   onClick={() =>
@@ -151,12 +152,13 @@ export default function ProjectsPane({
       </p>
 
       <h4>Données</h4>
-      <p className="settings-hint">
-        Tokens, historique, briefs et projets sont dans :
+      <p className="settings-lead">
+        Tokens, historique, briefs et projets sont dans ce dossier :
       </p>
       {info && <code className="data-path">{info.dir}</code>}
-      <div className="settings-row">
+      <div className="figma-actions">
         <button
+          className="settings-link"
           onClick={() =>
             request<{ opened: boolean }>('open-data-folder', {})
               .then(setFolder)
@@ -167,7 +169,7 @@ export default function ProjectsPane({
         </button>
         {info && (
           <button
-            className="settings-copy"
+            className="settings-link"
             onClick={() =>
               navigator.clipboard?.writeText(info.dir).catch(() => undefined)
             }

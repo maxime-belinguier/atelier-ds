@@ -33,7 +33,13 @@ const tabs = [
   { id: 'general', label: 'Général' },
 ] as const;
 // Couleurs proposées pour le carré du logo (vide = accent de l'atelier).
-const logoColors = ['#2C2650', '#3B6FF5', '#1F9D6B', '#7C5CF5', '#D2401E'];
+const logoColors = [
+  { label: 'Encre', value: '#2C2650' },
+  { label: 'Océan', value: '#2F5BD8' },
+  { label: 'Forêt', value: '#1A7F57' },
+  { label: 'Lilas', value: '#6A48E8' },
+  { label: 'Brique', value: '#D2401E' },
+];
 export type Tab = (typeof tabs)[number]['id'];
 
 const agentInfo: Record<string, { name: string; how: string }> = {
@@ -414,7 +420,7 @@ export default function Settings({
                 leurs propres couleurs.
               </p>
               <h4>Identité de l’app</h4>
-              <div className="identity-preview" aria-hidden="true">
+              <div className="identity-card" aria-hidden="true">
                 <span
                   className="brand-symbol"
                   style={
@@ -432,7 +438,7 @@ export default function Settings({
                 <strong>{identity.name}</strong>
                 <span className="identity-note">Aperçu de l’en-tête</span>
               </div>
-              <div className="settings-row">
+              <div className="settings-row settings-field">
                 <label>
                   Nom de l’app
                   <input
@@ -447,29 +453,37 @@ export default function Settings({
                     }
                   />
                 </label>
-              </div>
-              <div className="swatch-row" role="group" aria-label="Logo">
-                {(
-                  [
-                    ['text', 'Texte'],
-                    ['initials', 'Initiales'],
-                    ['image', 'Image'],
-                  ] as const
-                ).map(([id, label]) => (
-                  <button
-                    key={id}
-                    className="swatch-pick"
-                    aria-pressed={identity.logo === id}
-                    onClick={() => onIdentity({ ...identity, logo: id })}
+                <div className="settings-control">
+                  <span className="settings-label" id="logo-kind">
+                    Logo
+                  </span>
+                  <div
+                    className="segmented"
+                    role="group"
+                    aria-labelledby="logo-kind"
                   >
-                    {label}
-                  </button>
-                ))}
+                    {(
+                      [
+                        ['text', 'Texte'],
+                        ['initials', 'Initiales'],
+                        ['image', 'Image'],
+                      ] as const
+                    ).map(([id, label]) => (
+                      <button
+                        key={id}
+                        aria-pressed={identity.logo === id}
+                        onClick={() => onIdentity({ ...identity, logo: id })}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
               {identity.logo === 'text' && (
-                <div className="settings-row">
-                  <label>
-                    Texte du logo (3 caractères max.)
+                <div className="settings-row settings-field">
+                  <label className="settings-narrow">
+                    Texte du logo (3 caractères)
                     <input
                       maxLength={3}
                       value={identity.text}
@@ -480,70 +494,79 @@ export default function Settings({
                   </label>
                 </div>
               )}
-              {identity.logo === 'image' && (
-                <div className="settings-row">
-                  <label className="file-button">
-                    {identity.image ? 'Changer l’image' : 'Choisir une image'}
-                    <input
-                      type="file"
-                      className="sr-only"
-                      accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        e.target.value = '';
-                        if (!file) return;
-                        if (file.size > maxLogoBytes) {
-                          setLogoError('Image trop lourde : 200 Ko maximum.');
-                          return;
-                        }
-                        const reader = new FileReader();
-                        reader.onload = () => {
-                          setLogoError('');
-                          onIdentity({
-                            ...identity,
-                            image: String(reader.result),
-                          });
-                        };
-                        reader.readAsDataURL(file);
-                      }}
-                    />
-                  </label>
-                  <span className="settings-hint">
-                    PNG, JPEG, WebP ou SVG, carré de préférence.
+              {identity.logo === 'image' ? (
+                <div className="settings-field">
+                  <span className="settings-label">Image du logo</span>
+                  <div className="figma-actions">
+                    <label className="file-button settings-link">
+                      {identity.image ? 'Changer l’image' : 'Choisir une image'}
+                      <input
+                        type="file"
+                        className="sr-only"
+                        accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          e.target.value = '';
+                          if (!file) return;
+                          if (file.size > maxLogoBytes) {
+                            setLogoError('Image trop lourde : 200 Ko maximum.');
+                            return;
+                          }
+                          const reader = new FileReader();
+                          reader.onload = () => {
+                            setLogoError('');
+                            onIdentity({
+                              ...identity,
+                              image: String(reader.result),
+                            });
+                          };
+                          reader.readAsDataURL(file);
+                        }}
+                      />
+                    </label>
+                  </div>
+                  <p className="settings-hint">
+                    PNG, JPEG, WebP ou SVG, carré de préférence, 200 Ko maximum.
+                  </p>
+                </div>
+              ) : (
+                <div className="settings-field">
+                  <span className="settings-label" id="logo-color">
+                    Couleur du logo
                   </span>
+                  <div
+                    className="swatch-row"
+                    role="group"
+                    aria-labelledby="logo-color"
+                  >
+                    <button
+                      className="swatch-pick"
+                      aria-pressed={!identity.color}
+                      onClick={() => onIdentity({ ...identity, color: '' })}
+                    >
+                      <span style={{ background: 'var(--accent-strong)' }} />
+                      Accent
+                    </button>
+                    {logoColors.map((c) => (
+                      <button
+                        key={c.value}
+                        className="swatch-pick"
+                        aria-pressed={identity.color === c.value}
+                        onClick={() =>
+                          onIdentity({ ...identity, color: c.value })
+                        }
+                      >
+                        <span style={{ background: c.value }} />
+                        {c.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
               {logoError && (
                 <p className="settings-warn" role="alert">
                   {logoError}
                 </p>
-              )}
-              {identity.logo !== 'image' && (
-                <div
-                  className="swatch-row"
-                  role="group"
-                  aria-label="Couleur du logo"
-                >
-                  <button
-                    className="swatch-pick"
-                    aria-pressed={!identity.color}
-                    onClick={() => onIdentity({ ...identity, color: '' })}
-                  >
-                    <span style={{ background: 'var(--accent-strong)' }} />
-                    Accent
-                  </button>
-                  {logoColors.map((c) => (
-                    <button
-                      key={c}
-                      className="swatch-pick"
-                      aria-label={`Logo ${c}`}
-                      aria-pressed={identity.color === c}
-                      onClick={() => onIdentity({ ...identity, color: c })}
-                    >
-                      <span style={{ background: c }} />
-                    </button>
-                  ))}
-                </div>
               )}
               <button
                 className="settings-link"
@@ -554,12 +577,15 @@ export default function Settings({
               >
                 Revenir à DS-Studio
               </button>
-              <h4>Mode</h4>
-              <div className="swatch-row" role="group" aria-label="Mode">
+              <h4 id="mode-title">Mode</h4>
+              <div
+                className="segmented"
+                role="group"
+                aria-labelledby="mode-title"
+              >
                 {modes.map((m) => (
                   <button
                     key={m.id}
-                    className="swatch-pick"
                     aria-pressed={theme.mode === m.id}
                     onClick={() => onTheme({ ...theme, mode: m.id })}
                   >

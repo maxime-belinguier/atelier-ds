@@ -544,6 +544,10 @@ Décision :
   Mac, chemin fixé par le serveur), « Copier le chemin » et rappel de sauvegarde.
 - Général : effacer les conversations du projet (avec confirmation) et
   À propos (nom, version, doc).
+Construction alignée sur le reste : cartes à 14 px et bordure forte comme
+les assistants, choix exclusifs (logo, mode) en segmenté comme l’en-tête,
+libellés de champ en 12 px, boutons d’action de 34 px. Sur mobile (375 px),
+aucun onglet ne déborde.
 Écarté : renommer l’onglet en « Claude » (je pourrais changer d’assistant) ;
 sauvegarde automatique ou zip depuis l’app (l’historique doit être copié
 serveur arrêté) ; corbeille avec restauration dans l’app (pour plus tard).
