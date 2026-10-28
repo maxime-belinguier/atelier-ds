@@ -502,3 +502,5 @@ onglet périmé refusé) ; test navigateur (fenêtre, cartes, accueil, verrou si
 modif, retour sur Gutt) ; suite complète (67 unitaires, 29 navigateur) ; audits
 mise en page et visite sans anomalie ; captures relues (1440 et 375 px).
 Limite : les écrans de l’aperçu restent ceux de Gutt pour tous les projets.
+Il faut relancer l’app après la mise à jour ; sinon le menu affiche « Projet »
+et demande de relancer (au lieu de « … » et d’un bouton bloqué sans raison).

@@ -228,6 +228,7 @@ export default function ProjectMenu({
   const [open, setOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [working, setWorking] = useState(false);
+  const [failed, setFailed] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
 
@@ -240,7 +241,8 @@ export default function ProjectMenu({
     }
     listProjects()
       .then(setList)
-      .catch((e) => onError(e.message));
+      // Serveur lancé avant la mise à jour : pas de route projets.
+      .catch(() => setFailed(true));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current]);
   useEffect(() => {
@@ -300,7 +302,7 @@ export default function ProjectMenu({
           aria-hidden="true"
           style={{ background: brand || undefined }}
         />
-        <span className="project-trigger-name">{active?.name ?? '…'}</span>
+        <span className="project-trigger-name">{active?.name ?? 'Projet'}</span>
         <svg
           aria-hidden="true"
           width="12"
@@ -318,6 +320,12 @@ export default function ProjectMenu({
       {open && (
         <div className="picker-pop project-pop" id="project-pop">
           <p className="project-pop-title">Projets</p>
+          {failed && (
+            <p className="project-note">
+              Projets indisponibles : ferme DS-Studio puis relance-le pour
+              activer la mise à jour.
+            </p>
+          )}
           {locked && <p className="project-note">{locked}</p>}
           <ul aria-label="Projets">
             {projects.map((p) => {
