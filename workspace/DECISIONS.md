@@ -331,10 +331,15 @@ séparation ; chaque titre se replie au clic (chevron, nombre d’éléments aff
 une fois replié, sauf s’il n’y en a qu’un), choix mémorisé. Une catégorie
 repliée masque tout ; si elle contient la page ouverte, son titre est mis en
 surbrillance (corrigé le 28/10 : avant, la page ouverte restait visible, ce qui
-donnait l’impression que le repli ne marchait pas). Recherche fixée à 36 px. Nouvelle catégorie « Contrôle
+donnait l’impression que le repli ne marchait pas). La surbrillance est une
+pastille dessinée sous le titre (::before) : marges, padding et trait restent
+identiques, le texte ne bouge plus (corrigé le 28/10 : avant, le titre actif se
+décalait et perdait son trait). Recherche fixée à 36 px. Nouvelle catégorie « Contrôle
 qualité » (au lieu de « Vérifier », trop vague).
 Preuves : test navigateur (repli, mémorisation, hauteur de la recherche) ;
-audit de mise en page sans anomalie.
+audit de mise en page sans anomalie ; 28/10 : position du texte mesurée
+identique (x = 41 px) catégorie active ou non, en haut et en milieu de menu.
+Écarté : changer padding et marges du titre actif (provoquait le saut).
 
 ## 27/10/2026 · Accessibilité : créer dans Couleurs, contrôler dans Accessibilité
 
