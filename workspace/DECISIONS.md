@@ -445,12 +445,8 @@ dans le navigateur ; le Design System n’est jamais modifié.
   travail, non testable ici, inutile pour le PFE, et la première connexion
   Gemini exige de toute façon le Terminal).
 - Apparence : 9 fonds pastel (lavande, neutre, crème, blanc, ciel, glacier,
-  pêche, rose poudré, sable) et 4 accents prêts, plus fond et accent « Au choix »
-  qui ouvrent le même sélecteur de couleur que la page Couleurs (28/10, au lieu
-  du sélecteur natif du navigateur). 26 polices installées avec macOS (sans,
-  serif, mono) avec barre de recherche (28/10). Écarté pour l’instant : Google
-  Fonts (internet obligatoire, règle de sécurité de l’app à ouvrir, Google voit
-  chaque chargement). Les variantes (texte blanc sur accent, texte d’accent sur fond) sont
+  pêche, rose poudré, sable), 4 accents et 4 polices prêts, plus fond et accent
+  au choix. Les variantes (texte blanc sur accent, texte d’accent sur fond) sont
   calculées pour rester à 4,5:1 ; un avertissement s’affiche si le fond nuit à la
   lisibilité. Les écrans Gutt de l’aperçu ne changent pas.
 - Figma : connexion et synchro (voir l’entrée du 28/10).
@@ -463,3 +459,20 @@ après rechargement, DS inchangé, état Figma, format de démarrage, Échap) ;
 captures relues ; audit de mise en page sans anomalie.
 Limite : l’ouverture du Terminal reste à essayer sur mon Mac (macOS ne peut pas
 être testé ici).
+
+## 28/10/2026 · Chat : historique des conversations
+
+Problème : le chat se vidait au rechargement. Impossible de retrouver une
+réponse utile, et les échanges n’apparaissent pas dans Claude Desktop.
+Décision : historique gardé dans ce navigateur (localStorage), 30 conversations
+de 300 messages max. « + Nouvelle conversation » et « Conversations » (rouvrir,
+supprimer ×). Seuls les 10 derniers messages de la conversation ouverte partent
+vers Claude, comme avant : garder l’historique ne coûte aucun token.
+Écarté : synchroniser avec Claude Desktop ou un projet Claude (le chat passe par
+`claude -p --no-session-persistence`, pas d’accès à ces historiques) ;
+stockage côté serveur (inutile pour un usage solo).
+Preuves : test navigateur (conversation gardée après rechargement, nouvelle
+conversation envoyée sans historique, liste à 2 entrées, réouverture) ; suite
+complète (66 unitaires, 28 navigateur) ; audit de mise en page sans anomalie ;
+capture relue.
+Limite : vider les données du navigateur efface l’historique ; pas d’export.

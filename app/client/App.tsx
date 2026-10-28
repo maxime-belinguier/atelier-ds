@@ -15,6 +15,12 @@ import ScreenPicker from './ScreenPicker.js';
 import ColorPicker from './ColorPicker.js';
 import AddToken from './AddToken.js';
 import { useDrafts } from './useTokenDraft.js';
+import {
+  chatTitle,
+  readChats,
+  writeChats,
+  type SavedChat,
+} from './chatHistory.js';
 import Tour, { tourKey, type TourStep } from './Tour.js';
 import Settings, { type Prefs, type Tab as SettingsTab } from './Settings.js';
 import FigmaPanel from './FigmaPanel.js';
@@ -428,7 +434,36 @@ export default function App() {
   const [agents, setAgents] = useState<Bootstrap['agents']>([]);
   const [agent, setAgent] = useState(readAgent);
   const [message, setMessage] = useState('');
-  const [chat, setChat] = useState<ChatEntry[]>([]);
+  // Conversations gardées dans le navigateur : la dernière se rouvre au
+  // chargement ; on peut en démarrer une nouvelle ou en rouvrir une ancienne.
+  const [chats, setChats] = useState(() => readChats<ChatEntry>());
+  const [chatId, setChatId] = useState<string | null>(
+    () => chats[0]?.id ?? null,
+  );
+  const [chat, setChat] = useState<ChatEntry[]>(() => chats[0]?.entries ?? []);
+  const [chatListOpen, setChatListOpen] = useState(false);
+  useEffect(() => {
+    if (!chat.length) return;
+    const id = chatId ?? crypto.randomUUID();
+    if (!chatId) setChatId(id);
+    setChats((list) => {
+      const first = chat.find((e) => e.role === 'user');
+      const entry: SavedChat<ChatEntry> = {
+        id,
+        agent,
+        title: chatTitle(first?.text ?? ''),
+        updated: Date.now(),
+        entries: chat,
+      };
+      return writeChats([entry, ...list.filter((c) => c.id !== id)]);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chat]);
+  const newChat = () => {
+    setChat([]);
+    setChatId(null);
+    setChatListOpen(false);
+  };
   const [assistant, setAssistant] = useState(readAssistant);
   const [limits, setLimits] = useState(readLimits);
   const [creditsOpen, setCreditsOpen] = useState(false);
@@ -575,7 +610,10 @@ export default function App() {
   }, [layout]);
   useEffect(() => {
     // Les conversations de fournisseurs différents ne sont jamais mélangées.
-    setChat([]);
+    if (chats.find((c) => c.id === chatId)?.agent !== agent) {
+      setChat([]);
+      setChatId(null);
+    }
     if (chatOpen && agent !== 'manual')
       request<Bootstrap['agents']>('agents')
         .then(setAgents)
@@ -2641,6 +2679,83 @@ export default function App() {
         <p className="chat-status">
           {selectedAgent?.detail ?? 'Détection de l’assistant…'}
         </p>
+        <div className="chat-bar">
+          <button
+            className="chat-bar-btn"
+            onClick={newChat}
+            disabled={thinking || (!chat.length && !chatListOpen)}
+          >
+            <span aria-hidden="true">+</span> Nouvelle conversation
+          </button>
+          <button
+            className="chat-bar-btn"
+            aria-expanded={chatListOpen}
+            aria-controls="chat-list"
+            onClick={() => setChatListOpen(!chatListOpen)}
+            disabled={thinking}
+          >
+            Conversations
+            {chats.length > 0 && (
+              <span className="chat-bar-count">{chats.length}</span>
+            )}
+          </button>
+        </div>
+        {chatListOpen && (
+          <div className="chat-list" id="chat-list">
+            <p className="chat-list-note">
+              Gardées dans ce navigateur. Rouvrir une conversation ne consomme
+              aucun token.
+            </p>
+            {chats.length ? (
+              <ul>
+                {chats.map((c) => (
+                  <li
+                    key={c.id}
+                    className={c.id === chatId ? 'is-current' : undefined}
+                  >
+                    <button
+                      className="chat-list-open"
+                      onClick={() => {
+                        setAgent(c.agent);
+                        setChat(c.entries);
+                        setChatId(c.id);
+                        setChatListOpen(false);
+                      }}
+                    >
+                      <strong>{c.title}</strong>
+                      <span>
+                        {new Date(c.updated).toLocaleString('fr-FR', {
+                          day: 'numeric',
+                          month: 'short',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}{' '}
+                        · {c.entries.length} message
+                        {c.entries.length > 1 ? 's' : ''}
+                      </span>
+                    </button>
+                    <button
+                      className="chat-list-delete"
+                      aria-label={`Supprimer la conversation : ${c.title}`}
+                      onClick={() => {
+                        setChats(
+                          writeChats(chats.filter((x) => x.id !== c.id)),
+                        );
+                        if (c.id === chatId) newChat();
+                      }}
+                    >
+                      ×
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="chat-list-note">
+                Aucune conversation pour l’instant.
+              </p>
+            )}
+          </div>
+        )}
         <div className="chat-log" aria-label="Conversation" aria-live="polite">
           {!chat.length && (
             <div className="chat-empty">

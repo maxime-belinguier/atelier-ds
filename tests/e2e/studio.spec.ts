@@ -1024,3 +1024,52 @@ test('Figma (simulé) : lire en diff, puis envoyer avec aperçu et validation', 
     ),
   ).toBeVisible();
 });
+
+test('assistant : historique gardé, nouvelle conversation, réouverture', async ({
+  page,
+}) => {
+  const sent: Record<string, unknown>[] = [];
+  await page.route('**/api/agents', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify([
+        { id: 'claude', available: true, detail: 'Claude simulé.' },
+      ]),
+    }),
+  );
+  await page.route('**/api/agent', async (route) => {
+    sent.push(route.request().postDataJSON());
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ message: 'Réponse simulée.', proposal: null }),
+    });
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Ouvrir l’assistant' }).click();
+  await page.getByLabel('Votre demande').fill('Première question');
+  await page.keyboard.press('Enter');
+  await expect(page.getByText('Réponse simulée.')).toBeVisible();
+  // Après rechargement, la conversation est toujours là.
+  await page.reload();
+  await page.getByRole('button', { name: 'Ouvrir l’assistant' }).click();
+  await expect(page.getByText('Première question')).toBeVisible();
+  // Nouvelle conversation : vide, et rien de l'ancienne n'est renvoyé.
+  await page.getByRole('button', { name: /Nouvelle conversation/ }).click();
+  await expect(page.getByText('Première question')).toHaveCount(0);
+  await page.getByLabel('Votre demande').fill('Deuxième');
+  await page.keyboard.press('Enter');
+  await expect(page.getByText('Réponse simulée.')).toBeVisible();
+  expect(sent.at(-1)?.history).toEqual([]);
+  // Liste des conversations : 2, on rouvre la première.
+  await page.getByRole('button', { name: /^Conversations/ }).click();
+  const list = page.locator('#chat-list li');
+  await expect(list).toHaveCount(2);
+  await list
+    .filter({ hasText: 'Première question' })
+    .locator('.chat-list-open')
+    .click();
+  await expect(page.getByText('Première question')).toBeVisible();
+  await expect(page.getByText('Deuxième')).toHaveCount(0);
+});

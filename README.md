@@ -89,6 +89,9 @@ contenant des espaces est accepté. N’utilisez ni `sudo` ni installation de se
   lecture Figma, commente le bilan d'accessibilité et aide pour le PFE, l'école ou le
   travail (réponses mises en forme, bouton Copier). Démarrages rapides quand le chat
   est vide. Les propositions passent toujours par le diff et ta validation.
+  **Historique** : bouton « Conversations » pour rouvrir ou supprimer une
+  conversation, « + Nouvelle conversation » pour repartir de zéro. Gardé dans ce
+  navigateur (30 conversations max), sans coût en tokens.
 - **Figma** : bouton Figma de l'en-tête ou Paramètres › Figma. « Lire depuis Figma »
   ouvre un diff ; « Envoyer vers Figma » montre les variables à écrire, puis met à jour
   la collection `DS-Studio` et relit. Voir [FIGMA](docs/FIGMA.md).
@@ -205,7 +208,7 @@ compatible, une connexion et du quota sont requis. Aucun compte enseignant n’e
 
 Choisir Codex puis **Envoyer** transmet les tokens, `PFE.md`, `DESIGN_RULES.md`, la demande
 et au plus dix messages précédents. Ne mettez pas de données sensibles dans ce contexte.
-Le brief privé est également transmis. Le chat ne persiste pas après recharge. Codex ne peut pas exécuter vos commandes dans
+Le brief privé est également transmis. Le chat est gardé dans le navigateur (localStorage), jamais côté serveur. Codex ne peut pas exécuter vos commandes dans
 ce profil : le contrôleur valide les propositions de tokens, l’utilisateur accepte le diff.
 Les MCP, plugins et outils shell sont désactivés, et le contexte est transmis en JSON
 depuis un dossier temporaire vide. L’authentification reste gérée par le CLI officiel.
