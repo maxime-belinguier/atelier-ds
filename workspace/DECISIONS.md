@@ -504,3 +504,18 @@ mise en page et visite sans anomalie ; captures relues (1440 et 375 px).
 Limite : les écrans de l’aperçu restent ceux de Gutt pour tous les projets.
 Il faut relancer l’app après la mise à jour ; sinon le menu affiche « Projet »
 et demande de relancer (au lieu de « … » et d’un bouton bloqué sans raison).
+
+## 28/10/2026 · Bulle Figma : état de connexion
+
+Problème : la bulle Figma de l’en-tête ne disait pas si Figma était prêt.
+Décision : pastille sur le logo. Verte : connecté et fichier lié. Orange :
+compte à connecter ou lien Figma manquant. Grise : vérification en cours.
+Le survol affiche « Figma connecté » ou « Figma à connecter ». Vérifié au
+chargement et à la fermeture des Paramètres ou du Brief (`claude mcp get`,
+aucun quota).
+Écarté : centraliser Notion et la recherche dans un onglet Projet (doublon
+du projet Claude déjà relié à Notion et Figma).
+Preuves : test navigateur Figma (orange sans lien, verte après le lien) ;
+captures des deux états relues.
+Limite : l’état ne se met pas à jour seul si la connexion change dans le
+Terminal ; rouvrir les Paramètres ou recharger.

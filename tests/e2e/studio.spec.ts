@@ -978,6 +978,10 @@ test('Figma (simulé) : lire en diff, puis envoyer avec aperçu et validation', 
   page,
 }) => {
   await page.goto('/');
+  const pill = page.getByRole('button', { name: 'Figma', exact: true });
+  // Pastille : orange tant qu'aucun fichier n'est lié, verte ensuite.
+  await expect(pill).toHaveAttribute('data-figma', 'off');
+  await expect(pill).toHaveAttribute('title', 'Figma à connecter');
   await page.getByRole('button', { name: 'Brief', exact: true }).click();
   const brief = page.getByRole('dialog', { name: 'Brief du projet' });
   await brief
@@ -988,7 +992,9 @@ test('Figma (simulé) : lire en diff, puis envoyer avec aperçu et validation', 
   await brief.getByRole('button', { name: 'Enregistrer le brief' }).click();
   await expect(brief.getByText('Brief enregistré sur ce poste.')).toBeVisible();
   await page.keyboard.press('Escape');
-  await page.getByRole('button', { name: 'Figma', exact: true }).click();
+  await expect(pill).toHaveAttribute('data-figma', 'ok');
+  await expect(pill).toHaveAttribute('title', 'Figma connecté');
+  await pill.click();
   const settings = page.getByRole('dialog', { name: 'Paramètres' });
   await expect(settings.getByRole('tab', { name: 'Figma' })).toHaveAttribute(
     'aria-selected',

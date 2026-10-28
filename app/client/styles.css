@@ -3688,6 +3688,25 @@ kbd {
 .figma-pill svg {
   color: var(--text);
 }
+.figma-pill {
+  position: relative;
+}
+.figma-dot {
+  position: absolute;
+  left: 23px;
+  top: 10px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 2px solid var(--surface);
+  background: var(--muted, #9a9a9a);
+}
+.figma-pill[data-figma='ok'] .figma-dot {
+  background: #1f9d55;
+}
+.figma-pill[data-figma='off'] .figma-dot {
+  background: #e08a00;
+}
 
 /* Chat : démarrages rapides, réponses mises en forme */
 .chat-empty p {

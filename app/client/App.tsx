@@ -510,6 +510,24 @@ export default function App() {
   // Paramètres de l'atelier (modale) et apparence.
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<SettingsTab>('ai');
+  // Pastille de la bulle Figma : revérifiée à la fermeture des Paramètres
+  // ou du Brief (lien Figma). « claude mcp get » ne consomme aucun quota.
+  const [figmaState, setFigmaState] = useState<'checking' | 'ok' | 'off'>(
+    'checking',
+  );
+  useEffect(() => {
+    if (settingsOpen || briefOpen) return;
+    let live = true;
+    request<{ state: string; fileKey: string | null }>('figma/status')
+      .then((s) => {
+        if (live)
+          setFigmaState(s.state === 'connected' && s.fileKey ? 'ok' : 'off');
+      })
+      .catch(() => live && setFigmaState('off'));
+    return () => {
+      live = false;
+    };
+  }, [settingsOpen, briefOpen]);
   const [theme, setTheme] = useState<Theme>(readTheme);
   useEffect(() => {
     applyTheme(theme);
@@ -1472,7 +1490,14 @@ export default function App() {
         <div className="header-actions">
           <button
             className="brief-pill figma-pill"
-            title="Synchroniser avec Figma"
+            title={
+              figmaState === 'ok'
+                ? 'Figma connecté'
+                : figmaState === 'off'
+                  ? 'Figma à connecter'
+                  : 'Vérification de Figma…'
+            }
+            data-figma={figmaState}
             onClick={() => {
               setSettingsTab('figma');
               setSettingsOpen(true);
@@ -1495,6 +1520,7 @@ export default function App() {
               <path d="M12 2h3.5a3.5 3.5 0 0 1 0 7H12z" />
               <circle cx="15.5" cy="12.5" r="3.5" />
             </svg>
+            <span className="figma-dot" aria-hidden="true" />
             Figma
           </button>
           <button
