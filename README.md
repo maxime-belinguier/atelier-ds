@@ -69,6 +69,9 @@ contenant des espaces est accepté. N’utilisez ni `sudo` ni installation de se
 
 ## Ce qui change en V2
 
+- **Projets** : sous « DS-Studio », menu pour changer de projet ou en créer un
+  (tokens de base ou copie du projet ouvert). Chaque projet a ses tokens, son
+  historique, son brief et ses conversations. L'app rouvre le dernier projet.
 - **Brief** : brief privé éditable et exportable en Markdown ; aucun compte nécessaire.
 - Recherche de tokens, sélecteur de couleur, valeurs numériques bornées et brouillon
   récupérable dans le même onglet après recharge. Rien n’est appliqué avant le diff.
@@ -141,6 +144,8 @@ simulé. Les propositions périmées et annulations conflictuelles sont refusée
 | `.ds-studio/project.json`             | Brief PFE privé du panneau, ignoré par Git                 |
 | `.ds-studio/state.previous.json`      | Copie de la révision précédente des tokens et du journal   |
 | `.ds-studio/state.json`               | Tokens courants et historique personnel, ignorés par Git   |
+| `.ds-studio/projets.json`             | Liste des projets et dernier projet ouvert                 |
+| `.ds-studio/projets/<id>/`            | Données des autres projets (Gutt reste dans `.ds-studio/`) |
 | `workspace/private/`                  | Vos données privées ignorées, à sauvegarder hors Git       |
 
 Après un incident : arrêtez l’atelier, ouvrez **Journal et réparation** dans le

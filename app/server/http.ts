@@ -6,6 +6,8 @@ import { z } from 'zod';
 import { proposeSchema } from '../shared/model.js';
 import { Store, StudioError } from './store.js';
 import { ProjectStore } from './project.js';
+import { Projects, newProjectSchema } from './projects.js';
+import { readPrivate } from './files.js';
 import { projectSchema } from '../shared/project.js';
 import { CodexAdapter } from '../../connectors/agents/codex.js';
 import { ClaudeAdapter } from '../../connectors/agents/claude.js';
@@ -31,22 +33,70 @@ export async function createStudioServer(options: {
   claude?: AgentAdapter;
   terminal?: TerminalOpener;
   figma?: FigmaConnector;
+  projects?: Projects;
   dev?: boolean;
   control?: { record: RecordInfo; stop: () => void };
 }) {
-  const { root, store } = options;
+  const { root } = options;
+  let store = options.store;
   const adapters: Record<string, AgentAdapter> = {
     codex: options.agent ?? new CodexAdapter(),
     claude: options.claude ?? new ClaudeAdapter(),
     gemini: unvalidatedAdapter('gemini'),
   };
-  const project = new ProjectStore(store.directory);
-  const figma = new FigmaSync(
-    store,
-    project,
-    options.figma ?? new ClaudeFigmaConnector(),
-    store.directory,
-  );
+  const figmaConnector = options.figma ?? new ClaudeFigmaConnector();
+  const projects = options.projects ?? new Projects(store.directory);
+  let projectId = (await projects.read()).current;
+  let project = new ProjectStore(store.directory);
+  let figma = new FigmaSync(store, project, figmaConnector, store.directory);
+  // Changer de projet remplace les trois magasins d'un coup. Refusé pendant
+  // une demande Claude ou Figma pour ne jamais écrire dans le mauvais projet.
+  async function openProject(id: string, seed = options.store.seed) {
+    if (busy)
+      throw new StudioError(
+        'Attends la fin de la demande Claude ou Figma avant de changer de projet.',
+        429,
+      );
+    const directory = projects.dirFor(id);
+    const next = new Store(directory, seed);
+    await next.init();
+    await store.flush();
+    await projects.open(id);
+    store = next;
+    project = new ProjectStore(directory);
+    figma = new FigmaSync(store, project, figmaConnector, directory);
+    projectId = id;
+  }
+  // Aperçu visuel d'un jeu de tokens : quelques couleurs et l'arrondi.
+  const palette = (tokens: Record<string, { $value: unknown }>) => ({
+    colors: ['color.brand', 'color.canvas', 'color.text', 'color.border']
+      .map((k) => tokens[k]?.$value)
+      .filter((v): v is string => typeof v === 'string'),
+    radius: Number(tokens['radius.control']?.$value ?? 8),
+  });
+  const brandOf = async (id: string) => {
+    if (id === projectId)
+      return String(store.snapshot().tokens['color.brand']?.$value ?? '');
+    try {
+      const raw = await readPrivate(
+        path.join(projects.dirFor(id), 'state.json'),
+      );
+      const v = JSON.parse(raw)?.tokens?.['color.brand']?.$value;
+      return typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v) ? v : '';
+    } catch {
+      return '';
+    }
+  };
+  const projectList = async () => {
+    const r = await projects.read();
+    return {
+      current: r.current,
+      projects: await Promise.all(
+        r.projects.map(async (p) => ({ ...p, brand: await brandOf(p.id) })),
+      ),
+      base: palette(options.store.seed),
+    };
+  };
   const csrf = randomBytes(32).toString('hex');
   let busy = false;
   const active = new Set<AbortController>();
@@ -135,6 +185,7 @@ export async function createStudioServer(options: {
           if (url.pathname === '/api/bootstrap')
             return send(200, {
               csrf,
+              project: projectId,
               figma: { connected: false, label: 'Figma' },
               agents: [],
             });
@@ -152,6 +203,8 @@ export async function createStudioServer(options: {
             );
           if (url.pathname === '/api/project')
             return send(200, await project.read());
+          if (url.pathname === '/api/projects')
+            return send(200, await projectList());
           if (url.pathname === '/api/state') return send(200, store.snapshot());
           if (url.pathname === '/api/export')
             return send(200, store.snapshot().tokens);
@@ -181,6 +234,37 @@ export async function createStudioServer(options: {
         } catch {
           throw new StudioError('JSON invalide.');
         }
+        if (url.pathname === '/api/projects/open') {
+          const b = z
+            .object({ id: z.string().max(40) })
+            .strict()
+            .parse(body);
+          if (!(await projects.read()).projects.some((p) => p.id === b.id))
+            throw new StudioError('Projet introuvable.', 404);
+          await openProject(b.id);
+          return send(200, await projectList());
+        }
+        if (url.pathname === '/api/projects/create') {
+          const b = newProjectSchema.parse(body);
+          const seed =
+            b.from === 'copie' ? store.snapshot().tokens : options.store.seed;
+          const id = await projects.create(b.name);
+          await openProject(id, seed);
+          await project.save('', {
+            name: b.name,
+            audience: '',
+            goal: '',
+            figmaUrl: '',
+          });
+          return send(200, await projectList());
+        }
+        // Un onglet resté sur un autre projet ne peut rien écrire ici.
+        const sentProject = req.headers['x-ds-project'];
+        if (typeof sentProject === 'string' && sentProject !== projectId)
+          throw new StudioError(
+            'Projet changé dans un autre onglet. Rechargez la page.',
+            409,
+          );
         if (url.pathname === '/api/project') {
           const b = z
             .object({ base: z.string().max(64), project: projectSchema })
@@ -252,6 +336,7 @@ export async function createStudioServer(options: {
               409,
             );
           const result = await exclusive(res, async (signal) => {
+            const gutt = projectId === 'gutt';
             const context = async (name: string) => {
               const file = path.join(root, 'workspace', name);
               const stat = await fs.lstat(file);
@@ -266,11 +351,16 @@ export async function createStudioServer(options: {
               b.message,
               {
                 tokens: store.snapshot().tokens,
+                // PFE.md et les règles Gutt ne concernent que le projet Gutt.
                 brief:
-                  (await context('PFE.md')) +
+                  (gutt ? await context('PFE.md') : '') +
                   '\nBrief privé DS-Studio :\n' +
                   JSON.stringify((await project.read()).project),
-                rules: await context('DESIGN_RULES.md'),
+                rules: gutt
+                  ? await context('DESIGN_RULES.md')
+                  : (await context('DESIGN_RULES.md')).split(
+                      '## Règles Gutt',
+                    )[0],
                 figma: snap
                   ? {
                       readAt: snap.readAt,
@@ -395,6 +485,7 @@ export async function createStudioServer(options: {
   server.headersTimeout = 10000;
   return {
     server,
+    flush: () => store.flush(),
     close: async () => {
       for (const c of active) c.abort();
       await new Promise<void>((resolve, reject) =>

@@ -476,3 +476,29 @@ conversation envoyée sans historique, liste à 2 entrées, réouverture) ; suit
 complète (66 unitaires, 28 navigateur) ; audit de mise en page sans anomalie ;
 capture relue.
 Limite : vider les données du navigateur efface l’historique ; pas d’export.
+
+## 28/10/2026 · Plusieurs projets dans l’atelier
+
+Problème : l’atelier ne servait qu’à Gutt. Je veux l’utiliser pour d’autres
+projets (école, travail, freelance).
+Décision : menu de projet sous « DS-Studio ». Chaque projet a une pastille à sa
+couleur de marque et sa date de dernière utilisation. « Nouveau projet » ouvre
+une fenêtre : nom, puis point de départ en deux cartes avec aperçu visuel
+(« Partir de zéro » ou « Copier le projet ouvert », qui ne change pas). Après
+la création, un message rassure et propose 3 raccourcis : couleur de marque,
+brief, Figma. Chaque projet a ses tokens, son historique, son brief, sa lecture
+Figma et ses conversations. L’app rouvre le dernier projet. Gutt garde son
+dossier d’origine : rien n’est déplacé. PFE.md et les règles Gutt ne partent
+vers Claude que pour Gutt. Changer de projet est bloqué si des modifs ne sont
+pas enregistrées ou si Claude répond ; un onglet resté sur l’ancien projet ne
+peut rien écrire (409).
+Écarté : formulaire dans le menu avec boutons radio (trop petit, « tokens de
+base » pas compris) ; mise en ligne pour l’instant (Cloudflare Access possible,
+mais le chat demanderait une clé API payante et Figma le plugin) ; renommer et
+supprimer un projet ; espace projet complet (cadrage, benchmark, Notion), prévu
+après vendredi.
+Preuves : test API (création, tokens et brief séparés, copie, projet inconnu,
+onglet périmé refusé) ; test navigateur (fenêtre, cartes, accueil, verrou si
+modif, retour sur Gutt) ; suite complète (67 unitaires, 29 navigateur) ; audits
+mise en page et visite sans anomalie ; captures relues (1440 et 375 px).
+Limite : les écrans de l’aperçu restent ceux de Gutt pour tous les projets.

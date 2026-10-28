@@ -32,7 +32,7 @@ export class Store {
   readonly file: string;
   constructor(
     readonly directory: string,
-    private seed: Tokens,
+    readonly seed: Tokens,
   ) {
     this.file = path.join(directory, 'state.json');
   }

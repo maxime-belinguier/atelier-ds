@@ -421,3 +421,57 @@ test('Figma : connexion par la commande officielle, liste fermée', async (t) =>
   assert.deepEqual(terminal, [r.command]);
   assert.equal((await post('agent-login', { agent: 'rm -rf' })).status, 400);
 });
+test('projets : créer, isoler les tokens et le brief, rouvrir, onglet périmé refusé', async (t) => {
+  const { origin, post, directory } = await fixture(t);
+  const get = async (route: string) =>
+    (await fetch(origin + '/api/' + route)).json();
+  const first = await get('projects');
+  assert.equal(first.current, 'gutt');
+  // Gutt garde le dossier d'origine : une modif y est faite avant la création.
+  const p = await (
+    await post('proposals', {
+      revision: 0,
+      changes: [{ key: 'color.brand', value: '#112233' }],
+    })
+  ).json();
+  assert.equal((await post('commit', { id: p.id })).status, 200);
+  assert.equal(
+    (await post('projects/create', { name: '', from: 'neutre' })).status,
+    400,
+  );
+  const created = await (
+    await post('projects/create', { name: 'Betclic Poker', from: 'neutre' })
+  ).json();
+  assert.equal(created.current, 'betclic-poker');
+  assert.equal(created.projects.length, 2);
+  const state = await get('state');
+  assert.equal(state.revision, 0);
+  assert.equal(state.tokens['color.brand'].$value, seed['color.brand'].$value);
+  assert.equal((await get('project')).project.name, 'Betclic Poker');
+  assert.equal((await get('bootstrap')).project, 'betclic-poker');
+  // Un onglet resté sur Gutt ne peut pas écrire dans le nouveau projet.
+  assert.equal(
+    (
+      await post(
+        'proposals',
+        { revision: 0, changes: [{ key: 'color.brand', value: '#445566' }] },
+        { 'X-DS-Project': 'gutt' },
+      )
+    ).status,
+    409,
+  );
+  // Copie : reprend les tokens du projet ouvert.
+  await post('projects/open', { id: 'gutt' });
+  assert.equal((await get('state')).tokens['color.brand'].$value, '#112233');
+  const copy = await (
+    await post('projects/create', { name: 'Gutt', from: 'copie' })
+  ).json();
+  assert.equal(copy.current, 'gutt-2');
+  assert.equal((await get('state')).tokens['color.brand'].$value, '#112233');
+  assert.equal((await post('projects/open', { id: 'inconnu' })).status, 404);
+  const registry = JSON.parse(
+    await readFile(path.join(directory, 'projets.json'), 'utf8'),
+  );
+  assert.equal(registry.current, 'gutt-2');
+  assert.equal(registry.projects.length, 3);
+});

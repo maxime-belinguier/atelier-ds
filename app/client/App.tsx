@@ -12,11 +12,14 @@ import {
 import { DSProvider, Scenario, components, screens } from './DesignSystem.js';
 import ProjectBrief from './ProjectBrief.js';
 import ScreenPicker from './ScreenPicker.js';
+import ProjectMenu, { newProjectKey } from './ProjectMenu.js';
 import ColorPicker from './ColorPicker.js';
 import AddToken from './AddToken.js';
 import { useDrafts } from './useTokenDraft.js';
 import {
   chatTitle,
+  currentProject,
+  projectKey,
   readChats,
   writeChats,
   type SavedChat,
@@ -406,6 +409,16 @@ export default function App() {
   const [proposal, setProposal] = useState<Proposal>();
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  // Accueil affiché une fois, juste après la création d'un projet.
+  const [welcome, setWelcome] = useState(() => {
+    try {
+      const name = sessionStorage.getItem(newProjectKey);
+      sessionStorage.removeItem(newProjectKey);
+      return name;
+    } catch {
+      return null;
+    }
+  });
   const [prefs, setPrefs] = useState(readPrefs);
   const [device, setDevice] = useState(() =>
     devices.some((d) => d.id === prefs.device) ? prefs.device : 'sm',
@@ -590,7 +603,21 @@ export default function App() {
 
   useEffect(() => {
     bootstrap()
-      .then(setBoot)
+      .then((b) => {
+        setBoot(b);
+        // Projet changé ailleurs (autre onglet) : on affiche ses conversations.
+        if (b.project !== currentProject()) {
+          try {
+            localStorage.setItem(projectKey, b.project);
+          } catch {
+            /* facultatif */
+          }
+          const list = readChats<ChatEntry>(b.project);
+          setChats(list);
+          setChatId(list[0]?.id ?? null);
+          setChat(list[0]?.entries ?? []);
+        }
+      })
       .catch((e) => setError(e.message));
     return () => controller.current?.abort();
   }, []);
@@ -1089,7 +1116,7 @@ export default function App() {
     },
     {
       label: 'Proposer des tokens manquants',
-      text: 'Quels tokens manquent à mon Design System pour Gutt (états, alertes, espacements) ? Propose les plus utiles comme nouveaux tokens.',
+      text: 'Quels tokens manquent à mon Design System (états, alertes, espacements) ? Propose les plus utiles comme nouveaux tokens.',
     },
     {
       label: 'Rédiger la doc pour le PFE',
@@ -1379,7 +1406,18 @@ export default function App() {
           <span className="brand-symbol">ds.</span>
           <div>
             <strong>DS-Studio</strong>
-            <span>Gutt · prototype PFE</span>
+            <ProjectMenu
+              current={boot?.project}
+              tokens={state?.tokens}
+              locked={
+                pendingCount
+                  ? 'Enregistre ou annule tes modifications avant de changer de projet.'
+                  : thinking
+                    ? 'Attends la réponse de Claude avant de changer de projet.'
+                    : null
+              }
+              onError={setError}
+            />
           </div>
         </div>
         <div
@@ -1677,6 +1715,58 @@ export default function App() {
               ×
             </button>
           </p>
+        )}
+        {welcome && (
+          <div className="project-welcome" role="status">
+            <div>
+              <strong>Projet « {welcome} » créé.</strong>
+              <span>
+                Tes autres projets restent dans le menu sous DS-Studio. Pour
+                démarrer :
+              </span>
+            </div>
+            <div className="project-welcome-actions">
+              <button
+                onClick={() => {
+                  setWelcome(null);
+                  setSelection({ kind: 'tokens', id: 'colors' });
+                  setTimeout(() => {
+                    const input = document.querySelector<HTMLInputElement>(
+                      'input[aria-label="Couleur de marque"]',
+                    );
+                    input?.scrollIntoView({ block: 'center' });
+                    input?.focus();
+                  }, 50);
+                }}
+              >
+                Choisir la couleur de marque
+              </button>
+              <button
+                onClick={() => {
+                  setWelcome(null);
+                  setBriefOpen(true);
+                }}
+              >
+                Remplir le brief
+              </button>
+              <button
+                onClick={() => {
+                  setWelcome(null);
+                  setSettingsTab('figma');
+                  setSettingsOpen(true);
+                }}
+              >
+                Lier un fichier Figma
+              </button>
+            </div>
+            <button
+              className="feedback-close"
+              aria-label="Fermer le message"
+              onClick={() => setWelcome(null)}
+            >
+              ×
+            </button>
+          </div>
         )}
         {notice && (
           <p className="notice" role="status">

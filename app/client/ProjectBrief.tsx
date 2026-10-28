@@ -49,7 +49,7 @@ export default function ProjectBrief() {
         >
           {(
             [
-              ['name', 'Nom du PFE', 100],
+              ['name', 'Nom du projet', 100],
               ['audience', 'Public concerné', 1000],
               ['goal', 'Objectif et critères de réussite', 2000],
               ['figmaUrl', 'Lien Figma (facultatif)', 500],
@@ -100,8 +100,8 @@ export default function ProjectBrief() {
           void request<ProjectSnapshot>('project')
             .then(({ project: p }) => {
               downloadText(
-                'PFE-brief.md',
-                `# ${p.name || 'Mon PFE'}\n\n## Public\n\n${p.audience}\n\n## Objectif\n\n${p.goal}\n\n## Fichier Figma\n\n${p.figmaUrl}\n`,
+                'brief.md',
+                `# ${p.name || 'Mon projet'}\n\n## Public\n\n${p.audience}\n\n## Objectif\n\n${p.goal}\n\n## Fichier Figma\n\n${p.figmaUrl}\n`,
               );
             })
             .catch((e) => setError(e.message));

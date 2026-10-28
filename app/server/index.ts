@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { tokensSchema } from '../shared/model.js';
 import { Store } from './store.js';
+import { Projects } from './projects.js';
 import { createStudioServer } from './http.js';
 import { acquireLease } from '../../scripts/runtime.mjs';
 
@@ -30,14 +31,20 @@ try {
       ),
     ),
   );
-  const store = new Store(directory, seed);
+  // Rouvre le dernier projet ouvert (Gutt par défaut, dossier d'origine).
+  const projects = new Projects(directory);
+  await projects.open((await projects.read()).current);
+  const store = new Store(
+    projects.dirFor((await projects.read()).current),
+    seed,
+  );
   await store.init();
   let stopping = false;
   const stop = async () => {
     if (stopping) return;
     stopping = true;
     await app.close();
-    await store.flush();
+    await app.flush();
     await lease!.release();
     process.exit(0);
   };
@@ -54,6 +61,7 @@ try {
   const app = await createStudioServer({
     root,
     store,
+    projects,
     figma,
     dev: process.argv.includes('--dev'),
     control: {

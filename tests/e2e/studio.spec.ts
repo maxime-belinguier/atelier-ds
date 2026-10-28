@@ -253,7 +253,7 @@ test('brief privé dans son panneau, persistant, sans compte IA', async ({
   await page.getByRole('button', { name: 'Brief', exact: true }).click();
   const brief = page.getByRole('dialog', { name: 'Brief du projet' });
   await brief
-    .getByLabel('Nom du PFE', { exact: true })
+    .getByLabel('Nom du projet', { exact: true })
     .fill('Mon atelier accessible');
   await brief
     .getByLabel('Public concerné', { exact: true })
@@ -267,7 +267,7 @@ test('brief privé dans son panneau, persistant, sans compte IA', async ({
   await expect(brief).not.toBeVisible();
   await page.reload();
   await page.getByRole('button', { name: 'Brief', exact: true }).click();
-  await expect(brief.getByLabel('Nom du PFE', { exact: true })).toHaveValue(
+  await expect(brief.getByLabel('Nom du projet', { exact: true })).toHaveValue(
     'Mon atelier accessible',
   );
 });
@@ -1072,4 +1072,52 @@ test('assistant : historique gardé, nouvelle conversation, réouverture', async
     .click();
   await expect(page.getByText('Première question')).toBeVisible();
   await expect(page.getByText('Deuxième')).toHaveCount(0);
+});
+
+test('projets : créer, changer, verrou si modifs en cours', async ({
+  page,
+}) => {
+  await page.goto('/');
+  const trigger = page.getByRole('button', { name: /Gutt \(PFE\)/ });
+  await expect(trigger).toBeVisible();
+  await trigger.click();
+  await expect(page.getByRole('list', { name: 'Projets' })).toContainText(
+    'Gutt (PFE)',
+  );
+  await page
+    .getByRole('button', { name: 'Nouveau projet', exact: true })
+    .click();
+  const dialog = page.getByRole('dialog', { name: 'Nouveau projet' });
+  await dialog.getByLabel('Nom du projet').fill('Projet test');
+  await expect(dialog.getByText('Copier Gutt (PFE)')).toBeVisible();
+  await dialog.getByText('Partir de zéro').click();
+  await dialog.getByRole('button', { name: 'Créer le projet' }).click();
+  await expect(page.getByRole('button', { name: /Projet test/ })).toBeVisible();
+  expect((await state(page)).revision).toBe(0);
+  await expect(page.getByText('Projet « Projet test » créé.')).toBeVisible();
+  await page.getByRole('button', { name: 'Remplir le brief' }).click();
+  await expect(page.getByText('Projet « Projet test » créé.')).toBeHidden();
+  await page.keyboard.press('Escape');
+  // Modif en cours : changer de projet est bloqué, avec la raison.
+  await page.getByLabel('Couleur de marque', { exact: true }).fill('#8A3B20');
+  await page.getByRole('button', { name: /Projet test/ }).click();
+  await expect(
+    page.getByText('Enregistre ou annule tes modifications'),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: /^Gutt \(PFE\)/ }),
+  ).toBeDisabled();
+  await page.keyboard.press('Escape');
+  await page
+    .getByRole('button', { name: 'Annuler les modifications non enregistrées' })
+    .click();
+  // Retour sur Gutt.
+  await page.getByRole('button', { name: /Projet test/ }).click();
+  await page.getByRole('button', { name: /^Gutt \(PFE\)/ }).click();
+  await expect(
+    page.getByRole('button', { name: /Gutt \(PFE\)/ }),
+  ).toBeVisible();
+  const list = await (await page.request.get('/api/projects')).json();
+  expect(list.current).toBe('gutt');
+  expect(list.projects).toHaveLength(2);
 });

@@ -1,10 +1,12 @@
 import type { State, Proposal, Tokens } from '../shared/model.js';
 export interface Bootstrap {
   csrf: string;
+  project: string;
   figma: { label: string; connected: boolean };
   agents: { id: string; available: boolean; detail: string }[];
 }
 let csrf = '';
+let projectId = '';
 export async function request<T>(
   url: string,
   body?: unknown,
@@ -18,7 +20,11 @@ export async function request<T>(
       headers:
         body === undefined
           ? {}
-          : { 'Content-Type': 'application/json', 'X-DS-Studio': csrf },
+          : {
+              'Content-Type': 'application/json',
+              'X-DS-Studio': csrf,
+              ...(projectId ? { 'X-DS-Project': projectId } : {}),
+            },
       body: body === undefined ? undefined : JSON.stringify(body),
       signal,
     });
@@ -45,8 +51,31 @@ export async function request<T>(
 export async function bootstrap() {
   const b = await request<Bootstrap>('bootstrap');
   csrf = b.csrf;
+  projectId = b.project;
   return b;
 }
+export interface ProjectEntry {
+  id: string;
+  name: string;
+  opened: number;
+  /** Couleur de marque du projet, pour le reconnaître dans le menu. */
+  brand: string;
+}
+export interface Palette {
+  colors: string[];
+  radius: number;
+}
+export interface ProjectList {
+  current: string;
+  projects: ProjectEntry[];
+  /** Aperçu des tokens de base (« Partir de zéro »). */
+  base: Palette;
+}
+export const listProjects = () => request<ProjectList>('projects');
+export const openProject = (id: string) =>
+  request<ProjectList>('projects/open', { id });
+export const createProject = (name: string, from: 'neutre' | 'copie') =>
+  request<ProjectList>('projects/create', { name, from });
 export const getState = () => request<State>('state');
 export const commit = (proposal: Proposal) =>
   request<State>('commit', { id: proposal.id });
