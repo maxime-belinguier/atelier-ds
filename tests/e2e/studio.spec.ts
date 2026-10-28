@@ -843,12 +843,12 @@ test('aperçu : Avant / après compare l’enregistré et les modifs en cours', 
     'background-color',
     'rgb(170, 34, 0)',
   );
-  // L'enregistré à gauche, ce qui change à droite.
+  // Ce qui change à gauche, l'enregistré à droite.
   await expect(page.locator('.compare-cell figcaption').nth(0)).toContainText(
-    'Avant · enregistré',
+    'Après · 1 modif en cours',
   );
   await expect(page.locator('.compare-cell figcaption').nth(1)).toContainText(
-    'Après · 1 modif en cours',
+    'Avant · enregistré',
   );
   // En rouvrant Comparer, on repart sur les deux formats.
   await page.getByRole('button', { name: 'Comparer' }).click();

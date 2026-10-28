@@ -1034,7 +1034,7 @@ export default function App() {
     {
       target: 'preview',
       title: 'Compare',
-      text: '« Formats » : mobile et desktop côte à côte. « Avant / après » : l’écran enregistré à gauche, tes modifs à droite.',
+      text: '« Formats » : mobile et desktop côte à côte. « Avant / après » : tes modifs à gauche, l’écran enregistré à droite.',
       before: () => {
         setChatOpen(false);
         setCompareMode('formats');
@@ -1870,7 +1870,7 @@ export default function App() {
                   </button>
                   <button
                     aria-pressed={compareMode === 'before'}
-                    title="Valeurs enregistrées à gauche, modifications en cours à droite"
+                    title="Modifications en cours à gauche, valeurs enregistrées à droite"
                     onClick={() => setCompareMode('before')}
                   >
                     Avant / après
@@ -2110,13 +2110,13 @@ export default function App() {
                         )}
                         <iframe
                           ref={i === 0 ? iframe : undefined}
-                          data-saved={beforeAfter && i === 0 ? '' : undefined}
+                          data-saved={beforeAfter && i === 1 ? '' : undefined}
                           style={{ filter: visionFilter(vision) }}
                           title={
                             beforeAfter
                               ? i === 0
-                                ? 'Aperçu avant'
-                                : 'Aperçu après'
+                                ? 'Aperçu après'
+                                : 'Aperçu avant'
                               : `Aperçu ${d.title} ${d.width} px`
                           }
                           src={`/?preview=1&scenario=${scenario}`}
@@ -2127,7 +2127,7 @@ export default function App() {
                     </div>
                     <figcaption>
                       {beforeAfter ? (
-                        i === 0 ? (
+                        i === 1 ? (
                           <>
                             <strong>Avant</strong> · enregistré
                           </>
@@ -2207,8 +2207,8 @@ export default function App() {
             {beforeAfter ? (
               <>
                 Avant / après · {pairDevices[0].title} {pairDevices[0].width} px
-                · à gauche les valeurs enregistrées, à droite tes modifications
-                en cours
+                · à gauche tes modifications en cours, à droite les valeurs
+                enregistrées
               </>
             ) : compare ? (
               <>

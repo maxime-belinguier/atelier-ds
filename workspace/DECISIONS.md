@@ -350,9 +350,9 @@ s’affiche sous chacun ; même écran, mêmes modifications, même type de visi
 Fit / 100 % reste en place, grisé pendant la comparaison ; le plein écran ⤢
 agrandit les deux. Panneau étroit : Comparer en icône seule.
 Comparer s’ouvre toujours sur les deux formats. Deuxième usage, « Avant / après » :
-même format des deux côtés, valeurs enregistrées à gauche (avant), modifications
-en cours à droite (après, avec leur nombre), dans le sens de lecture. On voit
-l’effet d’une modif avant de l’enregistrer.
+même format des deux côtés, modifications en cours à gauche (après, avec leur
+nombre), valeurs enregistrées à droite (avant) : on voit d’abord ce qu’on change
+(choix confirmé le 28/10). Libellés « Avant / après » à revoir plus tard.
 Écarté après essai : Comparer dans la ligne du titre (la barre passait à la
 ligne et les outils changeaient de place).
 Preuves : test navigateur (deux aperçus qui suivent une modification, changement
