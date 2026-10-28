@@ -331,7 +331,11 @@ séparation ; chaque titre se replie au clic (chevron, nombre d’éléments aff
 une fois replié, sauf s’il n’y en a qu’un), choix mémorisé. Une catégorie
 repliée masque tout ; si elle contient la page ouverte, son titre est mis en
 surbrillance (corrigé le 28/10 : avant, la page ouverte restait visible, ce qui
-donnait l’impression que le repli ne marchait pas). La surbrillance est une
+donnait l’impression que le repli ne marchait pas).
+La surbrillance est une pastille dessinée derrière le titre : le titre garde
+exactement la même taille et la même place ouvert, fermé ou surligné (mesuré :
+position et hauteur identiques dans les 3 états ; corrigé le 28/10, le titre
+sautait de quelques pixels). La surbrillance est une
 pastille dessinée sous le titre (::before) : marges, padding et trait restent
 identiques, le texte ne bouge plus (corrigé le 28/10 : avant, le titre actif se
 décalait et perdait son trait). Recherche fixée à 36 px. Nouvelle catégorie « Contrôle
