@@ -111,4 +111,41 @@ export class Projects {
     }));
     return id;
   }
+  rename(id: string, name: string) {
+    return this.update((r) => {
+      const entry = r.projects.find((p) => p.id === id);
+      if (!entry) throw new StudioError('Projet introuvable.', 404);
+      entry.name = name.trim();
+      return r;
+    });
+  }
+  // Retire le projet de la liste et range son dossier dans
+  // <données>/projets-supprimes/ : rien n'est effacé du disque.
+  // Gutt (dossier d'origine) et le projet ouvert ne peuvent pas être retirés.
+  async remove(id: string) {
+    idSchema.parse(id);
+    const r = await this.read();
+    if (id === defaultProjectId)
+      throw new StudioError('Le projet Gutt ne peut pas être supprimé.', 400);
+    if (id === r.current)
+      throw new StudioError(
+        'Ouvre un autre projet avant de supprimer celui-ci.',
+        409,
+      );
+    if (!r.projects.some((p) => p.id === id))
+      throw new StudioError('Projet introuvable.', 404);
+    const trash = path.join(this.dataDir, 'projets-supprimes');
+    await fs.mkdir(trash, { recursive: true, mode: 0o700 });
+    const target = path.join(trash, `${id}-${Date.now()}`);
+    try {
+      await fs.rename(this.dirFor(id), target);
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code !== 'ENOENT') throw e;
+    }
+    await this.update((cur) => ({
+      ...cur,
+      projects: cur.projects.filter((p) => p.id !== id),
+    }));
+    return target;
+  }
 }

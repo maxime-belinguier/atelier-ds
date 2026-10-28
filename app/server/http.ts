@@ -15,6 +15,7 @@ import { unvalidatedAdapter } from '../../connectors/agents/unvalidated.js';
 import {
   loginCommands,
   openTerminal,
+  openFolder,
   type TerminalOpener,
 } from '../../connectors/agents/login.js';
 import {
@@ -32,12 +33,18 @@ export async function createStudioServer(options: {
   agent?: AgentAdapter;
   claude?: AgentAdapter;
   terminal?: TerminalOpener;
+  // Ouvre le dossier des données dans le Finder (remplaçable pour les tests).
+  folder?: (dir: string) => Promise<boolean>;
   figma?: FigmaConnector;
   projects?: Projects;
   dev?: boolean;
   control?: { record: RecordInfo; stop: () => void };
 }) {
   const { root } = options;
+  const appVersion = String(
+    JSON.parse(await fs.readFile(path.join(root, 'package.json'), 'utf8'))
+      .version ?? '',
+  );
   let store = options.store;
   const adapters: Record<string, AgentAdapter> = {
     codex: options.agent ?? new CodexAdapter(),
@@ -205,6 +212,11 @@ export async function createStudioServer(options: {
             return send(200, await project.read());
           if (url.pathname === '/api/projects')
             return send(200, await projectList());
+          if (url.pathname === '/api/data-info')
+            return send(200, {
+              dir: options.store.directory,
+              version: appVersion,
+            });
           if (url.pathname === '/api/state') return send(200, store.snapshot());
           if (url.pathname === '/api/export')
             return send(200, store.snapshot().tokens);
@@ -257,6 +269,32 @@ export async function createStudioServer(options: {
             figmaUrl: '',
           });
           return send(200, await projectList());
+        }
+        if (url.pathname === '/api/projects/rename') {
+          const b = z
+            .object({
+              id: z.string().max(40),
+              name: z.string().trim().min(1, 'Nom du projet requis.').max(60),
+            })
+            .strict()
+            .parse(body);
+          await projects.rename(b.id, b.name);
+          return send(200, await projectList());
+        }
+        if (url.pathname === '/api/projects/delete') {
+          const b = z
+            .object({ id: z.string().max(40) })
+            .strict()
+            .parse(body);
+          await projects.remove(b.id);
+          return send(200, await projectList());
+        }
+        if (url.pathname === '/api/open-data-folder') {
+          z.object({}).strict().parse(body);
+          const opened = await (options.folder ?? openFolder)(
+            options.store.directory,
+          );
+          return send(200, { opened, dir: options.store.directory });
         }
         // Un onglet resté sur un autre projet ne peut rien écrire ici.
         const sentProject = req.headers['x-ds-project'];

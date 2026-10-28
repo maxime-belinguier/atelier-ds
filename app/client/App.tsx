@@ -29,6 +29,13 @@ import Settings, { type Prefs, type Tab as SettingsTab } from './Settings.js';
 import FigmaPanel from './FigmaPanel.js';
 import RichText from './RichText.js';
 import { applyTheme, readTheme, saveTheme, type Theme } from './theme.js';
+import {
+  identityKey,
+  logoText,
+  readIdentity,
+  saveIdentity,
+  type Identity,
+} from './identity.js';
 import { buildDocHtml } from './docExport.js';
 import { VisionFilters, visionFilter, visions, type Vision } from './vision.js';
 import dsCss from './ds-components.css?raw';
@@ -509,7 +516,7 @@ export default function App() {
   );
   // Paramètres de l'atelier (modale) et apparence.
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [settingsTab, setSettingsTab] = useState<SettingsTab>('ai');
+  const [settingsTab, setSettingsTab] = useState<SettingsTab>('look');
   // Pastille de la bulle Figma : revérifiée à la fermeture des Paramètres
   // ou du Brief (lien Figma). « claude mcp get » ne consomme aucun quota.
   const [figmaState, setFigmaState] = useState<'checking' | 'ok' | 'off'>(
@@ -532,7 +539,18 @@ export default function App() {
   useEffect(() => {
     applyTheme(theme);
     saveTheme(theme);
+    if (theme.mode !== 'auto') return;
+    // Mode auto : suit le réglage clair / sombre du Mac en direct.
+    const q = matchMedia('(prefers-color-scheme: dark)');
+    const on = () => applyTheme(theme);
+    q.addEventListener('change', on);
+    return () => q.removeEventListener('change', on);
   }, [theme]);
+  const [identity, setIdentity] = useState<Identity>(readIdentity);
+  useEffect(() => {
+    saveIdentity(identity);
+    document.title = `${identity.name} · Atelier local`;
+  }, [identity]);
   useEffect(() => {
     try {
       localStorage.setItem(prefsKey, JSON.stringify(prefs));
@@ -1421,9 +1439,23 @@ export default function App() {
       </a>
       <header className="studio-header">
         <div className="wordmark">
-          <span className="brand-symbol">ds.</span>
+          <span
+            className="brand-symbol"
+            aria-hidden="true"
+            style={
+              identity.logo !== 'image' && identity.color
+                ? { background: identity.color }
+                : undefined
+            }
+          >
+            {identity.logo === 'image' && identity.image ? (
+              <img src={identity.image} alt="" />
+            ) : (
+              logoText(identity)
+            )}
+          </span>
           <div>
-            <strong>DS-Studio</strong>
+            <strong>{identity.name}</strong>
             <ProjectMenu
               current={boot?.project}
               tokens={state?.tokens}
@@ -1681,7 +1713,7 @@ export default function App() {
               title="Paramètres de l’atelier"
               aria-haspopup="dialog"
               onClick={() => {
-                setSettingsTab('ai');
+                setSettingsTab('look');
                 setSettingsOpen(true);
               }}
             >
@@ -2565,6 +2597,20 @@ export default function App() {
           onAssistant={(a) => setAssistant(a as AssistantPrefs)}
           theme={theme}
           onTheme={setTheme}
+          identity={identity}
+          onIdentity={setIdentity}
+          project={boot?.project}
+          onClearChats={() => {
+            setChats(writeChats([]));
+            newChat();
+          }}
+          locked={
+            pendingCount
+              ? 'Enregistre ou annule tes modifications avant de changer de projet.'
+              : thinking
+                ? 'Attends la réponse de Claude.'
+                : null
+          }
           devices={devices}
           profiles={profiles}
           prefs={prefs}
@@ -2582,6 +2628,7 @@ export default function App() {
             try {
               for (const k of [
                 'ds-studio-theme',
+                identityKey,
                 'ds-studio-assistant',
                 'ds-studio-agent',
                 prefsKey,

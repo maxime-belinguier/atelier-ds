@@ -4,6 +4,7 @@ import {
   createProject,
   listProjects,
   openProject,
+  projectsChanged,
   type Palette,
   type ProjectList,
 } from './api.js';
@@ -245,6 +246,12 @@ export default function ProjectMenu({
       .catch(() => setFailed(true));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current]);
+  // Renommage ou suppression depuis les Paramètres.
+  useEffect(() => {
+    const reload = () => void listProjects().then(setList, () => {});
+    addEventListener(projectsChanged, reload);
+    return () => removeEventListener(projectsChanged, reload);
+  }, []);
   useEffect(() => {
     if (!open) return;
     const onDown = (e: MouseEvent) => {

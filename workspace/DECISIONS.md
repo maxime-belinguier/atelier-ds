@@ -519,3 +519,39 @@ Preuves : test navigateur Figma (orange sans lien, verte après le lien) ;
 captures des deux états relues.
 Limite : l’état ne se met pas à jour seul si la connexion change dans le
 Terminal ; rouvrir les Paramètres ou recharger.
+
+## 28/10/2026 · Paramètres : identité, mode sombre, projets et données
+
+Problème : le nom et le logo de l’app sont figés alors que je ne les ai pas
+choisis ; les Paramètres montraient des assistants pas encore disponibles et
+il manquait des réglages de base (mode sombre, gestion des projets, données).
+Décision :
+- Onglets dans l’ordre d’usage : Apparence, Assistants IA, Figma, Projets,
+  Général. Les Paramètres s’ouvrent sur Apparence.
+- Apparence › Identité : nom de l’app (en-tête et onglet du navigateur) et
+  logo en texte court, initiales ou image (PNG, JPEG, WebP, SVG, 200 Ko max),
+  couleur du carré, aperçu et « Revenir à DS-Studio ». Gardé dans ce navigateur.
+- Apparence › Mode : clair, sombre ou auto (suit le Mac en direct). Le sombre
+  garde le fond choisi en teinte, l’accent reste lisible (4,5:1) ; les
+  couleurs d’état (vert, orange, rouge) passent par des variables avec une
+  version sombre. Les écrans Gutt de l’aperçu ne changent pas.
+- Assistants IA : seule la carte Claude reste ; Codex et Gemini tiennent en une
+  ligne « Bientôt ». L’onglet garde son nom pour changer d’assistant plus tard.
+- Projets : renommer et supprimer. Gutt et le projet ouvert ne se suppriment
+  pas. Supprimer n’efface rien du disque : le dossier part dans
+  `projets-supprimes/` ; ses conversations sont retirées du navigateur.
+- Projets › Données : chemin du dossier, « Ouvrir le dossier » (Finder sur
+  Mac, chemin fixé par le serveur), « Copier le chemin » et rappel de sauvegarde.
+- Général : effacer les conversations du projet (avec confirmation) et
+  À propos (nom, version, doc).
+Écarté : renommer l’onglet en « Claude » (je pourrais changer d’assistant) ;
+sauvegarde automatique ou zip depuis l’app (l’historique doit être copié
+serveur arrêté) ; corbeille avec restauration dans l’app (pour plus tard).
+Preuves : test API (renommer, nom vide refusé, Gutt et projet ouvert protégés,
+dossier rangé dans projets-supprimes, chemin et version) ; test navigateur
+(nom, initiales, titre de l’onglet, mode sombre gardé après rechargement,
+renommer, supprimer, ouvrir le dossier, retour à DS-Studio) ; suite complète
+(68 unitaires, 30 navigateur) ; audit de mise en page sans anomalie ; captures
+relues en clair et en sombre (atelier, chat, Paramètres).
+Limite : l’ouverture du Finder reste à essayer sur mon Mac (désactivée dans
+les tests) ; restaurer un projet supprimé se fait à la main pour l’instant.

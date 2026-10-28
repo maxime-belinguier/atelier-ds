@@ -178,15 +178,22 @@ export const uiFonts = [
   },
 ] as const;
 
+export const modes = [
+  { id: 'light', label: 'Clair' },
+  { id: 'dark', label: 'Sombre' },
+  { id: 'auto', label: 'Auto (Mac)' },
+] as const;
 export interface Theme {
   bg: string;
   accent: string;
   font: (typeof uiFonts)[number]['id'];
+  mode: (typeof modes)[number]['id'];
 }
 export const defaultTheme: Theme = {
   bg: '#FBFAFF',
   accent: '#FF5A36',
   font: 'systeme',
+  mode: 'light',
 };
 
 const hex6 = /^#[0-9a-fA-F]{6}$/;
@@ -197,6 +204,7 @@ export function readTheme(): Theme {
       bg: hex6.test(t.bg) ? t.bg : defaultTheme.bg,
       accent: hex6.test(t.accent) ? t.accent : defaultTheme.accent,
       font: uiFonts.some((f) => f.id === t.font) ? t.font : defaultTheme.font,
+      mode: modes.some((m) => m.id === t.mode) ? t.mode : defaultTheme.mode,
     };
   } catch {
     return defaultTheme;
@@ -235,11 +243,58 @@ const darkenTo = (h: string, against: string, min: number) => {
   return c;
 };
 
+const lightenTo = (h: string, against: string, min: number) => {
+  let c = h;
+  for (let i = 0; i < 60 && contrast(c, against) < min; i++) c = mix(c, 0.05);
+  return c;
+};
+const darkQuery = () =>
+  typeof matchMedia === 'function' &&
+  matchMedia('(prefers-color-scheme: dark)').matches;
+export const isDark = (t: Theme) =>
+  t.mode === 'dark' || (t.mode === 'auto' && darkQuery());
+
+// Mode sombre : fond très foncé teinté par le fond choisi, accent conservé.
+// Mêmes exigences de lisibilité (texte 7:1 au moins, accent 4,5:1).
+function darkVars(t: Theme): Record<string, string> {
+  const tint = (amount: number) => mix(t.bg, -amount);
+  const bg = tint(0.9);
+  return {
+    '--bg': bg,
+    '--bg-deep': tint(0.93),
+    '--stage': tint(0.92),
+    '--surface': tint(0.86),
+    '--surface-2': tint(0.82),
+    '--border': tint(0.74),
+    '--border-strong': tint(0.64),
+    '--text': '#EEEDF5',
+    '--text-2': '#B4B1C6',
+    '--ink': '#EEEDF5',
+    '--ink-hover': '#D6D4E4',
+    '--ink-text': '#17161F',
+    '--accent': t.accent,
+    '--accent-strong': darkenTo(t.accent, '#FFFFFF', 4.5),
+    '--accent-soft': mix(darkenTo(t.accent, '#FFFFFF', 4.5), -0.7),
+    '--accent-border': mix(t.accent, -0.45),
+    '--accent-text': lightenTo(t.accent, bg, 4.5),
+  };
+}
+
 // Variantes dérivées : texte blanc lisible sur l'accent (4,5:1), texte
 // d'accent lisible sur le fond (4,5:1), fonds teintés légers.
 export function themeVars(t: Theme): Record<string, string> {
   const font = uiFonts.find((f) => f.id === t.font) ?? uiFonts[0];
+  if (isDark(t)) return { ...darkVars(t), '--font-ui': font.value };
   return {
+    '--surface': '#FFFFFF',
+    '--surface-2': '#FCFCFF',
+    '--border': '#ECEBF6',
+    '--border-strong': '#D9D6EA',
+    '--text': '#1C1A2B',
+    '--text-2': '#5B5870',
+    '--ink': '#1C1A2B',
+    '--ink-hover': '#34314D',
+    '--ink-text': '#FFFFFF',
     '--bg': t.bg,
     '--bg-deep': mix(t.bg, -0.03),
     '--stage': mix(t.bg, -0.015),
@@ -253,6 +308,8 @@ export function themeVars(t: Theme): Record<string, string> {
 }
 export function applyTheme(t: Theme) {
   const root = document.documentElement;
+  root.dataset.mode = isDark(t) ? 'dark' : 'light';
+  root.style.colorScheme = isDark(t) ? 'dark' : 'light';
   for (const [k, v] of Object.entries(themeVars(t)))
     root.style.setProperty(k, v);
 }
@@ -260,6 +317,7 @@ export function applyTheme(t: Theme) {
 // Avertissements, sans bloquer le choix.
 export function themeWarnings(t: Theme) {
   const out: string[] = [];
+  if (isDark(t)) return out;
   if (contrast('#1C1A2B', t.bg) < 7)
     out.push(
       'Fond trop foncé : le texte de l’atelier devient moins lisible (moins de 7:1).',

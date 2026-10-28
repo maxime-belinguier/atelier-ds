@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import http from 'node:http';
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -40,6 +40,8 @@ async function fixture(
       terminal.push(command);
       return false;
     },
+    // Jamais de vrai Finder dans les tests.
+    folder: async () => false,
     agent: {
       id: 'codex',
       async status() {
@@ -474,4 +476,40 @@ test('projets : créer, isoler les tokens et le brief, rouvrir, onglet périmé 
   );
   assert.equal(registry.current, 'gutt-2');
   assert.equal(registry.projects.length, 3);
+});
+
+test('projets : renommer, supprimer vers projets-supprimes, dossier des données', async (t) => {
+  const { origin, post, directory } = await fixture(t);
+  const get = async (route: string) =>
+    (await fetch(origin + '/api/' + route)).json();
+  await post('projects/create', { name: 'École', from: 'neutre' });
+  // Le projet ouvert et Gutt ne se suppriment pas.
+  assert.equal((await post('projects/delete', { id: 'ecole' })).status, 409);
+  await post('projects/open', { id: 'gutt' });
+  assert.equal((await post('projects/delete', { id: 'gutt' })).status, 400);
+  assert.equal(
+    (await post('projects/rename', { id: 'ecole', name: '' })).status,
+    400,
+  );
+  const renamed = await (
+    await post('projects/rename', { id: 'ecole', name: 'Projet école' })
+  ).json();
+  assert.equal(
+    renamed.projects.find((p: { id: string }) => p.id === 'ecole').name,
+    'Projet école',
+  );
+  const after = await (await post('projects/delete', { id: 'ecole' })).json();
+  assert.deepEqual(
+    after.projects.map((p: { id: string }) => p.id),
+    ['gutt'],
+  );
+  // Rien n'est effacé : le dossier est rangé dans projets-supprimes.
+  const kept = await readdir(path.join(directory, 'projets-supprimes'));
+  assert.equal(kept.length, 1);
+  assert.match(kept[0], /^ecole-\d+$/);
+  const info = await get('data-info');
+  assert.equal(info.dir, directory);
+  assert.match(info.version, /^\d+\.\d+\.\d+/);
+  const open = await (await post('open-data-folder', {})).json();
+  assert.deepEqual(open, { opened: false, dir: directory });
 });

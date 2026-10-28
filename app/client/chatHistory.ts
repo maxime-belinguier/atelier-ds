@@ -69,3 +69,13 @@ export const chatTitle = (text: string) => {
   const t = text.replace(/\s+/g, ' ').trim();
   return t.length > 60 ? `${t.slice(0, 57)}…` : t || 'Conversation';
 };
+
+// Projet supprimé : ses conversations partent avec lui.
+export function dropChats(project: string) {
+  try {
+    const others = readAll().filter((c) => !inProject(c, project));
+    localStorage.setItem(key, JSON.stringify(others));
+  } catch {
+    /* rien à effacer */
+  }
+}

@@ -63,6 +63,10 @@ try {
     store,
     projects,
     figma,
+    // Serveur de test : jamais de vrai Terminal ni de Finder ouvert.
+    ...(process.env.DS_STUDIO_FAKE_FIGMA === '1'
+      ? { terminal: async () => false, folder: async () => false }
+      : {}),
     dev: process.argv.includes('--dev'),
     control: {
       record: lease.record,

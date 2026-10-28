@@ -4,10 +4,19 @@ import {
   accents,
   backgrounds,
   defaultTheme,
+  modes,
   themeWarnings,
   uiFonts,
   type Theme,
 } from './theme.js';
+import {
+  defaultIdentity,
+  logoText,
+  maxLogoBytes,
+  type Identity,
+} from './identity.js';
+import ProjectsPane from './ProjectsPane.js';
+import { version } from '../../package.json';
 
 // Paramètres de l'atelier : préférences locales, appliquées tout de suite.
 // Rien ici ne touche au Design System ni aux fichiers du projet.
@@ -17,11 +26,14 @@ type Option = { id: string; label: string };
 export type Prefs = { device: string; profile: string };
 
 const tabs = [
-  { id: 'ai', label: 'Assistants IA' },
   { id: 'look', label: 'Apparence' },
+  { id: 'ai', label: 'Assistants IA' },
   { id: 'figma', label: 'Figma' },
+  { id: 'projects', label: 'Projets' },
   { id: 'general', label: 'Général' },
 ] as const;
+// Couleurs proposées pour le carré du logo (vide = accent de l'atelier).
+const logoColors = ['#2C2650', '#3B6FF5', '#1F9D6B', '#7C5CF5', '#D2401E'];
 export type Tab = (typeof tabs)[number]['id'];
 
 const agentInfo: Record<string, { name: string; how: string }> = {
@@ -59,7 +71,12 @@ export default function Settings({
   onTour,
   onReset,
   figmaPanel,
-  initialTab = 'ai',
+  identity,
+  onIdentity,
+  project,
+  onClearChats,
+  locked,
+  initialTab = 'look',
 }: {
   onClose: () => void;
   agents: Agent[];
@@ -83,8 +100,16 @@ export default function Settings({
   onTour: () => void;
   onReset: () => void;
   figmaPanel: ReactNode;
+  identity: Identity;
+  onIdentity: (i: Identity) => void;
+  project: string | undefined;
+  onClearChats: () => void;
+  locked: string | null;
   initialTab?: Tab;
 }) {
+  const [confirmChats, setConfirmChats] = useState(false);
+  const [chatsCleared, setChatsCleared] = useState(false);
+  const [logoError, setLogoError] = useState('');
   const [tab, setTab] = useState<Tab>(initialTab);
   const [confirmReset, setConfirmReset] = useState(false);
   // Couleur « Au choix » : même sélecteur que dans Couleurs.
@@ -235,97 +260,109 @@ export default function Settings({
               </p>
               <fieldset className="settings-cards">
                 <legend className="sr-only">Assistant utilisé</legend>
-                {list.map((a) => {
-                  const info = agentInfo[a.id];
-                  const canLogin = a.id === 'claude';
-                  const res = login[a.id];
-                  return (
-                    <div
-                      key={a.id}
-                      className={`agent-card${agent === a.id ? ' is-on' : ''}${a.available ? '' : ' is-off'}`}
-                    >
-                      <label className="agent-pick">
-                        <input
-                          type="radio"
-                          name="agent"
-                          value={a.id}
-                          checked={agent === a.id}
-                          disabled={!a.available}
-                          onChange={() => onAgent(a.id)}
-                        />
-                        <span className="agent-top">
-                          <strong>{info.name}</strong>
-                          <span
-                            className={`agent-state ${a.available ? 'ok' : 'off'}`}
-                          >
-                            {a.available
-                              ? 'Prêt'
-                              : a.id !== 'claude'
-                                ? 'Bientôt'
-                                : 'Non connecté'}
+                {list
+                  .filter((a) => a.id === 'claude' || a.available)
+                  .map((a) => {
+                    const info = agentInfo[a.id];
+                    const canLogin = a.id === 'claude';
+                    const res = login[a.id];
+                    return (
+                      <div
+                        key={a.id}
+                        className={`agent-card${agent === a.id ? ' is-on' : ''}${a.available ? '' : ' is-off'}`}
+                      >
+                        <label className="agent-pick">
+                          <input
+                            type="radio"
+                            name="agent"
+                            value={a.id}
+                            checked={agent === a.id}
+                            disabled={!a.available}
+                            onChange={() => onAgent(a.id)}
+                          />
+                          <span className="agent-top">
+                            <strong>{info.name}</strong>
+                            <span
+                              className={`agent-state ${a.available ? 'ok' : 'off'}`}
+                            >
+                              {a.available
+                                ? 'Prêt'
+                                : a.id !== 'claude'
+                                  ? 'Bientôt'
+                                  : 'Non connecté'}
+                            </span>
                           </span>
-                        </span>
-                        <span className="agent-how">
-                          {a.available ? a.detail : info.how}
-                        </span>
-                      </label>
-                      {canLogin && (
-                        <div className="agent-actions">
-                          <button
-                            className="agent-connect"
-                            disabled={res === 'busy'}
-                            onClick={async () => {
-                              setLogin((l) => ({ ...l, [a.id]: 'busy' }));
-                              try {
-                                const r = await onConnect('claude');
-                                setLogin((l) => ({ ...l, [a.id]: r }));
-                              } catch (e) {
-                                setLogin((l) => ({
-                                  ...l,
-                                  [a.id]: (e as Error).message,
-                                }));
-                              }
-                            }}
-                          >
-                            {a.available ? 'Changer de compte' : 'Connecter'}
-                          </button>
-                          {res && res !== 'busy' && (
-                            <p className="agent-result" role="status">
-                              {typeof res === 'string' ? (
-                                res
-                              ) : res.opened ? (
-                                <>
-                                  Terminal ouvert : suis les étapes
-                                  {a.id === 'claude'
-                                    ? ' (ou tape /login pour changer de compte)'
-                                    : ''}
-                                  , puis clique sur « Revérifier ».
-                                </>
-                              ) : (
-                                <>
-                                  Ouvre le Terminal et tape{' '}
-                                  <code>{res.command}</code>
-                                  <button
-                                    className="settings-copy"
-                                    onClick={() =>
-                                      navigator.clipboard
-                                        ?.writeText(res.command)
-                                        .catch(() => undefined)
-                                    }
-                                  >
-                                    Copier
-                                  </button>
-                                  , puis clique sur « Revérifier ».
-                                </>
-                              )}
-                            </p>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                          <span className="agent-how">
+                            {a.available ? a.detail : info.how}
+                          </span>
+                        </label>
+                        {canLogin && (
+                          <div className="agent-actions">
+                            <button
+                              className="agent-connect"
+                              disabled={res === 'busy'}
+                              onClick={async () => {
+                                setLogin((l) => ({ ...l, [a.id]: 'busy' }));
+                                try {
+                                  const r = await onConnect('claude');
+                                  setLogin((l) => ({ ...l, [a.id]: r }));
+                                } catch (e) {
+                                  setLogin((l) => ({
+                                    ...l,
+                                    [a.id]: (e as Error).message,
+                                  }));
+                                }
+                              }}
+                            >
+                              {a.available ? 'Changer de compte' : 'Connecter'}
+                            </button>
+                            {res && res !== 'busy' && (
+                              <p className="agent-result" role="status">
+                                {typeof res === 'string' ? (
+                                  res
+                                ) : res.opened ? (
+                                  <>
+                                    Terminal ouvert : suis les étapes
+                                    {a.id === 'claude'
+                                      ? ' (ou tape /login pour changer de compte)'
+                                      : ''}
+                                    , puis clique sur « Revérifier ».
+                                  </>
+                                ) : (
+                                  <>
+                                    Ouvre le Terminal et tape{' '}
+                                    <code>{res.command}</code>
+                                    <button
+                                      className="settings-copy"
+                                      onClick={() =>
+                                        navigator.clipboard
+                                          ?.writeText(res.command)
+                                          .catch(() => undefined)
+                                      }
+                                    >
+                                      Copier
+                                    </button>
+                                    , puis clique sur « Revérifier ».
+                                  </>
+                                )}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
               </fieldset>
+              {list.some((a) => a.id !== 'claude' && !a.available) && (
+                <p className="settings-hint">
+                  Bientôt :{' '}
+                  {list
+                    .filter((a) => a.id !== 'claude' && !a.available)
+                    .map((a) => agentInfo[a.id]?.name ?? a.id)
+                    .join(', ')}
+                  . L’atelier est prévu pour changer d’assistant.
+                </p>
+              )}
               <button className="settings-link" onClick={onRefreshAgents}>
                 Revérifier les connexions
               </button>
@@ -376,6 +413,160 @@ export default function Settings({
                 L’habillage de l’atelier. Les écrans Gutt de l’aperçu gardent
                 leurs propres couleurs.
               </p>
+              <h4>Identité de l’app</h4>
+              <div className="identity-preview" aria-hidden="true">
+                <span
+                  className="brand-symbol"
+                  style={
+                    identity.logo !== 'image' && identity.color
+                      ? { background: identity.color }
+                      : undefined
+                  }
+                >
+                  {identity.logo === 'image' && identity.image ? (
+                    <img src={identity.image} alt="" />
+                  ) : (
+                    logoText(identity)
+                  )}
+                </span>
+                <strong>{identity.name}</strong>
+                <span className="identity-note">Aperçu de l’en-tête</span>
+              </div>
+              <div className="settings-row">
+                <label>
+                  Nom de l’app
+                  <input
+                    maxLength={30}
+                    value={identity.name}
+                    onChange={(e) =>
+                      onIdentity({ ...identity, name: e.target.value })
+                    }
+                    onBlur={() =>
+                      !identity.name.trim() &&
+                      onIdentity({ ...identity, name: defaultIdentity.name })
+                    }
+                  />
+                </label>
+              </div>
+              <div className="swatch-row" role="group" aria-label="Logo">
+                {(
+                  [
+                    ['text', 'Texte'],
+                    ['initials', 'Initiales'],
+                    ['image', 'Image'],
+                  ] as const
+                ).map(([id, label]) => (
+                  <button
+                    key={id}
+                    className="swatch-pick"
+                    aria-pressed={identity.logo === id}
+                    onClick={() => onIdentity({ ...identity, logo: id })}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {identity.logo === 'text' && (
+                <div className="settings-row">
+                  <label>
+                    Texte du logo (3 caractères max.)
+                    <input
+                      maxLength={3}
+                      value={identity.text}
+                      onChange={(e) =>
+                        onIdentity({ ...identity, text: e.target.value })
+                      }
+                    />
+                  </label>
+                </div>
+              )}
+              {identity.logo === 'image' && (
+                <div className="settings-row">
+                  <label className="file-button">
+                    {identity.image ? 'Changer l’image' : 'Choisir une image'}
+                    <input
+                      type="file"
+                      className="sr-only"
+                      accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        e.target.value = '';
+                        if (!file) return;
+                        if (file.size > maxLogoBytes) {
+                          setLogoError('Image trop lourde : 200 Ko maximum.');
+                          return;
+                        }
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                          setLogoError('');
+                          onIdentity({
+                            ...identity,
+                            image: String(reader.result),
+                          });
+                        };
+                        reader.readAsDataURL(file);
+                      }}
+                    />
+                  </label>
+                  <span className="settings-hint">
+                    PNG, JPEG, WebP ou SVG, carré de préférence.
+                  </span>
+                </div>
+              )}
+              {logoError && (
+                <p className="settings-warn" role="alert">
+                  {logoError}
+                </p>
+              )}
+              {identity.logo !== 'image' && (
+                <div
+                  className="swatch-row"
+                  role="group"
+                  aria-label="Couleur du logo"
+                >
+                  <button
+                    className="swatch-pick"
+                    aria-pressed={!identity.color}
+                    onClick={() => onIdentity({ ...identity, color: '' })}
+                  >
+                    <span style={{ background: 'var(--accent-strong)' }} />
+                    Accent
+                  </button>
+                  {logoColors.map((c) => (
+                    <button
+                      key={c}
+                      className="swatch-pick"
+                      aria-label={`Logo ${c}`}
+                      aria-pressed={identity.color === c}
+                      onClick={() => onIdentity({ ...identity, color: c })}
+                    >
+                      <span style={{ background: c }} />
+                    </button>
+                  ))}
+                </div>
+              )}
+              <button
+                className="settings-link"
+                onClick={() => {
+                  setLogoError('');
+                  onIdentity(defaultIdentity);
+                }}
+              >
+                Revenir à DS-Studio
+              </button>
+              <h4>Mode</h4>
+              <div className="swatch-row" role="group" aria-label="Mode">
+                {modes.map((m) => (
+                  <button
+                    key={m.id}
+                    className="swatch-pick"
+                    aria-pressed={theme.mode === m.id}
+                    onClick={() => onTheme({ ...theme, mode: m.id })}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
               <h4>Fond</h4>
               <div className="swatch-row" role="group" aria-label="Fond">
                 {backgrounds.map((b) => (
@@ -458,6 +649,10 @@ export default function Settings({
 
           {tab === 'figma' && figmaPanel}
 
+          {tab === 'projects' && (
+            <ProjectsPane current={project} locked={locked} />
+          )}
+
           {tab === 'general' && (
             <>
               <h3>Général</h3>
@@ -516,6 +711,39 @@ export default function Settings({
                 </dt>
                 <dd>Parcourir la liste des écrans</dd>
               </dl>
+              <h4>Conversations</h4>
+              {confirmChats ? (
+                <div className="settings-row">
+                  <button
+                    className="studio-primary"
+                    onClick={() => {
+                      onClearChats();
+                      setConfirmChats(false);
+                      setChatsCleared(true);
+                    }}
+                  >
+                    Oui, effacer
+                  </button>
+                  <button onClick={() => setConfirmChats(false)}>
+                    Annuler
+                  </button>
+                </div>
+              ) : (
+                <button
+                  className="settings-link"
+                  onClick={() => {
+                    setChatsCleared(false);
+                    setConfirmChats(true);
+                  }}
+                >
+                  Effacer les conversations de ce projet
+                </button>
+              )}
+              <p className="settings-hint" role="status">
+                {chatsCleared
+                  ? 'Conversations de ce projet effacées.'
+                  : 'Gardées dans ce navigateur. Les autres projets ne sont pas touchés.'}
+              </p>
               <h4>Réinitialiser</h4>
               {confirmReset ? (
                 <div className="settings-row">
@@ -541,8 +769,14 @@ export default function Settings({
                 </button>
               )}
               <p className="settings-hint">
-                Apparence, assistant, formats, menu replié et visite. Tes
-                tokens, ton historique et ton brief ne sont pas touchés.
+                Apparence, identité, assistant, formats, menu replié et visite.
+                Tes tokens, ton historique et ton brief ne sont pas touchés.
+              </p>
+              <h4>À propos</h4>
+              <p className="settings-hint">
+                {identity.name} · version {version}. Basé sur DS-Studio V2,
+                starter du cours IA (ECV). Doc dans le dossier du projet :
+                README.md, docs/FIGMA.md, workspace/DECISIONS.md.
               </p>
             </>
           )}

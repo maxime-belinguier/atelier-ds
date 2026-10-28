@@ -876,11 +876,16 @@ test('paramètres : onglets, apparence appliquée et mémorisée, Échap', async
   await page.getByRole('button', { name: 'Paramètres' }).click();
   const dialog = page.getByRole('dialog', { name: 'Paramètres' });
   await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole('tab', { name: 'Apparence' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  await dialog.getByRole('tab', { name: 'Assistants IA' }).click();
+  // Claude en carte ; Codex et Gemini réduits à une ligne « Bientôt ».
+  await expect(dialog.getByText('Claude', { exact: true })).toBeVisible();
   await expect(
-    dialog.getByRole('tab', { name: 'Assistants IA' }),
-  ).toHaveAttribute('aria-selected', 'true');
-  for (const name of ['Claude', 'Codex (ChatGPT)', 'Gemini'])
-    await expect(dialog.getByText(name, { exact: true })).toBeVisible();
+    dialog.getByText(/Bientôt : Codex \(ChatGPT\), Gemini/),
+  ).toBeVisible();
   // Claude : Terminal sur Mac, sinon la commande à taper. Les autres : bientôt.
   const claude = dialog.locator('.agent-card', { hasText: 'Claude' });
   await claude
@@ -889,9 +894,7 @@ test('paramètres : onglets, apparence appliquée et mémorisée, Échap', async
   await expect(claude.locator('.agent-result')).toContainText(
     /claude|Terminal ouvert/,
   );
-  await expect(
-    dialog.locator('.agent-card', { hasText: 'Gemini' }).getByRole('button'),
-  ).toHaveCount(0);
+  await expect(dialog.locator('.agent-card')).toHaveCount(1);
   await dialog.getByRole('tab', { name: 'Apparence' }).click();
   // « Au choix » ouvre le sélecteur de couleur de l'atelier.
   await dialog.getByRole('button', { name: 'Fond au choix' }).click();
@@ -1123,7 +1126,76 @@ test('projets : créer, changer, verrou si modifs en cours', async ({
   await expect(
     page.getByRole('button', { name: /Gutt \(PFE\)/ }),
   ).toBeVisible();
+  // Le changement recharge la page : on attend que le serveur l'ait pris.
+  await expect
+    .poll(
+      async () =>
+        (await (await page.request.get('/api/projects')).json()).current,
+    )
+    .toBe('gutt');
   const list = await (await page.request.get('/api/projects')).json();
-  expect(list.current).toBe('gutt');
   expect(list.projects).toHaveLength(2);
+});
+
+test('paramètres : nom et logo de l’app, mode sombre, projets', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Paramètres' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Paramètres' });
+  await dialog.getByLabel('Nom de l’app').fill('Atelier Max');
+  await dialog.getByRole('button', { name: 'Initiales', exact: true }).click();
+  await expect(page.locator('.wordmark strong')).toHaveText('Atelier Max');
+  await expect(page.locator('.wordmark .brand-symbol')).toHaveText('AM');
+  await expect(page).toHaveTitle('Atelier Max · Atelier local');
+  await dialog.getByRole('button', { name: 'Sombre', exact: true }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-mode', 'dark');
+  // Projets : créer un second projet par l'API, le renommer puis le supprimer.
+  await page.evaluate(async () => {
+    const boot = await (await fetch('/api/bootstrap')).json();
+    const headers = {
+      'content-type': 'application/json',
+      'x-ds-studio': boot.csrf,
+    };
+    await fetch('/api/projects/create', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ name: 'École', from: 'neutre' }),
+    });
+    await fetch('/api/projects/open', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ id: 'gutt' }),
+    });
+  });
+  await page.reload();
+  // Identité et mode gardés après rechargement.
+  await expect(page.locator('.wordmark strong')).toHaveText('Atelier Max');
+  await expect(page.locator('html')).toHaveAttribute('data-mode', 'dark');
+  await page.getByRole('button', { name: 'Paramètres' }).click();
+  await dialog.getByRole('tab', { name: 'Projets' }).click();
+  const rows = dialog.locator('.projects-list li');
+  await expect(dialog.getByLabel('Nom du projet École')).toBeVisible();
+  const before = await rows.count();
+  await dialog.getByLabel('Nom du projet École').fill('Projet école');
+  await dialog.getByRole('button', { name: 'Renommer' }).click();
+  await expect(
+    dialog.getByText('Projet renommé : Projet école.'),
+  ).toBeVisible();
+  await expect(
+    dialog.getByRole('button', { name: /Supprimer Gutt/ }),
+  ).toHaveCount(0);
+  await dialog.getByRole('button', { name: 'Supprimer Projet école' }).click();
+  await dialog.getByRole('button', { name: 'Oui, supprimer' }).click();
+  await expect(
+    dialog.getByText(/supprimé\. Son dossier est gardé/),
+  ).toBeVisible();
+  await expect(rows).toHaveCount(before - 1);
+  await dialog.getByRole('button', { name: 'Ouvrir le dossier' }).click();
+  await expect(
+    dialog.getByText(/Dossier ouvert|Ouverture impossible/),
+  ).toBeVisible();
+  await dialog.getByRole('tab', { name: 'Apparence' }).click();
+  await dialog.getByRole('button', { name: 'Revenir à DS-Studio' }).click();
+  await expect(page.locator('.wordmark strong')).toHaveText('DS-Studio');
 });

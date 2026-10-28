@@ -76,6 +76,12 @@ export const openProject = (id: string) =>
   request<ProjectList>('projects/open', { id });
 export const createProject = (name: string, from: 'neutre' | 'copie') =>
   request<ProjectList>('projects/create', { name, from });
+export const renameProject = (id: string, name: string) =>
+  request<ProjectList>('projects/rename', { id, name });
+export const deleteProject = (id: string) =>
+  request<ProjectList>('projects/delete', { id });
+// Signale aux autres vues (menu de projet) que la liste a changé.
+export const projectsChanged = 'ds-studio-projects-changed';
 export const getState = () => request<State>('state');
 export const commit = (proposal: Proposal) =>
   request<State>('commit', { id: proposal.id });

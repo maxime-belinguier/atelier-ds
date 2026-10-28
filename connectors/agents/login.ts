@@ -35,3 +35,14 @@ export const openTerminal: TerminalOpener = async (command) => {
     child.on('exit', (code) => resolve(code === 0));
   });
 };
+
+// macOS : ouvre le dossier des données dans le Finder. Le chemin vient du
+// serveur, jamais du navigateur. Ailleurs : l'atelier affiche le chemin.
+export const openFolder = async (dir: string) => {
+  if (process.platform !== 'darwin') return false;
+  return new Promise<boolean>((resolve) => {
+    const child = spawn('open', [dir], { stdio: 'ignore' });
+    child.on('error', () => resolve(false));
+    child.on('exit', (code) => resolve(code === 0));
+  });
+};
