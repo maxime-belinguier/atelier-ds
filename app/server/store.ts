@@ -1,4 +1,5 @@
 import { promises as fs } from 'node:fs';
+import { z } from 'zod';
 import path from 'node:path';
 import { atomicWrite, readPrivate } from './files.js';
 import { createHash, randomUUID } from 'node:crypto';
@@ -67,7 +68,7 @@ export class Store {
   }
   propose(
     revision: number,
-    changes: { key: TokenKey; value: TokenValue }[],
+    changes: { key: TokenKey; value: TokenValue | null }[],
     source: Revision['source'] = 'manual',
   ): Proposal {
     if (revision !== this.state.revision)
@@ -75,10 +76,15 @@ export class Store {
         'Le Design System a changé. Rechargez et refaites la proposition.',
         409,
       );
-    const patches = diff(
-      this.state.tokens,
-      applyChanges(this.state.tokens, changes),
-    );
+    let next: Tokens;
+    try {
+      next = applyChanges(this.state.tokens, changes);
+    } catch (e) {
+      if (e instanceof Error && !(e instanceof z.ZodError))
+        throw new StudioError(e.message);
+      throw e;
+    }
+    const patches = diff(this.state.tokens, next);
     if (!patches.length) throw new StudioError('Aucune modification.');
     if (this.proposals.size >= 100)
       this.proposals.delete(this.proposals.keys().next().value!);
@@ -97,11 +103,27 @@ export class Store {
       'import',
     );
   }
+  // Variables lues dans Figma : ajouts et mises à jour seulement. Un token
+  // absent de Figma n'est jamais supprimé par une lecture.
+  proposeFigma(
+    revision: number,
+    changes: { key: TokenKey; value: TokenValue }[],
+  ) {
+    const current = this.state.tokens;
+    const useful = changes.filter(
+      (c) => (current[c.key]?.$value ?? null) !== c.value,
+    );
+    if (!useful.length)
+      throw new StudioError(
+        'Figma et l’atelier ont déjà les mêmes valeurs. Rien à valider.',
+      );
+    return this.propose(revision, useful, 'figma');
+  }
   proposeUndo(revision: number, id: string) {
     const event = this.state.history.find((r) => r.id === id);
     if (!event) throw new StudioError('Révision inconnue.', 404);
     for (const p of event.patches)
-      if (this.state.tokens[p.key].$value !== p.after)
+      if ((this.state.tokens[p.key]?.$value ?? null) !== p.after)
         throw new StudioError(
           `Conflit sur ${p.key} : un changement plus récent serait perdu.`,
           409,
@@ -182,7 +204,8 @@ export function parseStoredState(raw: string): State {
     if (new Set(r.patches.map((p) => p.key)).size !== r.patches.length)
       throw new Error('Doublon');
     for (const p of r.patches)
-      if (tokens[p.key].$value !== p.after) throw new Error('Patch incohérent');
+      if ((tokens[p.key]?.$value ?? null) !== p.after)
+        throw new Error('Patch incohérent');
     tokens = applyChanges(
       tokens,
       r.patches.map((p) => ({ key: p.key, value: p.before })),

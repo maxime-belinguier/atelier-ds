@@ -41,9 +41,20 @@ try {
     await lease!.release();
     process.exit(0);
   };
+  // Parcours navigateur automatisés uniquement : Figma simulé en mémoire.
+  const figma =
+    process.env.DS_STUDIO_FAKE_FIGMA === '1'
+      ? (
+          await import('../../tests/fixtures/fakeFigmaConnector.js')
+        ).fakeFigmaConnector([
+          { name: 'color/brand', type: 'COLOR', value: '#B85C00' },
+          { name: 'color/warning', type: 'COLOR', value: '#9A5B00' },
+        ]).connector
+      : undefined;
   const app = await createStudioServer({
     root,
     store,
+    figma,
     dev: process.argv.includes('--dev'),
     control: {
       record: lease.record,
@@ -57,7 +68,7 @@ try {
     app.server.listen(port, '127.0.0.1', () => resolve());
   });
   console.log(
-    `DS-Studio · http://127.0.0.1:${port}\nMode manuel autonome · Figma non connecté · Ctrl+C pour fermer.`,
+    `DS-Studio · http://127.0.0.1:${port}\nTokens validés à la main · Claude et Figma via Claude Code · Ctrl+C pour fermer.`,
   );
   process.once('SIGINT', stop);
   process.once('SIGTERM', stop);

@@ -13,9 +13,12 @@ import { DSProvider, Scenario, components, screens } from './DesignSystem.js';
 import ProjectBrief from './ProjectBrief.js';
 import ScreenPicker from './ScreenPicker.js';
 import ColorPicker from './ColorPicker.js';
+import AddToken from './AddToken.js';
 import { useDrafts } from './useTokenDraft.js';
 import Tour, { tourKey, type TourStep } from './Tour.js';
-import Settings, { type Prefs } from './Settings.js';
+import Settings, { type Prefs, type Tab as SettingsTab } from './Settings.js';
+import FigmaPanel from './FigmaPanel.js';
+import RichText from './RichText.js';
 import { applyTheme, readTheme, saveTheme, type Theme } from './theme.js';
 import { buildDocHtml } from './docExport.js';
 import { VisionFilters, visionFilter, visions, type Vision } from './vision.js';
@@ -41,6 +44,8 @@ import {
   type Bootstrap,
 } from './api.js';
 import {
+  allKeys,
+  isCustomKey,
   tokensSchema,
   type Proposal,
   type State,
@@ -53,6 +58,9 @@ import {
   sliderRange,
   tokenGroups,
   tokenLabels,
+  groupsFor,
+  labelOf,
+  prefixOfGroup,
 } from './tokenMeta.js';
 
 const devices = [
@@ -87,6 +95,7 @@ const sourceLabels: Record<string, string> = {
   manual: 'Fait à la main',
   codex: 'Proposé par Codex',
   claude: 'Proposé par Claude',
+  figma: 'Lu dans Figma',
   import: 'Fichier importé',
   undo: 'Retour en arrière',
 };
@@ -345,6 +354,28 @@ function readLayout() {
   }
 }
 
+// Valeur d'un diff : null veut dire « absent » (token créé ou supprimé).
+function PatchValue({
+  value,
+  kind,
+}: {
+  value: string | number | null;
+  kind: 'del' | 'ins';
+}) {
+  if (value === null)
+    return (
+      <em className="patch-absent">
+        {kind === 'del' ? 'nouveau token' : 'supprimé'}
+      </em>
+    );
+  return (
+    <>
+      <Swatch value={value} />
+      {kind === 'del' ? <del>{value}</del> : <ins>{value}</ins>}
+    </>
+  );
+}
+
 function Swatch({ value }: { value: string | number }) {
   return typeof value === 'string' && /^#[0-9a-fA-F]{6}$/.test(value) ? (
     <span className="swatch" style={{ background: value }} aria-hidden="true" />
@@ -430,6 +461,7 @@ export default function App() {
   );
   // Paramètres de l'atelier (modale) et apparence.
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsTab, setSettingsTab] = useState<SettingsTab>('ai');
   const [theme, setTheme] = useState<Theme>(readTheme);
   useEffect(() => {
     applyTheme(theme);
@@ -664,6 +696,20 @@ export default function App() {
       );
     });
   }
+  // Proposition directe (ajout ou suppression d'un token) : ouvre le diff.
+  async function proposeChanges(
+    changes: { key: string; value: string | number | null }[],
+  ) {
+    if (!state) return;
+    await perform(async () => {
+      setProposal(
+        await request<Proposal>('proposals', {
+          revision: state.revision,
+          changes,
+        }),
+      );
+    });
+  }
   async function accept() {
     if (!proposal) return;
     setSaving(true);
@@ -676,10 +722,11 @@ export default function App() {
     });
     setSaving(false);
   }
-  async function sendMessage() {
-    if (!state || !message.trim() || thinking) return;
-    const text = message;
-    setMessage('');
+  async function sendMessage(override?: string) {
+    const text = override ?? message;
+    if (!state || !text.trim() || thinking) return;
+    if (override === undefined) setMessage('');
+    setChatOpen(true);
     setThinking(true);
     clearError();
     // Seul le texte part au fournisseur : les compteurs restent dans l'atelier.
@@ -771,6 +818,7 @@ export default function App() {
     );
 
   const preview = drafts.preview;
+  const groups = groupsFor(state.tokens);
   const errorCount = Object.keys(drafts.errors).length;
   const pendingCount = Object.keys(drafts.drafts).length;
   const selectedAgent = agents.find((a) => a.id === agent);
@@ -844,10 +892,10 @@ export default function App() {
   }
   const query = search.trim().toLowerCase();
   const matches = query
-    ? (Object.keys(tokenLabels) as TokenKey[]).filter(
+    ? allKeys(state.tokens).filter(
         (k) =>
           k.toLowerCase().includes(query) ||
-          tokenLabels[k].toLowerCase().includes(query),
+          labelOf(k).toLowerCase().includes(query),
       )
     : [];
 
@@ -860,7 +908,7 @@ export default function App() {
     description = `${matches.length} token${matches.length > 1 ? 's' : ''} pour « ${search.trim()} ».`;
     keys = matches;
   } else if (selection.kind === 'tokens') {
-    const g = tokenGroups.find((x) => x.id === selection.id) ?? tokenGroups[0];
+    const g = groups.find((x) => x.id === selection.id) ?? groups[0];
     title = g.label;
     description = `${g.keys.length} token${g.keys.length > 1 ? 's' : ''}. Modifiez autant de valeurs que vous voulez : l’aperçu suit, puis un seul « Enregistrer » valide tout.`;
     keys = g.keys;
@@ -973,6 +1021,43 @@ export default function App() {
   const profileChecks = auditTokens(preview, profile);
   const profileLabel =
     profiles.find((p) => p.id === profile)?.label ?? 'Vision classique';
+  // Bilan d'accessibilité en texte, pour le faire commenter par Claude.
+  const auditMessage = () => {
+    const lines = auditAll(preview).map((r) => {
+      const issues = r.checks
+        .filter((c) => c.status !== 'ok')
+        .map(
+          (c) =>
+            `  - ${c.status === 'fail' ? 'À corriger' : 'Conseil'} · ${c.label} : ${c.value} (${c.rule})${c.fix ? ` · proposition ${c.fix.key} = ${c.fix.value}` : ''}`,
+        );
+      return [
+        `- ${r.profile.label} : ${r.score} %, ${r.fails} à corriger`,
+        ...issues,
+      ].join('\n');
+    });
+    const zones = targets
+      .filter((c) => c.status !== 'ok')
+      .map((c) => `- Zones cliquables · ${c.label} : ${c.value} (${c.rule})`);
+    return `Commente ce bilan d’accessibilité (WCAG 2.2) de mon Design System. Priorise ce qui bloque, explique simplement pourquoi, et propose les changements de tokens utiles (je validerai le diff).\n\n${[...lines, ...zones].join('\n')}`.slice(
+      0,
+      7900,
+    );
+  };
+  const starters: { label: string; text?: string; make?: () => string }[] = [
+    { label: 'Commenter l’accessibilité', make: auditMessage },
+    {
+      label: 'Comparer avec Figma',
+      text: 'Compare mes tokens avec la dernière lecture de mes variables Figma. Liste les écarts et dis-moi lesquels garder.',
+    },
+    {
+      label: 'Proposer des tokens manquants',
+      text: 'Quels tokens manquent à mon Design System pour Gutt (états, alertes, espacements) ? Propose les plus utiles comme nouveaux tokens.',
+    },
+    {
+      label: 'Rédiger la doc pour le PFE',
+      text: 'Rédige une courte documentation de mon Design System pour mon dossier de PFE : rôle de chaque famille de tokens, règles d’usage et choix d’accessibilité.',
+    },
+  ];
   // Badge du menu : norme de base (WCAG AA) et zones cliquables mesurées.
   const auditFails = [...auditTokens(preview), ...targets].filter(
     (c) => c.status === 'fail',
@@ -1051,14 +1136,15 @@ export default function App() {
       },
     },
   ];
-  const colorKeys = tokenGroups[0].keys;
+  const colorKeys = groups[0].keys;
   const renderRow = (k: TokenKey) => {
     const saved = state.tokens[k].$value;
     const raw = drafts.drafts[k] ?? String(saved);
     const err = drafts.errors[k];
     const modified = k in drafts.drafts;
     const type = state.tokens[k].$type;
-    const label = tokenLabels[k];
+    const label = labelOf(k);
+    const added = isCustomKey(k);
     // Points d'accessibilité dont ce token est la clé, pour le profil choisi.
     const checks = err
       ? []
@@ -1077,6 +1163,7 @@ export default function App() {
         <div className="token-id">
           <span className="token-name">
             {label}
+            {added && <span className="added-tag">Ajouté</span>}
             {modified && !err && (
               <span className="modified-dot" title="Modifié, non enregistré">
                 <span className="sr-only">(modifié, non enregistré)</span>
@@ -1107,7 +1194,7 @@ export default function App() {
                     palette={colorKeys
                       .filter((c) => c !== k)
                       .map((c) => ({
-                        label: tokenLabels[c],
+                        label: labelOf(c),
                         value: String(preview[c].$value),
                       }))}
                     onChange={(hex) => drafts.set(k, hex)}
@@ -1164,6 +1251,17 @@ export default function App() {
                 <option key={f}>{f}</option>
               ))}
             </select>
+          )}
+          {added && (
+            <button
+              type="button"
+              className="row-reset row-delete"
+              aria-label={`Supprimer le token : ${label}`}
+              title="Supprimer ce token (diff à valider)"
+              onClick={() => void proposeChanges([{ key: k, value: null }])}
+            >
+              ×
+            </button>
           )}
           <button
             type="button"
@@ -1296,9 +1394,33 @@ export default function App() {
           )}
         </div>
         <div className="header-actions">
-          <span className="muted figma-status">
-            {boot?.figma.label ?? 'Figma non connecté'}
-          </span>
+          <button
+            className="brief-pill figma-pill"
+            title="Synchroniser avec Figma"
+            onClick={() => {
+              setSettingsTab('figma');
+              setSettingsOpen(true);
+            }}
+          >
+            <svg
+              aria-hidden="true"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M12 2H8.5a3.5 3.5 0 0 0 0 7H12z" />
+              <path d="M12 9H8.5a3.5 3.5 0 0 0 0 7H12z" />
+              <path d="M12 16H8.5A3.5 3.5 0 1 0 12 19.5z" />
+              <path d="M12 2h3.5a3.5 3.5 0 0 1 0 7H12z" />
+              <circle cx="15.5" cy="12.5" r="3.5" />
+            </svg>
+            Figma
+          </button>
           <button
             className="brief-pill"
             title="Brief du projet"
@@ -1456,7 +1578,10 @@ export default function App() {
               aria-label="Paramètres"
               title="Paramètres de l’atelier"
               aria-haspopup="dialog"
-              onClick={() => setSettingsOpen(true)}
+              onClick={() => {
+                setSettingsTab('ai');
+                setSettingsOpen(true);
+              }}
             >
               <svg
                 aria-hidden="true"
@@ -1565,7 +1690,7 @@ export default function App() {
                 }}
               >
                 <optgroup label="Tokens">
-                  {tokenGroups.map((g) => (
+                  {groups.map((g) => (
                     <option key={g.id} value={`tokens:${g.id}`}>
                       {g.label}
                     </option>
@@ -1589,8 +1714,8 @@ export default function App() {
                   <option value="audit:a11y">Test d’accessibilité</option>
                 </optgroup>
               </select>
-              {groupHead('tokens', 'Tokens', tokenGroups.length)}
-              {tokenGroups
+              {groupHead('tokens', 'Tokens', groups.length)}
+              {groups
                 .filter((g) =>
                   show(
                     'tokens',
@@ -1712,12 +1837,17 @@ export default function App() {
               )}
               {selection.kind === 'audit' && !query ? (
                 <AuditView
+                  onAsk={
+                    agents.some((a) => a.id === agent && a.available)
+                      ? () => void sendMessage(auditMessage())
+                      : undefined
+                  }
                   report={auditAll(preview)}
                   targets={targets}
                   onGo={(p, k) => {
-                    if (isColorProfile(p) || tokenGroups[0].keys.includes(k))
+                    if (isColorProfile(p) || groups[0].keys.includes(k))
                       setProfile(p);
-                    const g = tokenGroups.find((x) => x.keys.includes(k));
+                    const g = groups.find((x) => x.keys.includes(k));
                     if (g) select({ kind: 'tokens', id: g.id });
                     setFocusKey(k);
                   }}
@@ -1750,9 +1880,21 @@ export default function App() {
                   </div>
                 )}
               {selection.kind === 'audit' && !query ? null : keys.length ? (
-                <ul className="token-rows" data-tour="tokens">
-                  {keys.map(renderRow)}
-                </ul>
+                <>
+                  <ul className="token-rows" data-tour="tokens">
+                    {keys.map(renderRow)}
+                  </ul>
+                  {selection.kind === 'tokens' && !query && (
+                    <AddToken
+                      key={selection.id}
+                      prefixes={prefixOfGroup[selection.id] ?? ['color']}
+                      tokens={state.tokens}
+                      onPropose={(key, value) =>
+                        proposeChanges([{ key, value }])
+                      }
+                    />
+                  )}
+                </>
               ) : (
                 <p className="empty">
                   Aucun token ne correspond. Essayez « couleur », « space » ou «
@@ -2235,6 +2377,21 @@ export default function App() {
       {settingsOpen && (
         <Settings
           onClose={() => setSettingsOpen(false)}
+          initialTab={settingsTab}
+          figmaPanel={
+            <FigmaPanel
+              revision={state.revision}
+              onConnect={() =>
+                request<{ opened: boolean; command: string }>('agent-login', {
+                  agent: 'figma',
+                })
+              }
+              onProposal={(p) => {
+                setSettingsOpen(false);
+                setProposal(p);
+              }}
+            />
+          }
           agents={agents}
           onRefreshAgents={() =>
             request<Bootstrap['agents']>('agents')
@@ -2486,15 +2643,53 @@ export default function App() {
         </p>
         <div className="chat-log" aria-label="Conversation" aria-live="polite">
           {!chat.length && (
-            <p className="chat-empty">
-              Décrivez ce que vous voulez changer. L’assistant propose des
-              valeurs de tokens, vous validez toujours le diff.
-            </p>
+            <div className="chat-empty">
+              <p>
+                Demande un changement de tokens (même un nouveau token), une
+                explication, une relecture ou un texte pour ton PFE. Chaque
+                changement proposé passe par le diff, tu valides.
+              </p>
+              <div className="chat-starters">
+                {starters.map((st) => (
+                  <button
+                    key={st.label}
+                    type="button"
+                    disabled={thinking}
+                    onClick={() =>
+                      void sendMessage(st.make ? st.make() : st.text)
+                    }
+                  >
+                    {st.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           )}
           {chat.map((c, i) => (
             <article className={`chat-message ${c.role}`} key={i}>
               <strong>{c.role === 'user' ? 'Vous' : agentName}</strong>
-              <p>{c.text}</p>
+              {c.role === 'assistant' ? (
+                <>
+                  <RichText text={c.text} />
+                  {c.text.length > 280 && (
+                    <button
+                      type="button"
+                      className="chat-copy"
+                      onClick={() =>
+                        navigator.clipboard
+                          ?.writeText(c.text)
+                          .catch(() => undefined)
+                      }
+                    >
+                      Copier
+                    </button>
+                  )}
+                </>
+              ) : (
+                <p>
+                  {c.text.length > 600 ? c.text.slice(0, 600) + '…' : c.text}
+                </p>
+              )}
               {c.usage && (
                 <span className="chat-usage">
                   {modelName(c.usage.model)}
@@ -2545,8 +2740,8 @@ export default function App() {
           )}
         </form>
         <p className="chat-foot">
-          Envoyé : tokens, PFE.md, brief, règles et 10 derniers messages. Aucun
-          outil, propositions seulement.
+          Envoyé : tokens, PFE.md, brief, règles, dernière lecture Figma et 10
+          derniers messages. Aucun outil, propositions seulement.
         </p>
       </aside>
 
@@ -2634,15 +2829,13 @@ export default function App() {
                   {event.patches.map((p) => (
                     <li key={p.key}>
                       <span className="patch-name">
-                        {tokenLabels[p.key] ?? p.key}
+                        {labelOf(p.key)}
                         <code>{p.key}</code>
                       </span>
                       <span className="patch-values">
-                        <Swatch value={p.before} />
-                        <del>{p.before}</del>
+                        <PatchValue value={p.before} kind="del" />
                         <span aria-hidden="true">→</span>
-                        <Swatch value={p.after} />
-                        <ins>{p.after}</ins>
+                        <PatchValue value={p.after} kind="ins" />
                       </span>
                     </li>
                   ))}
@@ -2706,20 +2899,18 @@ export default function App() {
                 <tr key={p.key}>
                   <th>
                     <span className="patch-name">
-                      {tokenLabels[p.key] ?? p.key}
+                      {labelOf(p.key)}
                       <code>{p.key}</code>
                     </span>
                   </th>
                   <td>
                     <span className="patch-values">
-                      <Swatch value={p.before} />
-                      <del>{p.before}</del>
+                      <PatchValue value={p.before} kind="del" />
                     </span>
                   </td>
                   <td>
                     <span className="patch-values">
-                      <Swatch value={p.after} />
-                      <ins>{p.after}</ins>
+                      <PatchValue value={p.after} kind="ins" />
                     </span>
                   </td>
                 </tr>
@@ -2757,7 +2948,9 @@ function AuditView({
   report,
   targets,
   onGo,
+  onAsk,
 }: {
+  onAsk?: () => void;
   report: ReturnType<typeof auditAll>;
   targets: Check[];
   onGo: (profile: Profile, key: TokenKey) => void;
@@ -2766,6 +2959,11 @@ function AuditView({
     tokenGroups.find((g) => g.keys.includes(k))?.label ?? 'Couleurs';
   return (
     <div className="audit">
+      {onAsk && (
+        <button type="button" className="audit-ask" onClick={onAsk}>
+          Faire commenter ce bilan par Claude
+        </button>
+      )}
       <ul className="report-cards" aria-label="Score par profil">
         {report.map((r) => (
           <li key={r.profile.id}>

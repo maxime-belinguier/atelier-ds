@@ -7,10 +7,11 @@ import { auditTokens, score } from '../app/client/a11yAudit.js';
 const tokens = tokensSchema.parse(
   JSON.parse(await readFile('workspace/design-system.tokens.json', 'utf8')),
 );
-const withValue = (key: keyof Tokens, value: string | number): Tokens => ({
-  ...tokens,
-  [key]: { ...tokens[key], $value: value },
-});
+const withValue = (key: string, value: string | number): Tokens =>
+  ({
+    ...tokens,
+    [key]: { ...tokens[key], $value: value },
+  }) as Tokens;
 
 test('audit : 12 contrastes et 2 conseils de texte', () => {
   const checks = auditTokens(tokens);

@@ -22,7 +22,7 @@ test('boucle centrale : aperçu immédiat, diff, validation, recharge, retour en
     page.getByRole('heading', { name: 'Design System', exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByText('Figma non connecté', { exact: true }),
+    page.getByRole('button', { name: 'Figma', exact: true }),
   ).toBeVisible();
   const mobile = page.frameLocator('iframe');
   const keep = mobile.getByRole('button', {
@@ -917,11 +917,96 @@ test('paramètres : onglets, apparence appliquée et mémorisée, Échap', async
   expect((await state(page)).tokens['color.brand'].$value).not.toBe('#3B6FF5');
   await page.getByRole('button', { name: 'Paramètres' }).click();
   await page.getByRole('tab', { name: 'Figma' }).click();
-  await expect(page.getByText('Non connecté', { exact: true })).toBeVisible();
+  // Figma simulé dans les tests : connecté, mais aucun lien dans le Brief.
+  await expect(page.getByText('Connecté', { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'Lire depuis Figma' }),
+  ).toBeDisabled();
   await page.getByRole('tab', { name: 'Général' }).click();
   await page.getByLabel('Format d’aperçu au démarrage').selectOption('xl');
   await page.getByRole('button', { name: 'Fermer les paramètres' }).click();
   await expect(
     page.getByRole('button', { name: 'Grand écran 1440 px' }),
   ).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('token ajouté à la main : diff « nouveau token », ligne « Ajouté », suppression', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: /^Espacements/ }).click();
+  await page.getByRole('button', { name: '+ Ajouter un token' }).click();
+  await page.getByLabel('Nom du token').fill('xl');
+  await page.getByLabel('Valeur', { exact: true }).fill('40');
+  await page.getByRole('button', { name: 'Voir le diff' }).click();
+  await expect(diff(page)).toBeVisible();
+  await expect(diff(page).getByText('nouveau token')).toBeVisible();
+  await diff(page)
+    .getByRole('button', { name: /Valider|Enregistrer/ })
+    .click();
+  await expect(diff(page)).not.toBeVisible();
+  const row = page.locator('#row-space-xl');
+  await expect(row.getByText('Ajouté')).toBeVisible();
+  expect((await state(page)).tokens['space.xl']).toEqual({
+    $type: 'dimension',
+    $value: 40,
+  });
+  await row.getByRole('button', { name: /Supprimer le token/ }).click();
+  await expect(diff(page).getByText('supprimé')).toBeVisible();
+  await diff(page)
+    .getByRole('button', { name: /Valider|Enregistrer/ })
+    .click();
+  await expect(row).toHaveCount(0);
+  expect((await state(page)).tokens['space.xl']).toBeUndefined();
+});
+
+test('Figma (simulé) : lire en diff, puis envoyer avec aperçu et validation', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Brief', exact: true }).click();
+  const brief = page.getByRole('dialog', { name: 'Brief du projet' });
+  await brief
+    .getByLabel('Lien Figma (facultatif)')
+    .fill(
+      'https://www.figma.com/design/A7nqzQVmFo6pLvDMB7aWHg/Gutt?node-id=1-7',
+    );
+  await brief.getByRole('button', { name: 'Enregistrer le brief' }).click();
+  await expect(brief.getByText('Brief enregistré sur ce poste.')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Figma', exact: true }).click();
+  const settings = page.getByRole('dialog', { name: 'Paramètres' });
+  await expect(settings.getByRole('tab', { name: 'Figma' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  await settings.getByRole('button', { name: 'Lire depuis Figma' }).click();
+  // Le diff habituel s'ouvre : rien n'est écrit avant validation.
+  await expect(diff(page)).toBeVisible();
+  await expect(diff(page).getByText('Lu dans Figma')).toBeVisible();
+  await expect(diff(page).getByText('color.warning')).toBeVisible();
+  const before = await state(page);
+  expect(before.tokens['color.warning']).toBeUndefined();
+  await diff(page)
+    .getByRole('button', { name: /Valider|Enregistrer/ })
+    .click();
+  await expect(diff(page)).not.toBeVisible();
+  expect((await state(page)).tokens['color.warning'].$value).toBe('#9A5B00');
+  // Envoi : aperçu des variables à écrire, puis validation explicite.
+  await page.getByRole('button', { name: 'Figma', exact: true }).click();
+  await settings.getByRole('button', { name: 'Envoyer vers Figma' }).click();
+  const preview = settings.getByLabel('Changements prévus dans Figma');
+  await expect(preview).toBeVisible();
+  await expect(preview.getByText('space/md')).toBeVisible();
+  await preview.getByRole('button', { name: 'Mettre à jour Figma' }).click();
+  await expect(
+    settings.getByText(/Figma mis à jour : \d+ variables/),
+  ).toBeVisible();
+  await expect(preview).toHaveCount(0);
+  await settings.getByRole('button', { name: 'Envoyer vers Figma' }).click();
+  await expect(
+    settings.getByText(
+      'Figma a déjà toutes les valeurs enregistrées de l’atelier.',
+    ),
+  ).toBeVisible();
 });

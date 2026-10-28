@@ -1,4 +1,4 @@
-import { tokenKeys, type TokenKey, type Tokens } from '../shared/model.js';
+import { allKeys, type TokenKey, type Tokens } from '../shared/model.js';
 
 // Exports pour le code de l'application Gutt. Ils partent toujours des
 // valeurs enregistrées, jamais des modifications en aperçu.
@@ -22,7 +22,7 @@ const header = (format: string) =>
   `/* Design System Gutt · ${format} · généré par DS-Studio */\n`;
 
 export function toCssVariables(tokens: Tokens) {
-  const lines = tokenKeys.map(
+  const lines = allKeys(tokens).map(
     (k) => `  --${cssName(k)}: ${cssValue(tokens, k)};`,
   );
   return `${header('variables CSS')}:root {\n${lines.join('\n')}\n}\n`;
@@ -32,7 +32,7 @@ export function toCssVariables(tokens: Tokens) {
 // --color-*, --font-*, --text-*, --spacing-*, --radius-*).
 export function toTailwindV4(tokens: Tokens) {
   const lines: string[] = [];
-  for (const k of tokenKeys) {
+  for (const k of allKeys(tokens)) {
     const [group] = k.split('.');
     const name = short(k);
     if (group === 'color')
@@ -45,6 +45,8 @@ export function toTailwindV4(tokens: Tokens) {
       lines.push(`  --spacing-${name}: ${cssValue(tokens, k)};`);
     else if (group === 'radius')
       lines.push(`  --radius-${name}: ${cssValue(tokens, k)};`);
+    else if (group === 'size')
+      lines.push(`  --spacing-${name}: ${cssValue(tokens, k)};`);
   }
   return `${header('Tailwind CSS v4')}@import 'tailwindcss';\n\n@theme {\n${lines.join('\n')}\n}\n`;
 }
@@ -56,13 +58,14 @@ export function toTailwindV3(tokens: Tokens) {
   const spacing: Record<string, string> = {};
   const borderRadius: Record<string, string> = {};
   let sans = '';
-  for (const k of tokenKeys) {
+  for (const k of allKeys(tokens)) {
     const [group] = k.split('.');
     const name = short(k);
     if (group === 'color') colors[name] = cssValue(tokens, k);
     else if (k === 'font.family') sans = String(tokens[k].$value);
     else if (group === 'font') fontSize[name] = cssValue(tokens, k);
-    else if (group === 'space') spacing[name] = cssValue(tokens, k);
+    else if (group === 'space' || group === 'size')
+      spacing[name] = cssValue(tokens, k);
     else if (group === 'radius') borderRadius[name] = cssValue(tokens, k);
   }
   const config = {

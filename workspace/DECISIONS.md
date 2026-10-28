@@ -251,18 +251,58 @@ séparées par de fines lignes, icônes de chevron dessinées plutôt que des
 caractères, survol discret sur chaque zone.
 Preuves : 15 tests navigateur réussis ; audit sans anomalie ; capture relue.
 
-## 27/10/2026 · Figma : lecture par Claude, import validé par le diff
+## 28/10/2026 · Figma branché à l’atelier (MCP officiel via Claude Code)
 
-Besoin : construire le DS dans Figma et le vérifier dans DS-Studio.
-Constat : l’app elle-même ne se connecte pas à Figma (le starter ne fournit qu’un
-contrat vide, et interdit les contournements de session ou de jeton). En revanche,
-Claude lit mon fichier Figma par le connecteur officiel (testé : compte reconnu,
-fichier « Gutt App PFE » lu, encore aucune variable dedans).
-Décision : je crée mes variables dans Figma avec les mêmes noms que l’app
-(color/brand, space/md, radius/control…). Claude les lit et prépare un JSON que
-j’importe ; l’app montre le diff et je valide.
-Limite : 18 tokens dans le schéma actuel, au-delà migration nécessaire. Le
-libellé « Figma non connecté » reste affiché : c’est l’état réel de l’app.
+Problème : l’app ne parlait pas à Figma. La consigne « pas de lien Figma » du
+START_HERE était une erreur de l’intervenant ; le but est une app utile au
+quotidien, branchée à Figma et à mon LLM.
+Décision : l’atelier pilote le serveur MCP officiel de Figma à travers Claude Code
+(client autorisé par Figma, mon OAuth). Bouton Figma dans l’en-tête et Paramètres ›
+Figma : Connecter (Terminal : `claude mcp add … figma` puis `/mcp`), Lire depuis
+Figma (diff « Lu dans Figma » à valider), Envoyer vers Figma (aperçu des variables
+à écrire, validation à usage unique, puis écriture et relecture). Collection
+« DS-Studio », noms `famille/nom` (color/brand, space/md…). La dernière lecture
+sert aussi de contexte au chat.
+Garde-fous : seul `use_figma` autorisé, script généré par l’atelier, garde
+PreToolUse qui bloque tout autre script, fichier ou second appel ; résultat lu dans
+la réponse de l’outil, pas dans le texte du modèle ; valeurs attendues recontrôlées
+dans Figma avant écriture ; aucune variable Figma supprimée.
+Écarté : API REST des variables (Enterprise seulement) ; plugin Figma maison (plus
+long à construire et à installer avant vendredi) ; donner le MCP Figma au chat
+(il pourrait écrire sans diff).
+Preuves : scripts exécutés sur mon fichier « Gutt App PFE » via le MCP officiel
+(18 variables créées et relues, écriture refusée quand Figma ne correspond pas) ;
+vrai CLI Claude 2.1.312 + garde + faux serveur Figma : script recopié à
+l’identique, appel non conforme bloqué ; tests API et navigateur (Figma simulé).
+Limites : connexion OAuth sur mon Mac à faire ; plan Éducation limité à 10 appels
+par minute et 200 par jour ; 20 à 60 s par action ; un seul mode Figma.
+
+## 28/10/2026 · Tokens ajoutés
+
+Problème : 18 tokens figés, impossible d’ajouter une couleur d’avertissement ou
+un espacement sans migration.
+Décision : les 18 tokens de base restent obligatoires ; on peut en ajouter avec
+un préfixe connu (color., space., radius., size., font. + nom en camelCase) qui
+fixe le type. « + Ajouter un token » dans chaque famille, badge « Ajouté »,
+suppression par diff (« nouveau token » / « supprimé »). Compatible avec mes
+anciens fichiers (même version 1), inclus dans l’historique, les exports CSS et
+Tailwind et la documentation.
+Écarté : noms libres (types ambigus) ; réécrire tout le schéma.
+Preuves : tests unitaires (création, relecture, annulation, noms refusés dont
+`__proto__`) et navigateur (ajout, diff, suppression).
+Limite : les composants Gutt n’utilisent que les 18 tokens de base.
+
+## 28/10/2026 · Claude assistant au quotidien
+
+Problème : le chat ne servait qu’à changer des valeurs existantes.
+Décision : Claude peut créer des tokens, compare avec la dernière lecture Figma,
+commente le bilan d’accessibilité (bouton « Faire commenter ce bilan par Claude »)
+et aide pour le PFE, l’école ou le travail. Réponses mises en forme (titres,
+listes, gras, code) sans HTML, bouton Copier, 4 démarrages rapides. Il reste sans
+outil : tout changement passe par le diff.
+Preuves : essai réel (Haiku, effort faible) : `color.warning` proposé, écart de
+marque avec Figma expliqué, aucune prétention d’écriture.
+Limite : contexte = tokens, brief, règles, dernière lecture Figma ; pas de fichiers.
 
 ## 27/10/2026 · En-tête en icônes et exports pour l’app Gutt
 
@@ -402,16 +442,10 @@ dans le navigateur ; le Design System n’est jamais modifié.
   au choix. Les variantes (texte blanc sur accent, texte d’accent sur fond) sont
   calculées pour rester à 4,5:1 ; un avertissement s’affiche si le fond nuit à la
   lisibilité. Les écrans Gutt de l’aperçu ne changent pas.
-- Figma : état réel « Non connecté », lien du fichier (depuis le Brief), et la
-  connexion prévue par un plugin Figma.
+- Figma : connexion et synchro (voir l’entrée du 28/10).
 - Général : format et type de vision au démarrage, relancer la visite,
   raccourcis clavier, réinitialiser les préférences (tokens, historique et
   brief non touchés).
-Écart assumé avec le starter : mon intervenant demande de connecter Figma par
-API. L’API REST des variables Figma est réservée aux comptes Enterprise (doc
-officielle) ; l’API des plugins marche sur tous les plans. Prochaine étape : un
-plugin Figma DS-Studio qui envoie les variables à l’atelier (diff puis
-validation) et met à jour Figma depuis les tokens.
 Preuves : test API (commande fixe, assistant inconnu et commande injectée
 refusés) ; test navigateur (onglets, Connecter, apparence appliquée et mémorisée
 après rechargement, DS inchangé, état Figma, format de démarrage, Échap) ;

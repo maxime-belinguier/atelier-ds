@@ -22,7 +22,7 @@ export default function ProjectBrief() {
     <div className="project-brief">
       <p>
         Définissez votre contexte. Stocké sur ce poste, hors Git. Le lien Figma
-        est un repère, pas une synchronisation.
+        sert à la synchro (Paramètres › Figma).
       </p>
       {error && (
         <p role="alert" className="error">
@@ -101,7 +101,7 @@ export default function ProjectBrief() {
             .then(({ project: p }) => {
               downloadText(
                 'PFE-brief.md',
-                `# ${p.name || 'Mon PFE'}\n\n## Public\n\n${p.audience}\n\n## Objectif\n\n${p.goal}\n\n## Repère Figma (sans connexion)\n\n${p.figmaUrl}\n`,
+                `# ${p.name || 'Mon PFE'}\n\n## Public\n\n${p.audience}\n\n## Objectif\n\n${p.goal}\n\n## Fichier Figma\n\n${p.figmaUrl}\n`,
               );
             })
             .catch((e) => setError(e.message));

@@ -3566,3 +3566,186 @@ kbd {
   margin-left: 6px;
   padding-left: 10px;
 }
+
+/* Tokens ajoutés (Claude, Figma ou à la main) */
+.added-tag {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+.patch-absent {
+  font-size: 12px;
+  color: var(--text-2);
+}
+.row-delete {
+  font-size: 18px;
+}
+.add-token-open {
+  margin-top: 10px;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border-style: dashed;
+}
+.add-token {
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  display: grid;
+  gap: 8px;
+}
+.add-token-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.add-token-fields input,
+.add-token-fields select {
+  height: 34px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+.add-token-fields input:not(.hex-input):not(.number-input) {
+  flex: 1 1 120px;
+}
+.add-token-prefix {
+  font-size: 12px;
+  color: var(--text-2);
+}
+.add-token-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.add-token-actions button {
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+}
+
+/* Figma : onglet des Paramètres */
+.figma-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.figma-actions button {
+  height: 34px;
+  padding: 0 14px !important;
+  border-radius: 999px;
+}
+.figma-actions .settings-link {
+  margin-top: 0;
+}
+.figma-message {
+  margin: 12px 0 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #e3f4ea;
+  color: #1f6b44;
+  font-size: 12.5px;
+}
+.figma-preview {
+  margin-top: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 14px;
+}
+.figma-preview h4 {
+  margin-top: 0;
+}
+.figma-preview .diff-scroll {
+  max-height: 260px;
+  overflow: auto;
+}
+.figma-preview table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.figma-preview th,
+.figma-preview td {
+  text-align: left;
+  padding: 6px 8px;
+  border-top: 1px solid var(--border);
+}
+.figma-pill svg {
+  color: var(--text);
+}
+
+/* Chat : démarrages rapides, réponses mises en forme */
+.chat-empty p {
+  margin: 0 0 10px;
+}
+.chat-starters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.chat-starters button,
+.chat-copy,
+.audit-ask {
+  height: 34px;
+  padding: 0 12px !important;
+  border-radius: 999px;
+  font-size: 12px;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.chat-copy {
+  height: 28px;
+  margin-top: 6px;
+  font-size: 11px;
+}
+.audit-ask {
+  margin-bottom: 12px;
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+}
+.audit-ask:hover {
+  background: var(--ink-hover);
+}
+.rich-text {
+  margin-top: 4px;
+  color: var(--text);
+}
+.rich-text p {
+  white-space: pre-wrap;
+  margin: 0 0 6px;
+}
+.rich-text h4 {
+  margin: 10px 0 4px;
+  font-size: 13px;
+}
+.rich-text ul,
+.rich-text ol {
+  margin: 0 0 6px;
+  padding-left: 18px;
+}
+.rich-text li {
+  margin: 2px 0;
+}
+.rich-text code {
+  font-size: 12px;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: var(--bg-deep);
+}
+.chat-message .rich-text strong {
+  font-size: inherit;
+}
+.audit-ask {
+  width: auto;
+  display: inline-flex;
+  align-items: center;
+}

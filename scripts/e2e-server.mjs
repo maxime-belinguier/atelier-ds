@@ -7,7 +7,12 @@ const child = spawn(
   process.execPath,
   ['--import', 'tsx', 'app/server/index.ts'],
   {
-    env: { ...process.env, PORT: '4318', DS_STUDIO_DATA_DIR: dir },
+    env: {
+      ...process.env,
+      PORT: '4318',
+      DS_STUDIO_DATA_DIR: dir,
+      DS_STUDIO_FAKE_FIGMA: '1',
+    },
     stdio: 'inherit',
   },
 );

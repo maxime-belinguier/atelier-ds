@@ -9,6 +9,8 @@ import { Store } from '../app/server/store.js';
 import { tokensSchema } from '../app/shared/model.js';
 import { createStudioServer } from '../app/server/http.js';
 import type { AgentAdapter } from '../connectors/agents/types.js';
+import type { FigmaConnector } from '../app/server/figma.js';
+import { fakeFigmaConnector } from './fixtures/fakeFigmaConnector.js';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const seed = tokensSchema.parse(
   JSON.parse(
@@ -22,6 +24,7 @@ async function fixture(
   t: { after: (fn: () => Promise<void>) => void },
   dev = false,
   claude?: AgentAdapter,
+  figma?: FigmaConnector,
 ) {
   const directory = await mkdtemp(path.join(tmpdir(), 'ds-http-'));
   const store = new Store(directory, seed);
@@ -32,6 +35,7 @@ async function fixture(
     root,
     store,
     dev,
+    figma,
     terminal: async (command) => {
       terminal.push(command);
       return false;
@@ -79,7 +83,7 @@ async function fixture(
       },
       body: JSON.stringify(body),
     });
-  return { origin, post, store, terminal };
+  return { origin, post, store, terminal, directory };
 }
 test('API manuelle complète sans IA ni Figma, export égal au disque', async (t) => {
   const { origin, post, store } = await fixture(t);
@@ -334,4 +338,86 @@ test('connexion d’un assistant : commande officielle fixe, rien d’autre', as
     400,
   );
   assert.deepEqual(terminal, ['claude']);
+});
+
+test('Figma : lien requis, lecture en diff, écriture validée une seule fois', async (t) => {
+  const fake = fakeFigmaConnector([
+    { name: 'color/brand', type: 'COLOR', value: '#b85c00' },
+    { name: 'color/warning', type: 'COLOR', value: '#9A5B00' },
+    { name: 'space/md', type: 'STRING', value: 'oops' },
+    { name: 'Bouton/Primaire/Fond', type: 'COLOR', value: '#000000' },
+  ]);
+  const { origin, post, store } = await fixture(
+    t,
+    false,
+    undefined,
+    fake.connector,
+  );
+  // Sans lien Figma dans le Brief : refus clair, aucun appel.
+  const none = await post('figma/pull', { revision: 0 });
+  assert.equal(none.status, 400);
+  assert.match((await none.json()).error, /lien de ton fichier Figma/);
+  assert.equal(fake.calls.length, 0);
+  const brief = await (await fetch(origin + '/api/project')).json();
+  await post('project', {
+    base: brief.base,
+    project: {
+      ...brief.project,
+      figmaUrl:
+        'https://www.figma.com/design/A7nqzQVmFo6pLvDMB7aWHg/Gutt?node-id=1-7',
+    },
+  });
+  const status = await (await fetch(origin + '/api/figma/status')).json();
+  assert.equal(status.state, 'connected');
+  assert.equal(status.fileKey, 'A7nqzQVmFo6pLvDMB7aWHg');
+  // Lecture : proposition « figma », rien d'écrit avant validation.
+  const pulled = await (await post('figma/pull', { revision: 0 })).json();
+  assert.equal(pulled.proposal.source, 'figma');
+  assert.deepEqual(
+    pulled.proposal.patches.map((p: { key: string }) => p.key).sort(),
+    ['color.brand', 'color.warning'],
+  );
+  assert.equal(pulled.ignored.length, 2);
+  assert.equal(store.snapshot().revision, 0);
+  assert.equal((await post('commit', { id: pulled.proposal.id })).status, 200);
+  assert.equal(store.snapshot().tokens['color.warning'].$value, '#9A5B00');
+  // Écriture : aperçu, validation unique, révision contrôlée.
+  const preview = await (await post('figma/preview', { revision: 1 })).json();
+  assert.ok(preview.approvalId);
+  assert.ok(preview.patches.some((p: { key: string }) => p.key === 'space.md'));
+  assert.equal(fake.calls.filter((c) => c.startsWith('write')).length, 0);
+  const applied = await post('figma/apply', { approvalId: preview.approvalId });
+  assert.equal(applied.status, 200);
+  assert.equal((await applied.json()).verified, true);
+  assert.equal(fake.variables.get('space/md')?.value, 16);
+  const replay = await post('figma/apply', { approvalId: preview.approvalId });
+  assert.equal(replay.status, 404);
+  // Aperçu périmé si le DS change entre-temps.
+  const change = async (revision: number, value: number) => {
+    const p = await (
+      await post('proposals', {
+        revision,
+        changes: [{ key: 'space.lg', value }],
+      })
+    ).json();
+    assert.equal((await post('commit', { id: p.id })).status, 200);
+  };
+  await change(1, 30);
+  const preview2 = await (await post('figma/preview', { revision: 2 })).json();
+  assert.ok(preview2.approvalId);
+  await change(2, 32);
+  const stale = await post('figma/apply', { approvalId: preview2.approvalId });
+  assert.equal(stale.status, 409);
+  assert.equal(fake.calls.filter((c) => c.startsWith('write')).length, 1);
+});
+
+test('Figma : connexion par la commande officielle, liste fermée', async (t) => {
+  const { post, terminal } = await fixture(t);
+  const r = await (await post('agent-login', { agent: 'figma' })).json();
+  assert.match(
+    r.command,
+    /^claude mcp add --transport http --scope user figma https:\/\/mcp\.figma\.com\/mcp/,
+  );
+  assert.deepEqual(terminal, [r.command]);
+  assert.equal((await post('agent-login', { agent: 'rm -rf' })).status, 400);
 });

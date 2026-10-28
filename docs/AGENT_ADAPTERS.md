@@ -65,6 +65,22 @@ réel, stderr masqué), test HTTP sans auto-commit, essai réel avec le CLI 2.1.
 Limites : macOS du poste étudiant à vérifier ; toute version du CLI est acceptée,
 pas seulement la version testée ; ce profil n’est pas un confinement formel.
 
+### 28/10/2026 · Assistant élargi
+
+Le prompt système couvre aussi le PFE, l’école et le travail (réponse en Markdown
+simple, rendu sans HTML). Le chat peut **créer** un token (`color.`, `space.`,
+`radius.`, `size.`, `font.` + camelCase) ou supprimer un token ajouté (`value: null`),
+toujours via le diff. Le contexte inclut le dernier instantané des variables Figma
+(`context.figma`, 200 variables au plus) ; le chat n’a toujours aucun outil.
+Essai réel CLI 2.1.312 (Haiku, effort faible) : `color.warning` proposé en diff,
+comparaison correcte avec l’instantané Figma, aucune prétention d’écriture.
+
+### Connecteur Figma (même CLI, autre profil)
+
+`connectors/figma/claudeFigma.ts` lance `claude -p` avec seulement le serveur MCP
+officiel de Figma et seulement `use_figma` autorisé, plus une garde PreToolUse.
+Détails : [FIGMA](FIGMA.md).
+
 ## Gemini CLI — NOT IMPLEMENTED
 
 Point d’extension : `unvalidatedAdapter('gemini')`. La [référence headless officielle](https://geminicli.com/docs/cli/headless/)

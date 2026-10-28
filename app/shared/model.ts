@@ -19,38 +19,99 @@ const font = z
     $value: z.enum(['system-ui', 'Arial', 'Georgia', 'Verdana']),
   })
   .strict();
+const coreShape = {
+  'color.brand': color,
+  'color.brandHover': color,
+  'color.onBrand': color,
+  'color.surface': color,
+  'color.canvas': color,
+  'color.text': color,
+  'color.muted': color,
+  'color.border': color,
+  'color.danger': color,
+  'color.success': color,
+  'color.focus': color,
+  'font.family': font,
+  'font.body': dimension,
+  'font.heading': dimension,
+  'space.sm': dimension,
+  'space.md': dimension,
+  'space.lg': dimension,
+  'radius.control': dimension,
+};
+// Les 18 tokens de base restent obligatoires : les composants s'appuient dessus.
+// Des tokens ajoutés (par Claude, Figma ou à la main) peuvent compléter le DS,
+// avec un préfixe connu qui fixe leur type. Ajout compatible avec la version 1 :
+// un ancien fichier reste valide tel quel.
+export const customKeyPattern =
+  /^(color|space|radius|size|font)\.[a-z][a-zA-Z0-9]{0,31}$/;
+export const maxCustomTokens = 60;
+export type CoreKey = keyof typeof coreShape;
+export const coreKeys = Object.keys(coreShape) as CoreKey[];
+export const isCoreKey = (key: string): key is CoreKey =>
+  Object.hasOwn(coreShape, key);
+export const isCustomKey = (key: string) =>
+  !isCoreKey(key) && customKeyPattern.test(key);
+export const customType = (key: string): 'color' | 'dimension' =>
+  key.startsWith('color.') ? 'color' : 'dimension';
+const anyToken = z.union([color, dimension, font]);
 export const tokensSchema = z
-  .object({
-    'color.brand': color,
-    'color.brandHover': color,
-    'color.onBrand': color,
-    'color.surface': color,
-    'color.canvas': color,
-    'color.text': color,
-    'color.muted': color,
-    'color.border': color,
-    'color.danger': color,
-    'color.success': color,
-    'color.focus': color,
-    'font.family': font,
-    'font.body': dimension,
-    'font.heading': dimension,
-    'space.sm': dimension,
-    'space.md': dimension,
-    'space.lg': dimension,
-    'radius.control': dimension,
-  })
-  .strict();
+  .object(coreShape)
+  .catchall(anyToken)
+  .superRefine((tokens, ctx) => {
+    const extra = Object.keys(tokens).filter((k) => !isCoreKey(k));
+    if (extra.length > maxCustomTokens)
+      ctx.addIssue({
+        code: 'custom',
+        message: `Au plus ${maxCustomTokens} tokens ajoutés.`,
+      });
+    for (const k of extra) {
+      if (!customKeyPattern.test(k))
+        ctx.addIssue({
+          code: 'custom',
+          path: [k],
+          message:
+            'Nom de token refusé : color., space., radius., size. ou font. puis un nom en camelCase.',
+        });
+      else if (tokens[k].$type !== customType(k))
+        ctx.addIssue({
+          code: 'custom',
+          path: [k],
+          message: `Type attendu pour ${k} : ${customType(k)}.`,
+        });
+    }
+  });
+export type AnyToken = z.infer<typeof anyToken>;
 export type Tokens = z.infer<typeof tokensSchema>;
-export type TokenKey = keyof Tokens;
-export const tokenKeys = Object.keys(tokensSchema.shape) as TokenKey[];
+// Clé d'un token : un des 18 de base ou un token ajouté.
+export type TokenKey = string;
+// Compatibilité : la liste fixe des tokens de base.
+export const tokenKeys = coreKeys;
+// Tous les tokens présents : base dans l'ordre du schéma, puis ajoutés triés.
+export function allKeys(tokens: Tokens): string[] {
+  return [
+    ...coreKeys,
+    ...Object.keys(tokens)
+      .filter((k) => !isCoreKey(k))
+      .sort(),
+  ];
+}
 export type TokenValue = string | number;
+const keySchema = z
+  .string()
+  .max(40)
+  .refine((k) => isCoreKey(k) || customKeyPattern.test(k), {
+    message:
+      'Nom de token inconnu. Un nouveau token commence par color., space., radius., size. ou font.',
+  });
+// value null : suppression d'un token ajouté (jamais d'un token de base).
 export const changeSchema = z
   .object({
-    key: z.enum(tokenKeys as [TokenKey, ...TokenKey[]]),
-    value: z.union([z.string().max(100), z.number().finite()]),
+    key: keySchema,
+    value: z.union([z.string().max(100), z.number().finite(), z.null()]),
   })
   .strict();
+export type Change = z.infer<typeof changeSchema>;
 export const proposeSchema = z
   .object({
     revision: z.number().int().nonnegative(),
@@ -59,14 +120,25 @@ export const proposeSchema = z
   .strict();
 export interface Patch {
   key: TokenKey;
-  before: TokenValue;
-  after: TokenValue;
+  // null : le token n'existait pas (avant) ou est supprimé (après).
+  before: TokenValue | null;
+  after: TokenValue | null;
 }
+export type Source =
+  'manual' | 'codex' | 'claude' | 'import' | 'undo' | 'figma';
+export const sources = [
+  'manual',
+  'codex',
+  'claude',
+  'import',
+  'undo',
+  'figma',
+] as const;
 export interface Revision {
   id: string;
   revision: number;
   date: string;
-  source: 'manual' | 'codex' | 'claude' | 'import' | 'undo';
+  source: Source;
   patches: Patch[];
 }
 export interface State {
@@ -83,9 +155,9 @@ export interface Proposal {
 }
 export const patchSchema = z
   .object({
-    key: z.enum(tokenKeys as [TokenKey, ...TokenKey[]]),
-    before: z.union([z.string(), z.number()]),
-    after: z.union([z.string(), z.number()]),
+    key: keySchema,
+    before: z.union([z.string(), z.number(), z.null()]),
+    after: z.union([z.string(), z.number(), z.null()]),
   })
   .strict();
 export const stateSchema = z
@@ -99,7 +171,7 @@ export const stateSchema = z
           id: z.string().uuid(),
           revision: z.number().int().positive(),
           date: z.string().datetime(),
-          source: z.enum(['manual', 'codex', 'claude', 'import', 'undo']),
+          source: z.enum(sources),
           patches: z.array(patchSchema).min(1),
         })
         .strict(),
@@ -115,26 +187,39 @@ export const agentReplySchema = z
 export type AgentReply = z.infer<typeof agentReplySchema>;
 export function applyChanges(
   tokens: Tokens,
-  changes: { key: TokenKey; value: TokenValue }[],
+  changes: { key: TokenKey; value: TokenValue | null }[],
 ): Tokens {
-  const next = structuredClone(tokens);
+  const next = structuredClone(tokens) as Record<string, AnyToken>;
   if (new Set(changes.map((c) => c.key)).size !== changes.length)
     throw new Error('Un token ne peut apparaître deux fois.');
-  for (const change of changes) next[change.key].$value = change.value as never;
+  for (const change of changes) {
+    const { key, value } = change;
+    if (value === null) {
+      if (isCoreKey(key))
+        throw new Error(`Le token de base ${key} ne peut pas être supprimé.`);
+      delete next[key];
+    } else if (Object.hasOwn(next, key)) next[key].$value = value as never;
+    else if (isCustomKey(key))
+      next[key] = { $type: customType(key), $value: value } as AnyToken;
+    else throw new Error(`Token inconnu : ${key}`);
+  }
   return tokensSchema.parse(next);
 }
+const valueOf = (tokens: Tokens, key: string): TokenValue | null =>
+  (tokens as Record<string, AnyToken>)[key]?.$value ?? null;
 export function diff(before: Tokens, after: Tokens): Patch[] {
-  return tokenKeys
-    .filter((key) => before[key].$value !== after[key].$value)
+  const keys = [...new Set([...allKeys(before), ...allKeys(after)])];
+  return keys
+    .filter((key) => valueOf(before, key) !== valueOf(after, key))
     .map((key) => ({
       key,
-      before: before[key].$value,
-      after: after[key].$value,
+      before: valueOf(before, key),
+      after: valueOf(after, key),
     }));
 }
 export function tokenCss(tokens: Tokens): Record<string, string> {
   return Object.fromEntries(
-    tokenKeys.map((key) => [
+    allKeys(tokens).map((key) => [
       `--${key.replaceAll('.', '-')}`,
       `${tokens[key].$value}${tokens[key].$type === 'dimension' ? 'px' : ''}`,
     ]),

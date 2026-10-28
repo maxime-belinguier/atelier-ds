@@ -5,8 +5,8 @@ Ce starter pédagogique est conçu pour devenir **votre outil**, pas pour dicter
 choix. Version personnalisée pour **Gutt** (PFE) : panneau Design System (tokens,
 composants, écrans) et panneau Aperçu redimensionnables, assistant en bulle flottante.
 
-**Le mode manuel fonctionne sans compte IA, sans Figma et sans Internet après installation.**
-Une IA cloud nécessite un compte, Internet et du quota. Ce n’est pas un modèle local.
+**Branché à Claude et à Figma** (via Claude Code et ton compte), et toujours utilisable
+à la main, hors ligne. Une IA cloud nécessite un compte, Internet et du quota.
 
 ## Installer et lancer
 
@@ -85,7 +85,15 @@ contenant des espaces est accepté. N’utilisez ni `sudo` ni installation de se
 ## Ajouts de la version Gutt (PFE)
 
 - **Claude dans l'atelier** : chat en bulle flottante, choix du modèle et de l'effort,
-  jauge des crédits. Les propositions passent toujours par le diff et ta validation.
+  jauge des crédits. Il modifie ou **crée des tokens**, compare avec la dernière
+  lecture Figma, commente le bilan d'accessibilité et aide pour le PFE, l'école ou le
+  travail (réponses mises en forme, bouton Copier). Démarrages rapides quand le chat
+  est vide. Les propositions passent toujours par le diff et ta validation.
+- **Figma** : bouton Figma de l'en-tête ou Paramètres › Figma. « Lire depuis Figma »
+  ouvre un diff ; « Envoyer vers Figma » montre les variables à écrire, puis met à jour
+  la collection `DS-Studio` et relit. Voir [FIGMA](docs/FIGMA.md).
+- **Tokens ajoutés** : « + Ajouter un token » dans chaque famille (couleurs, typo,
+  espacements, formes), badge « Ajouté », suppression par diff. Inclus dans les exports.
 - **Interface** : deux panneaux redimensionnables (Design System et Aperçu), menu du
   Design System par catégories repliables (Tokens, Composants, Écrans, Contrôle qualité),
   sélecteur de couleur HEX/RGB/HSL, enregistrement manuel groupé (Ctrl/Cmd + S).
@@ -93,7 +101,7 @@ contenant des espaces est accepté. N’utilisez ni `sudo` ni installation de se
   navigateur, mode Fit ou 100 %, et mode Comparer (deux formats côte à côte, ou
   avant / après des modifications en cours).
 - **Visite guidée** : au premier lancement, puis avec le bouton « ? » de l'en-tête.
-- **Paramètres** (roue crantée) : assistant IA, apparence de l'atelier, état Figma,
+- **Paramètres** (roue crantée) : assistant IA, apparence de l'atelier, connexion et synchro Figma,
   préférences de démarrage, raccourcis et réinitialisation.
 - **En-tête** : bouton Brief, puis Historique, Importer et Exporter en icônes.
 - **Exports** (valeurs enregistrées uniquement) : Tokens JSON, Variables CSS,
@@ -104,7 +112,6 @@ contenant des espaces est accepté. N’utilisez ni `sudo` ni installation de se
   global par profil avec liens « Corriger dans… », et zones cliquables mesurées.
 
 Détail et justification de chaque choix : [DECISIONS](workspace/DECISIONS.md).
-
 
 ## Votre première boucle, en deux minutes
 
@@ -178,9 +185,9 @@ Inspirez-vous des deux skills fournis, sans copier vos identifiants ou vos conve
 | Exports CSS, Tailwind et Documentation                              | **TESTED**, tests unitaires + téléchargements navigateur                                           |
 | Test d'accessibilité et simulation de la vision des couleurs        | **TESTED**, Chromium ; contrôle sur les tokens, pas un audit WCAG complet de l'app                 |
 | Chat Codex, JSON proposé avant acceptation                          | **TESTED**, CLI 0.164.0, compte enseignant disponible pendant la qualification ; quota non garanti |
-| Claude Code dans l’application                                      | **TESTED (expérimental)**, Linux, CLI 2.1.311, sans outils ; voir docs/AGENT_ADAPTERS.md            |
+| Claude Code dans l’application (dont création de tokens)            | **TESTED**, Linux, CLI 2.1.312, sans outils ; essai réel : nouveau token proposé en diff           |
 | Gemini dans l’application                                           | **NOT IMPLEMENTED**, adaptateur indisponible et contrat documenté                                  |
-| Figma MCP et synchronisation                                        | **NOT IMPLEMENTED**, statut non connecté, contrat et procédure future documentés                   |
+| Synchro Figma (MCP officiel via Claude Code)                        | **PARTIAL** : scripts testés sur le vrai fichier, CLI + garde testés ; OAuth sur le Mac à faire    |
 | Skills et harness personnalisable                                   | **IMPLEMENTED**, structure et liens vérifiés ; pas une validation des choix d’un étudiant          |
 | Qualification automatisée Windows / macOS                           | **TESTED en CI** pour API, navigateur et contrôleur ; **PARTIAL** pour Finder/WSH natifs           |
 | Application desktop installable                                     | **NOT IMPLEMENTED**, application web locale uniquement                                             |
@@ -205,10 +212,10 @@ Détails et limites : [SECURITY](docs/SECURITY.md), [AGENTS](docs/AGENT_ADAPTERS
 
 ### Figma
 
-Figma reste la source de vérité du DS réel de votre PFE. Lisière est un exemple local,
-pas une copie de votre fichier. Aucun fichier personnel autorisé n’a été fourni ;
-aucun accès Figma n’a été tenté. Les clients tiers MCP doivent être autorisés par Figma.
-Pas de contournement ni réutilisation de session : [contrat d’intégration](docs/FIGMA.md).
+Les variables de la collection `DS-Studio` de ton fichier se lisent et se mettent à
+jour depuis l’atelier, avec diff et validation dans les deux sens. Connexion une fois
+dans Claude Code (`/mcp`), aucun jeton dans l’atelier. Détails, garde-fous et limites
+(10 appels par minute, 200 par jour sur le plan Éducation) : [FIGMA](docs/FIGMA.md).
 
 ## Vérifier et développer
 

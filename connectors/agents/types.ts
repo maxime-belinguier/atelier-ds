@@ -3,6 +3,12 @@ export interface AgentContext {
   tokens: Tokens;
   brief: string;
   rules: string;
+  // Dernière lecture des variables Figma (instantané, pas d'accès direct).
+  figma?: {
+    readAt: string;
+    collection: string | null;
+    variables: { name: string; type: string; value: unknown }[];
+  } | null;
   history: { role: 'user' | 'assistant'; text: string }[];
 }
 // Choix proposés à l'utilisateur. Liste fermée : aucune valeur libre ne

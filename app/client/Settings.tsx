@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   accents,
   backgrounds,
@@ -21,7 +21,7 @@ const tabs = [
   { id: 'figma', label: 'Figma' },
   { id: 'general', label: 'Général' },
 ] as const;
-type Tab = (typeof tabs)[number]['id'];
+export type Tab = (typeof tabs)[number]['id'];
 
 const agentInfo: Record<string, { name: string; how: string }> = {
   claude: {
@@ -57,6 +57,8 @@ export default function Settings({
   onPrefs,
   onTour,
   onReset,
+  figmaPanel,
+  initialTab = 'ai',
 }: {
   onClose: () => void;
   agents: Agent[];
@@ -79,9 +81,10 @@ export default function Settings({
   onPrefs: (p: Prefs) => void;
   onTour: () => void;
   onReset: () => void;
+  figmaPanel: ReactNode;
+  initialTab?: Tab;
 }) {
-  const [tab, setTab] = useState<Tab>('ai');
-  const [figmaUrl, setFigmaUrl] = useState('');
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [confirmReset, setConfirmReset] = useState(false);
   // Retour de « Connecter » : Terminal ouvert, ou commande à taper.
   const [login, setLogin] = useState<
@@ -91,10 +94,6 @@ export default function Settings({
 
   useEffect(() => {
     box.current?.querySelector<HTMLElement>('[aria-selected="true"]')?.focus();
-    fetch('/api/project')
-      .then((r) => r.json())
-      .then((s) => setFigmaUrl(s?.project?.figmaUrl ?? ''))
-      .catch(() => setFigmaUrl(''));
   }, []);
 
   const warnings = themeWarnings(theme);
@@ -414,47 +413,7 @@ export default function Settings({
             </>
           )}
 
-          {tab === 'figma' && (
-            <>
-              <h3>Figma</h3>
-              <p className="settings-lead">
-                <span className="agent-state off">Non connecté</span> L’atelier
-                ne lit pas encore Figma tout seul.
-              </p>
-              <h4>Ton fichier</h4>
-              {figmaUrl ? (
-                <p className="settings-file">
-                  <a href={figmaUrl} target="_blank" rel="noreferrer">
-                    Ouvrir le fichier dans Figma ↗
-                  </a>
-                </p>
-              ) : (
-                <p className="settings-hint">
-                  Aucun lien : ajoute-le dans le Brief du projet.
-                </p>
-              )}
-              <h4>Connexion prévue : plugin Figma DS-Studio</h4>
-              <ol className="settings-steps">
-                <li>
-                  Tu crées tes variables dans Figma avec les noms de l’atelier
-                  (color/brand, space/md…).
-                </li>
-                <li>
-                  Le plugin les envoie à l’atelier, qui montre le diff : tu
-                  valides.
-                </li>
-                <li>
-                  Dans l’autre sens, le plugin met à jour tes variables Figma
-                  avec tes tokens.
-                </li>
-              </ol>
-              <p className="settings-hint">
-                Pourquoi un plugin : l’API Figma des variables est réservée aux
-                comptes Enterprise ; l’API des plugins marche sur tous les
-                plans.
-              </p>
-            </>
-          )}
+          {tab === 'figma' && figmaPanel}
 
           {tab === 'general' && (
             <>

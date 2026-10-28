@@ -8,15 +8,19 @@ Lire [START_HERE.md](START_HERE.md). Le contexte appartient à l’étudiant.
 - `app/server/store.ts` : propositions, journal local et annulations sélectives.
 - `app/server/http.ts` : frontière HTTP locale et routes à périmètre fermé.
 - `app/client/DesignSystem.tsx` : composants uniques partagés entre les viewers.
-- `connectors/agents/` : Codex qualifié, Claude expérimental sans outils, Gemini indisponible.
-- `connectors/figma/` : contrat seulement, aucune connexion réseau.
+- `connectors/agents/` : Claude (chat sans outils), Codex qualifié, Gemini indisponible.
+- `connectors/figma/` : synchro des variables via le MCP officiel de Figma dans Claude Code
+  (`scripts.ts` génère les scripts, `guard.mjs` bloque tout appel non prévu).
+- `app/server/figma.ts` : lecture en diff, aperçu et validation à usage unique avant écriture.
 - `workspace/` : PFE, règles, décisions et DS d’exemple versionnables.
 - `.ds-studio/` : état privé d’exécution, jamais à commiter.
 
 Ne remplacez pas le mécanisme de validation par un accès fichier libre de l’agent.
 Ne laissez pas de commande ou d’écriture proposée s’exécuter automatiquement.
 Le chat embarqué refuse toute exécution de commande, plutôt que de fournir une fausse
-dialogue de permissions. Le chat ne propose que des tokens connus. Le brief privé possède sa propre API fermée.
+dialogue de permissions. Le chat propose des tokens existants ou nouveaux (préfixes
+connus), toujours via le diff. Il ne touche jamais Figma directement. Le brief privé
+possède sa propre API fermée.
 
 ## Skills
 
@@ -29,7 +33,8 @@ peuvent lire ces fichiers explicitement ; leur découverte native n’est pas af
 `npm run check`, `npm test`, `npm run build`, puis `npm run test:e2e` pour un
 changement de parcours. Installer Chromium de test par `npx playwright install chromium`
 si nécessaire. Ne pas lancer `npm run test:live` sans besoin de qualifier Codex :
-il contacte un service IA et peut consommer du quota. `npm run scan` vérifie les
+il contacte un service IA et peut consommer du quota. `npx tsx scripts/check-figma-guard.ts`
+qualifie la synchro Figma avec le vrai CLI Claude et un faux serveur Figma (quota Claude). `npm run scan` vérifie les
 fichiers suivis par Git, sans inspecter les identifiants de la machine.
 
 ## V2

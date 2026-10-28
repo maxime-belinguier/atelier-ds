@@ -20,7 +20,8 @@ import {
   claudeModels,
   type AgentAdapter,
 } from '../../connectors/agents/types.js';
-import { figmaStatus } from '../../connectors/figma/contract.js';
+import { ClaudeFigmaConnector } from '../../connectors/figma/claudeFigma.js';
+import { FigmaSync, type FigmaConnector } from './figma.js';
 import type { RecordInfo } from '../../scripts/runtime.mjs';
 
 export async function createStudioServer(options: {
@@ -29,6 +30,7 @@ export async function createStudioServer(options: {
   agent?: AgentAdapter;
   claude?: AgentAdapter;
   terminal?: TerminalOpener;
+  figma?: FigmaConnector;
   dev?: boolean;
   control?: { record: RecordInfo; stop: () => void };
 }) {
@@ -39,9 +41,38 @@ export async function createStudioServer(options: {
     gemini: unvalidatedAdapter('gemini'),
   };
   const project = new ProjectStore(store.directory);
+  const figma = new FigmaSync(
+    store,
+    project,
+    options.figma ?? new ClaudeFigmaConnector(),
+    store.directory,
+  );
   const csrf = randomBytes(32).toString('hex');
   let busy = false;
   const active = new Set<AbortController>();
+  // Une seule opération CLI (IA ou Figma) à la fois ; annulée si l'onglet ferme.
+  async function exclusive<T>(
+    res: http.ServerResponse,
+    work: (signal: AbortSignal) => Promise<T>,
+  ) {
+    if (busy)
+      throw new StudioError(
+        'Une demande Claude ou Figma est déjà en cours.',
+        429,
+      );
+    busy = true;
+    const controller = new AbortController();
+    active.add(controller);
+    const cancel = () => controller.abort();
+    res.once('close', cancel);
+    try {
+      return await work(controller.signal);
+    } finally {
+      busy = false;
+      active.delete(controller);
+      res.off('close', cancel);
+    }
+  }
   const vite = options.dev
     ? await (
         await import('vite')
@@ -104,9 +135,11 @@ export async function createStudioServer(options: {
           if (url.pathname === '/api/bootstrap')
             return send(200, {
               csrf,
-              figma: figmaStatus,
+              figma: { connected: false, label: 'Figma' },
               agents: [],
             });
+          if (url.pathname === '/api/figma/status')
+            return send(200, await figma.status());
           if (url.pathname === '/api/agents')
             return send(
               200,
@@ -185,7 +218,7 @@ export async function createStudioServer(options: {
         }
         if (url.pathname === '/api/agent-login') {
           const b = z
-            .object({ agent: z.enum(['claude']) })
+            .object({ agent: z.enum(['claude', 'figma']) })
             .strict()
             .parse(body);
           const command = loginCommands[b.agent];
@@ -218,14 +251,7 @@ export async function createStudioServer(options: {
               'DS modifié depuis votre dernier affichage. Réessayez.',
               409,
             );
-          if (busy)
-            throw new StudioError('Une demande IA est déjà en cours.', 429);
-          busy = true;
-          const controller = new AbortController();
-          active.add(controller);
-          const cancel = () => controller.abort();
-          res.once('close', cancel);
-          try {
+          const result = await exclusive(res, async (signal) => {
             const context = async (name: string) => {
               const file = path.join(root, 'workspace', name);
               const stat = await fs.lstat(file);
@@ -235,6 +261,7 @@ export async function createStudioServer(options: {
                 );
               return fs.readFile(file, 'utf8');
             };
+            const snap = await figma.snapshot();
             const reply = await adapters[b.agent].reply(
               b.message,
               {
@@ -244,9 +271,16 @@ export async function createStudioServer(options: {
                   '\nBrief privé DS-Studio :\n' +
                   JSON.stringify((await project.read()).project),
                 rules: await context('DESIGN_RULES.md'),
+                figma: snap
+                  ? {
+                      readAt: snap.readAt,
+                      collection: snap.collection,
+                      variables: snap.variables.slice(0, 200),
+                    }
+                  : null,
                 history: b.history,
               },
-              controller.signal,
+              signal,
               { model: b.model, effort: b.effort },
             );
             const proposal = reply.changes.length
@@ -256,17 +290,44 @@ export async function createStudioServer(options: {
                   b.agent === 'claude' ? 'claude' : 'codex',
                 )
               : null;
-            return send(200, {
+            return {
               message: reply.message,
               proposal,
               usage: reply.usage ?? null,
               limits: reply.limits ?? null,
-            });
-          } finally {
-            busy = false;
-            active.delete(controller);
-            res.off('close', cancel);
-          }
+            };
+          });
+          return send(200, result);
+        }
+        if (url.pathname === '/api/figma/pull') {
+          const b = z
+            .object({ revision: z.number().int().nonnegative() })
+            .strict()
+            .parse(body);
+          return send(
+            200,
+            await exclusive(res, (signal) => figma.pull(b.revision, signal)),
+          );
+        }
+        if (url.pathname === '/api/figma/preview') {
+          const b = z
+            .object({ revision: z.number().int().nonnegative() })
+            .strict()
+            .parse(body);
+          return send(
+            200,
+            await exclusive(res, (signal) => figma.preview(b.revision, signal)),
+          );
+        }
+        if (url.pathname === '/api/figma/apply') {
+          const b = z
+            .object({ approvalId: z.string().uuid() })
+            .strict()
+            .parse(body);
+          return send(
+            200,
+            await exclusive(res, (signal) => figma.apply(b.approvalId, signal)),
+          );
         }
         throw new StudioError('Route inconnue.', 404);
       }
@@ -347,7 +408,7 @@ function urlSafeMessage(error: unknown) {
   // Les erreurs agent sont rédigées dans l'adaptateur, jamais de stderr brut ni de stack.
   const message = (error as Error).message ?? '';
   if (
-    /^(CLI |Codex |Claude |Version non|Échec Codex|Échec Claude|Délai CLI|Demande interrompue|Le CLI|Réponse CLI|claude non|gemini non|Impossible de démarrer)/.test(
+    /^(CLI |Codex |Claude |Figma|Version non|Échec Codex|Échec Claude|Délai CLI|Demande interrompue|Le CLI|Réponse CLI|claude non|gemini non|Impossible de démarrer)/.test(
       message,
     )
   )

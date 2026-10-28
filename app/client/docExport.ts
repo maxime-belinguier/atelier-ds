@@ -1,7 +1,7 @@
 import { tokenCss, type TokenKey, type Tokens } from '../shared/model.js';
 import { auditTokens, score } from './a11yAudit.js';
 import { cssName } from './exporters.js';
-import { tokenGroups, tokenLabels } from './tokenMeta.js';
+import { groupsFor, labelOf } from './tokenMeta.js';
 
 // Documentation du Design System en une page HTML autonome, imprimable en
 // PDF depuis le navigateur. Toujours générée depuis les valeurs enregistrées.
@@ -42,13 +42,14 @@ export function buildDocHtml({
   const vars = Object.entries(tokenCss(tokens))
     .map(([k, v]) => `${k}: ${v};`)
     .join(' ');
-  const group = (id: string) => tokenGroups.find((g) => g.id === id)!.keys;
+  const group = (id: string) =>
+    groupsFor(tokens).find((g) => g.id === id)!.keys;
 
   const colors = group('colors')
     .map(
       (k) => `<figure class="swatch">
   <span style="background:${esc(val(tokens, k))}"></span>
-  <figcaption><strong>${esc(tokenLabels[k])}</strong>${esc(val(tokens, k))}<br />${code(k)}</figcaption>
+  <figcaption><strong>${esc(labelOf(k))}</strong>${esc(val(tokens, k))}<br />${code(k)}</figcaption>
 </figure>`,
     )
     .join('\n');
@@ -64,11 +65,11 @@ export function buildDocHtml({
   const spaces = group('space')
     .map(
       (k) =>
-        `<div class="space-row"><span class="bar" style="width:${Number(val(tokens, k))}px"></span><strong>${esc(tokenLabels[k])}</strong> ${unit(tokens, k)} ${code(k)}</div>`,
+        `<div class="space-row"><span class="bar" style="width:${Number(val(tokens, k))}px"></span><strong>${esc(labelOf(k))}</strong> ${unit(tokens, k)} ${code(k)}</div>`,
     )
     .join('\n');
 
-  const shape = `<div class="space-row"><span class="radius" style="border-radius:var(--radius-control)"></span><strong>${esc(tokenLabels['radius.control'])}</strong> ${unit(tokens, 'radius.control')} ${code('radius.control')}</div>`;
+  const shape = `<div class="space-row"><span class="radius" style="border-radius:var(--radius-control)"></span><strong>${esc(labelOf('radius.control'))}</strong> ${unit(tokens, 'radius.control')} ${code('radius.control')}</div>`;
 
   const comps = components
     .map(
