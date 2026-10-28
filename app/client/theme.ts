@@ -21,27 +21,160 @@ export const accents = [
   { id: 'vert', label: 'Vert', value: '#1F9D6B' },
   { id: 'violet', label: 'Violet', value: '#7C5CF5' },
 ] as const;
+// Polices installées avec macOS : aucun téléchargement, marche hors ligne.
+// Si une police manque (autre système), la police suivante de la liste prend le relais.
 export const uiFonts = [
   {
     id: 'systeme',
     label: 'Système (SF Pro)',
+    kind: 'Sans',
     value:
       "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif",
   },
   {
+    id: 'helvetica',
+    label: 'Helvetica Neue',
+    kind: 'Sans',
+    value: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+  },
+  {
     id: 'avenir',
-    label: 'Avenir',
+    label: 'Avenir Next',
+    kind: 'Sans',
     value: "'Avenir Next', Avenir, 'Segoe UI', system-ui, sans-serif",
   },
   {
+    id: 'futura',
+    label: 'Futura',
+    kind: 'Sans',
+    value: "Futura, 'Century Gothic', sans-serif",
+  },
+  {
+    id: 'gill',
+    label: 'Gill Sans',
+    kind: 'Sans',
+    value: "'Gill Sans', 'Gill Sans MT', Calibri, sans-serif",
+  },
+  {
+    id: 'optima',
+    label: 'Optima',
+    kind: 'Sans',
+    value: 'Optima, Candara, sans-serif',
+  },
+  {
+    id: 'lucida',
+    label: 'Lucida Grande',
+    kind: 'Sans',
+    value: "'Lucida Grande', 'Lucida Sans Unicode', sans-serif",
+  },
+  {
+    id: 'geneva',
+    label: 'Geneva',
+    kind: 'Sans',
+    value: 'Geneva, Tahoma, sans-serif',
+  },
+  {
+    id: 'trebuchet',
+    label: 'Trebuchet MS',
+    kind: 'Sans',
+    value: "'Trebuchet MS', sans-serif",
+  },
+  {
+    id: 'verdana',
+    label: 'Verdana',
+    kind: 'Sans',
+    value: 'Verdana, Geneva, sans-serif',
+  },
+  {
+    id: 'arial',
+    label: 'Arial',
+    kind: 'Sans',
+    value: 'Arial, Helvetica, sans-serif',
+  },
+  {
     id: 'serif',
-    label: 'Serif',
+    label: 'New York',
+    kind: 'Serif',
     value: "'New York', ui-serif, Georgia, 'Times New Roman', serif",
+  },
+  { id: 'georgia', label: 'Georgia', kind: 'Serif', value: 'Georgia, serif' },
+  {
+    id: 'charter',
+    label: 'Charter',
+    kind: 'Serif',
+    value: "Charter, 'Bitstream Charter', Georgia, serif",
+  },
+  {
+    id: 'iowan',
+    label: 'Iowan Old Style',
+    kind: 'Serif',
+    value: "'Iowan Old Style', Palatino, Georgia, serif",
+  },
+  {
+    id: 'baskerville',
+    label: 'Baskerville',
+    kind: 'Serif',
+    value: "Baskerville, 'Baskerville Old Face', Georgia, serif",
+  },
+  {
+    id: 'palatino',
+    label: 'Palatino',
+    kind: 'Serif',
+    value: "Palatino, 'Palatino Linotype', Georgia, serif",
+  },
+  {
+    id: 'hoefler',
+    label: 'Hoefler Text',
+    kind: 'Serif',
+    value: "'Hoefler Text', Garamond, Georgia, serif",
+  },
+  {
+    id: 'didot',
+    label: 'Didot',
+    kind: 'Serif',
+    value: "Didot, 'Bodoni 72', Georgia, serif",
+  },
+  {
+    id: 'times',
+    label: 'Times New Roman',
+    kind: 'Serif',
+    value: "'Times New Roman', Times, serif",
+  },
+  {
+    id: 'rockwell',
+    label: 'Rockwell',
+    kind: 'Serif',
+    value: "Rockwell, 'Courier New', serif",
+  },
+  {
+    id: 'typewriter',
+    label: 'American Typewriter',
+    kind: 'Serif',
+    value: "'American Typewriter', 'Courier New', serif",
   },
   {
     id: 'mono',
-    label: 'Mono',
+    label: 'SF Mono',
+    kind: 'Mono',
     value: "ui-monospace, 'SF Mono', Menlo, Consolas, monospace",
+  },
+  {
+    id: 'menlo',
+    label: 'Menlo',
+    kind: 'Mono',
+    value: 'Menlo, Consolas, monospace',
+  },
+  {
+    id: 'monaco',
+    label: 'Monaco',
+    kind: 'Mono',
+    value: 'Monaco, Consolas, monospace',
+  },
+  {
+    id: 'courier',
+    label: 'Courier New',
+    kind: 'Mono',
+    value: "'Courier New', Courier, monospace",
   },
 ] as const;
 

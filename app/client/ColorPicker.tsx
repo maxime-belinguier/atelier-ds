@@ -116,6 +116,7 @@ export default function ColorPicker({
   value,
   initial,
   palette,
+  paletteLabel = 'Dans ton DS',
   onChange,
   onClose,
 }: {
@@ -123,6 +124,7 @@ export default function ColorPicker({
   value: string;
   initial: string;
   palette: { label: string; value: string }[];
+  paletteLabel?: string;
   onChange: (hex: string) => void;
   onClose: () => void;
 }) {
@@ -391,7 +393,7 @@ export default function ColorPicker({
         </div>
       )}
       <div className="cp-group">
-        <p>Dans ton DS</p>
+        <p>{paletteLabel}</p>
         <div className="cp-swatches">{dsColors.map(swatch)}</div>
       </div>
       {last.current !== initial && (

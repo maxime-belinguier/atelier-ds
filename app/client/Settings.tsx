@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import ColorPicker from './ColorPicker.js';
 import {
   accents,
   backgrounds,
@@ -86,6 +87,9 @@ export default function Settings({
 }) {
   const [tab, setTab] = useState<Tab>(initialTab);
   const [confirmReset, setConfirmReset] = useState(false);
+  // Couleur « Au choix » : même sélecteur que dans Couleurs.
+  const [picker, setPicker] = useState<'bg' | 'accent' | null>(null);
+  const [fontQuery, setFontQuery] = useState('');
   // Retour de « Connecter » : Terminal ouvert, ou commande à taper.
   const [login, setLogin] = useState<
     Record<string, { opened: boolean; command: string } | 'busy' | string>
@@ -97,6 +101,50 @@ export default function Settings({
   }, []);
 
   const warnings = themeWarnings(theme);
+  const q = fontQuery.trim().toLowerCase();
+  const fonts = uiFonts.filter(
+    (f) =>
+      !q ||
+      f.label.toLowerCase().includes(q) ||
+      f.kind.toLowerCase().includes(q),
+  );
+  // Pastille « Au choix » : ouvre le sélecteur de couleur de l'atelier.
+  const customSwatch = (
+    key: 'bg' | 'accent',
+    label: string,
+    presets: readonly { label: string; value: string }[],
+  ) => {
+    const value = theme[key].toUpperCase();
+    const isCustom = !presets.some((p) => p.value === value);
+    return (
+      <div className="swatch-wrap custom-wrap">
+        <button
+          className="swatch-pick custom"
+          aria-pressed={isCustom}
+          aria-expanded={picker === key}
+          aria-label={`${label} au choix`}
+          onClick={() => setPicker(picker === key ? null : key)}
+        >
+          <span
+            className={isCustom ? '' : 'rainbow'}
+            style={isCustom ? { background: value } : undefined}
+          />
+          {isCustom ? value : 'Au choix'}
+        </button>
+        {picker === key && (
+          <ColorPicker
+            label={label}
+            value={value}
+            initial={value}
+            palette={presets.map((p) => ({ label: p.label, value: p.value }))}
+            paletteLabel="Couleurs proposées"
+            onChange={(hex) => onTheme({ ...theme, [key]: hex })}
+            onClose={() => setPicker(null)}
+          />
+        )}
+      </div>
+    );
+  };
   const known = ['claude', 'codex', 'gemini'];
   const list = known.map(
     (id) =>
@@ -341,17 +389,7 @@ export default function Settings({
                     {b.label}
                   </button>
                 ))}
-                <label className="swatch-pick custom">
-                  <input
-                    type="color"
-                    aria-label="Fond personnalisé"
-                    value={theme.bg.toLowerCase()}
-                    onChange={(e) =>
-                      onTheme({ ...theme, bg: e.target.value.toUpperCase() })
-                    }
-                  />
-                  Au choix
-                </label>
+                {customSwatch('bg', 'Fond', backgrounds)}
               </div>
               <h4>Couleur d’accent</h4>
               <div
@@ -370,24 +408,19 @@ export default function Settings({
                     {a.label}
                   </button>
                 ))}
-                <label className="swatch-pick custom">
-                  <input
-                    type="color"
-                    aria-label="Accent personnalisé"
-                    value={theme.accent.toLowerCase()}
-                    onChange={(e) =>
-                      onTheme({
-                        ...theme,
-                        accent: e.target.value.toUpperCase(),
-                      })
-                    }
-                  />
-                  Au choix
-                </label>
+                {customSwatch('accent', 'Couleur d’accent', accents)}
               </div>
               <h4>Police</h4>
-              <div className="swatch-row" role="group" aria-label="Police">
-                {uiFonts.map((f) => (
+              <input
+                type="search"
+                className="font-search"
+                aria-label="Rechercher une police"
+                placeholder="Rechercher une police (ex. Futura, serif)"
+                value={fontQuery}
+                onChange={(e) => setFontQuery(e.target.value)}
+              />
+              <div className="font-list" role="group" aria-label="Police">
+                {fonts.map((f) => (
                   <button
                     key={f.id}
                     className="font-pick"
@@ -396,9 +429,19 @@ export default function Settings({
                     onClick={() => onTheme({ ...theme, font: f.id })}
                   >
                     {f.label}
+                    <span className="font-kind">{f.kind}</span>
                   </button>
                 ))}
+                {!fonts.length && (
+                  <p className="settings-hint">
+                    Aucune police pour « {fontQuery.trim()} ».
+                  </p>
+                )}
               </div>
+              <p className="settings-hint">
+                Polices installées avec macOS : pas de téléchargement, marche
+                hors ligne.
+              </p>
               {warnings.map((w) => (
                 <p key={w} className="settings-warn" role="status">
                   {w}

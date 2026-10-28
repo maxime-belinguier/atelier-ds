@@ -893,6 +893,20 @@ test('paramètres : onglets, apparence appliquée et mémorisée, Échap', async
     dialog.locator('.agent-card', { hasText: 'Gemini' }).getByRole('button'),
   ).toHaveCount(0);
   await dialog.getByRole('tab', { name: 'Apparence' }).click();
+  // « Au choix » ouvre le sélecteur de couleur de l'atelier.
+  await dialog.getByRole('button', { name: 'Fond au choix' }).click();
+  await expect(
+    dialog.getByRole('dialog', { name: 'Couleur : Fond' }),
+  ).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(
+    dialog.getByRole('dialog', { name: 'Couleur : Fond' }),
+  ).toHaveCount(0);
+  await expect(dialog).toBeVisible();
+  // Recherche de police.
+  await dialog.getByLabel('Rechercher une police').fill('futura');
+  await expect(dialog.locator('.font-pick')).toHaveCount(1);
+  await dialog.getByLabel('Rechercher une police').fill('');
   await dialog.getByRole('button', { name: 'Bleu' }).click();
   await expect
     .poll(() =>

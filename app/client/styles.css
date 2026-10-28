@@ -3769,3 +3769,56 @@ kbd {
   padding-top: 1px;
   padding-bottom: 1px;
 }
+
+/* Paramètres › Apparence : « Au choix » ouvre le sélecteur de l'atelier. */
+.custom-wrap {
+  position: relative;
+}
+.swatch-pick.custom .rainbow {
+  background: conic-gradient(
+    #ff5a36,
+    #ffd23f,
+    #1f9d6b,
+    #3b6ff5,
+    #7c5cf5,
+    #ff5a36
+  );
+}
+.custom-wrap .color-picker {
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 30;
+}
+.font-search {
+  width: 100%;
+  max-width: 360px;
+  height: 36px;
+  margin-bottom: 10px;
+  padding: 0 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 13px;
+}
+.font-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-height: 200px;
+  overflow: auto;
+  padding: 2px;
+}
+.font-pick {
+  gap: 8px;
+}
+.font-kind {
+  font: 10.5px var(--font-ui);
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+/* Le sélecteur s'aligne sur le bord droit de la pastille : jamais coupé. */
+.custom-wrap .color-picker {
+  left: auto;
+  right: 0;
+}
