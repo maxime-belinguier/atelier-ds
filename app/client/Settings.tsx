@@ -119,7 +119,7 @@ export default function Settings({
   const [tab, setTab] = useState<Tab>(initialTab);
   const [confirmReset, setConfirmReset] = useState(false);
   // Couleur « Au choix » : même sélecteur que dans Couleurs.
-  const [picker, setPicker] = useState<'bg' | 'accent' | null>(null);
+  const [picker, setPicker] = useState<'bg' | 'accent' | 'logo' | null>(null);
   const [fontQuery, setFontQuery] = useState('');
   // Retour de « Connecter » : Terminal ouvert, ou commande à taper.
   const [login, setLogin] = useState<
@@ -141,12 +141,14 @@ export default function Settings({
   );
   // Pastille « Au choix » : ouvre le sélecteur de couleur de l'atelier.
   const customSwatch = (
-    key: 'bg' | 'accent',
+    key: 'bg' | 'accent' | 'logo',
     label: string,
     presets: readonly { label: string; value: string }[],
   ) => {
-    const value = theme[key].toUpperCase();
-    const isCustom = !presets.some((p) => p.value === value);
+    // Logo : vide = accent de l'atelier (pas une couleur au choix).
+    const raw = key === 'logo' ? identity.color : theme[key];
+    const value = raw.toUpperCase();
+    const isCustom = !!value && !presets.some((p) => p.value === value);
     return (
       <div className="swatch-wrap custom-wrap">
         <button
@@ -165,11 +167,15 @@ export default function Settings({
         {picker === key && (
           <ColorPicker
             label={label}
-            value={value}
-            initial={value}
+            value={value || '#2C2650'}
+            initial={value || '#2C2650'}
             palette={presets.map((p) => ({ label: p.label, value: p.value }))}
             paletteLabel="Couleurs proposées"
-            onChange={(hex) => onTheme({ ...theme, [key]: hex })}
+            onChange={(hex) =>
+              key === 'logo'
+                ? onIdentity({ ...identity, color: hex })
+                : onTheme({ ...theme, [key]: hex })
+            }
             onClose={() => setPicker(null)}
           />
         )}
@@ -419,246 +425,259 @@ export default function Settings({
                 L’habillage de l’atelier. Les écrans Gutt de l’aperçu gardent
                 leurs propres couleurs.
               </p>
-              <h4>Identité de l’app</h4>
-              <div className="identity-card" aria-hidden="true">
-                <span
-                  className="brand-symbol"
-                  style={
-                    identity.logo !== 'image' && identity.color
-                      ? { background: identity.color }
-                      : undefined
-                  }
-                >
-                  {identity.logo === 'image' && identity.image ? (
-                    <img src={identity.image} alt="" />
-                  ) : (
-                    logoText(identity)
-                  )}
-                </span>
-                <strong>{identity.name}</strong>
-                <span className="identity-note">Aperçu de l’en-tête</span>
-              </div>
-              <div className="settings-row settings-field">
-                <label>
-                  Nom de l’app
-                  <input
-                    maxLength={30}
-                    value={identity.name}
-                    onChange={(e) =>
-                      onIdentity({ ...identity, name: e.target.value })
+              <section className="settings-block" aria-label="Identité">
+                <h4>Identité de l’app</h4>
+                <div className="identity-card" aria-hidden="true">
+                  <span
+                    className="brand-symbol"
+                    style={
+                      identity.logo !== 'image' && identity.color
+                        ? { background: identity.color }
+                        : undefined
                     }
-                    onBlur={() =>
-                      !identity.name.trim() &&
-                      onIdentity({ ...identity, name: defaultIdentity.name })
-                    }
-                  />
-                </label>
-                <div className="settings-control">
-                  <span className="settings-label" id="logo-kind">
-                    Logo
-                  </span>
-                  <div
-                    className="segmented"
-                    role="group"
-                    aria-labelledby="logo-kind"
                   >
-                    {(
-                      [
-                        ['text', 'Texte'],
-                        ['initials', 'Initiales'],
-                        ['image', 'Image'],
-                      ] as const
-                    ).map(([id, label]) => (
-                      <button
-                        key={id}
-                        aria-pressed={identity.logo === id}
-                        onClick={() => onIdentity({ ...identity, logo: id })}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
+                    {identity.logo === 'image' && identity.image ? (
+                      <img src={identity.image} alt="" />
+                    ) : (
+                      logoText(identity)
+                    )}
+                  </span>
+                  <strong>{identity.name}</strong>
+                  <span className="identity-note">Aperçu de l’en-tête</span>
                 </div>
-              </div>
-              {identity.logo === 'text' && (
                 <div className="settings-row settings-field">
-                  <label className="settings-narrow">
-                    Texte du logo (3 caractères)
+                  <label>
+                    Nom de l’app
                     <input
-                      maxLength={3}
-                      value={identity.text}
+                      maxLength={30}
+                      value={identity.name}
                       onChange={(e) =>
-                        onIdentity({ ...identity, text: e.target.value })
+                        onIdentity({ ...identity, name: e.target.value })
+                      }
+                      onBlur={() =>
+                        !identity.name.trim() &&
+                        onIdentity({ ...identity, name: defaultIdentity.name })
                       }
                     />
                   </label>
+                  <div className="settings-control">
+                    <span className="settings-label" id="logo-kind">
+                      Logo
+                    </span>
+                    <div
+                      className="segmented"
+                      role="group"
+                      aria-labelledby="logo-kind"
+                    >
+                      {(
+                        [
+                          ['text', 'Texte'],
+                          ['initials', 'Initiales'],
+                          ['image', 'Image'],
+                        ] as const
+                      ).map(([id, label]) => (
+                        <button
+                          key={id}
+                          aria-pressed={identity.logo === id}
+                          onClick={() => onIdentity({ ...identity, logo: id })}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-              )}
-              {identity.logo === 'image' ? (
-                <div className="settings-field">
-                  <span className="settings-label">Image du logo</span>
-                  <div className="figma-actions">
-                    <label className="file-button settings-link">
-                      {identity.image ? 'Changer l’image' : 'Choisir une image'}
+                {identity.logo === 'text' && (
+                  <div className="settings-row settings-field">
+                    <label className="settings-narrow">
+                      Texte du logo (3 caractères)
                       <input
-                        type="file"
-                        className="sr-only"
-                        accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          e.target.value = '';
-                          if (!file) return;
-                          if (file.size > maxLogoBytes) {
-                            setLogoError('Image trop lourde : 200 Ko maximum.');
-                            return;
-                          }
-                          const reader = new FileReader();
-                          reader.onload = () => {
-                            setLogoError('');
-                            onIdentity({
-                              ...identity,
-                              image: String(reader.result),
-                            });
-                          };
-                          reader.readAsDataURL(file);
-                        }}
+                        maxLength={3}
+                        value={identity.text}
+                        onChange={(e) =>
+                          onIdentity({ ...identity, text: e.target.value })
+                        }
                       />
                     </label>
                   </div>
-                  <p className="settings-hint">
-                    PNG, JPEG, WebP ou SVG, carré de préférence, 200 Ko maximum.
-                  </p>
-                </div>
-              ) : (
-                <div className="settings-field">
-                  <span className="settings-label" id="logo-color">
-                    Couleur du logo
-                  </span>
-                  <div
-                    className="swatch-row"
-                    role="group"
-                    aria-labelledby="logo-color"
-                  >
-                    <button
-                      className="swatch-pick"
-                      aria-pressed={!identity.color}
-                      onClick={() => onIdentity({ ...identity, color: '' })}
-                    >
-                      <span style={{ background: 'var(--accent-strong)' }} />
-                      Accent
-                    </button>
-                    {logoColors.map((c) => (
-                      <button
-                        key={c.value}
-                        className="swatch-pick"
-                        aria-pressed={identity.color === c.value}
-                        onClick={() =>
-                          onIdentity({ ...identity, color: c.value })
-                        }
-                      >
-                        <span style={{ background: c.value }} />
-                        {c.label}
-                      </button>
-                    ))}
+                )}
+                {identity.logo === 'image' ? (
+                  <div className="settings-field">
+                    <span className="settings-label">Image du logo</span>
+                    <div className="figma-actions">
+                      <label className="file-button settings-link">
+                        {identity.image
+                          ? 'Changer l’image'
+                          : 'Choisir une image'}
+                        <input
+                          type="file"
+                          className="sr-only"
+                          accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            e.target.value = '';
+                            if (!file) return;
+                            if (file.size > maxLogoBytes) {
+                              setLogoError(
+                                'Image trop lourde : 200 Ko maximum.',
+                              );
+                              return;
+                            }
+                            const reader = new FileReader();
+                            reader.onload = () => {
+                              setLogoError('');
+                              onIdentity({
+                                ...identity,
+                                image: String(reader.result),
+                              });
+                            };
+                            reader.readAsDataURL(file);
+                          }}
+                        />
+                      </label>
+                    </div>
+                    <p className="settings-hint">
+                      PNG, JPEG, WebP ou SVG, carré de préférence, 200 Ko
+                      maximum.
+                    </p>
                   </div>
-                </div>
-              )}
-              {logoError && (
-                <p className="settings-warn" role="alert">
-                  {logoError}
-                </p>
-              )}
-              <button
-                className="settings-link"
-                onClick={() => {
-                  setLogoError('');
-                  onIdentity(defaultIdentity);
-                }}
-              >
-                Revenir à DS-Studio
-              </button>
-              <h4 id="mode-title">Mode</h4>
-              <div
-                className="segmented"
-                role="group"
-                aria-labelledby="mode-title"
-              >
-                {modes.map((m) => (
-                  <button
-                    key={m.id}
-                    aria-pressed={theme.mode === m.id}
-                    onClick={() => onTheme({ ...theme, mode: m.id })}
-                  >
-                    {m.label}
-                  </button>
-                ))}
-              </div>
-              <h4>Fond</h4>
-              <div className="swatch-row" role="group" aria-label="Fond">
-                {backgrounds.map((b) => (
-                  <button
-                    key={b.id}
-                    className="swatch-pick"
-                    aria-pressed={theme.bg.toUpperCase() === b.value}
-                    onClick={() => onTheme({ ...theme, bg: b.value })}
-                  >
-                    <span style={{ background: b.value }} />
-                    {b.label}
-                  </button>
-                ))}
-                {customSwatch('bg', 'Fond', backgrounds)}
-              </div>
-              <h4>Couleur d’accent</h4>
-              <div
-                className="swatch-row"
-                role="group"
-                aria-label="Couleur d’accent"
-              >
-                {accents.map((a) => (
-                  <button
-                    key={a.id}
-                    className="swatch-pick"
-                    aria-pressed={theme.accent.toUpperCase() === a.value}
-                    onClick={() => onTheme({ ...theme, accent: a.value })}
-                  >
-                    <span style={{ background: a.value }} />
-                    {a.label}
-                  </button>
-                ))}
-                {customSwatch('accent', 'Couleur d’accent', accents)}
-              </div>
-              <h4>Police</h4>
-              <input
-                type="search"
-                className="font-search"
-                aria-label="Rechercher une police"
-                placeholder="Rechercher une police (ex. Futura, serif)"
-                value={fontQuery}
-                onChange={(e) => setFontQuery(e.target.value)}
-              />
-              <div className="font-list" role="group" aria-label="Police">
-                {fonts.map((f) => (
-                  <button
-                    key={f.id}
-                    className="font-pick"
-                    aria-pressed={theme.font === f.id}
-                    style={{ fontFamily: f.value }}
-                    onClick={() => onTheme({ ...theme, font: f.id })}
-                  >
-                    {f.label}
-                    <span className="font-kind">{f.kind}</span>
-                  </button>
-                ))}
-                {!fonts.length && (
-                  <p className="settings-hint">
-                    Aucune police pour « {fontQuery.trim()} ».
+                ) : (
+                  <div className="settings-field">
+                    <span className="settings-label" id="logo-color">
+                      Couleur du logo
+                    </span>
+                    <div
+                      className="swatch-row"
+                      role="group"
+                      aria-labelledby="logo-color"
+                    >
+                      <button
+                        className="swatch-pick"
+                        aria-pressed={!identity.color}
+                        onClick={() => onIdentity({ ...identity, color: '' })}
+                      >
+                        <span style={{ background: 'var(--accent-strong)' }} />
+                        Accent
+                      </button>
+                      {logoColors.map((c) => (
+                        <button
+                          key={c.value}
+                          className="swatch-pick"
+                          aria-pressed={identity.color === c.value}
+                          onClick={() =>
+                            onIdentity({ ...identity, color: c.value })
+                          }
+                        >
+                          <span style={{ background: c.value }} />
+                          {c.label}
+                        </button>
+                      ))}
+                      {customSwatch('logo', 'Couleur du logo', logoColors)}
+                    </div>
+                  </div>
+                )}
+                {logoError && (
+                  <p className="settings-warn" role="alert">
+                    {logoError}
                   </p>
                 )}
-              </div>
-              <p className="settings-hint">
-                Polices installées avec macOS : pas de téléchargement, marche
-                hors ligne.
-              </p>
+                <button
+                  className="settings-link"
+                  onClick={() => {
+                    setLogoError('');
+                    onIdentity(defaultIdentity);
+                  }}
+                >
+                  Revenir à DS-Studio
+                </button>
+              </section>
+              <section className="settings-block" aria-label="Thème">
+                <h4>Thème de l’atelier</h4>
+                <h5 id="mode-title">Mode</h5>
+                <div
+                  className="segmented"
+                  role="group"
+                  aria-labelledby="mode-title"
+                >
+                  {modes.map((m) => (
+                    <button
+                      key={m.id}
+                      aria-pressed={theme.mode === m.id}
+                      onClick={() => onTheme({ ...theme, mode: m.id })}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+                <h5>Fond</h5>
+                <div className="swatch-row" role="group" aria-label="Fond">
+                  {backgrounds.map((b) => (
+                    <button
+                      key={b.id}
+                      className="swatch-pick"
+                      aria-pressed={theme.bg.toUpperCase() === b.value}
+                      onClick={() => onTheme({ ...theme, bg: b.value })}
+                    >
+                      <span style={{ background: b.value }} />
+                      {b.label}
+                    </button>
+                  ))}
+                  {customSwatch('bg', 'Fond', backgrounds)}
+                </div>
+                <h5>Couleur d’accent</h5>
+                <div
+                  className="swatch-row"
+                  role="group"
+                  aria-label="Couleur d’accent"
+                >
+                  {accents.map((a) => (
+                    <button
+                      key={a.id}
+                      className="swatch-pick"
+                      aria-pressed={theme.accent.toUpperCase() === a.value}
+                      onClick={() => onTheme({ ...theme, accent: a.value })}
+                    >
+                      <span style={{ background: a.value }} />
+                      {a.label}
+                    </button>
+                  ))}
+                  {customSwatch('accent', 'Couleur d’accent', accents)}
+                </div>
+              </section>
+              <section className="settings-block" aria-label="Police">
+                <h4>Police</h4>
+                <input
+                  type="search"
+                  className="font-search"
+                  aria-label="Rechercher une police"
+                  placeholder="Rechercher une police (ex. Futura, serif)"
+                  value={fontQuery}
+                  onChange={(e) => setFontQuery(e.target.value)}
+                />
+                <div className="font-list" role="group" aria-label="Police">
+                  {fonts.map((f) => (
+                    <button
+                      key={f.id}
+                      className="font-pick"
+                      aria-pressed={theme.font === f.id}
+                      style={{ fontFamily: f.value }}
+                      onClick={() => onTheme({ ...theme, font: f.id })}
+                    >
+                      {f.label}
+                      <span className="font-kind">{f.kind}</span>
+                    </button>
+                  ))}
+                  {!fonts.length && (
+                    <p className="settings-hint">
+                      Aucune police pour « {fontQuery.trim()} ».
+                    </p>
+                  )}
+                </div>
+                <p className="settings-hint">
+                  Polices installées avec macOS : pas de téléchargement, marche
+                  hors ligne.
+                </p>
+              </section>
               {warnings.map((w) => (
                 <p key={w} className="settings-warn" role="status">
                   {w}

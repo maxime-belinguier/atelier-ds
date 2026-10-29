@@ -7,7 +7,7 @@ import {
   request,
   type ProjectList,
 } from './api.js';
-import { dropChats } from './chatHistory.js';
+import { dropChats, projectKey } from './chatHistory.js';
 
 // Onglet Projets des Paramètres : renommer, supprimer, et où sont les données.
 // Supprimer ne vide rien : le dossier part dans projets-supprimes/.
@@ -113,7 +113,6 @@ export default function ProjectsPane({
                 </button>
               )}
               {p.id !== 'gutt' &&
-                !isOpen &&
                 (confirm === p.id ? (
                   <>
                     <button
@@ -125,11 +124,22 @@ export default function ProjectsPane({
                         void run(async () => {
                           const next = await deleteProject(p.id);
                           dropChats(p.id);
+                          // Projet ouvert supprimé : le serveur a rouvert Gutt.
+                          if (isOpen) {
+                            try {
+                              localStorage.setItem(projectKey, next.current);
+                            } catch {
+                              /* facultatif */
+                            }
+                            location.reload();
+                          }
                           return next;
                         }, `« ${p.name} » supprimé. Son dossier est gardé dans projets-supprimes.`);
                       }}
                     >
-                      Oui, supprimer
+                      {isOpen
+                        ? 'Oui, supprimer et ouvrir Gutt'
+                        : 'Oui, supprimer'}
                     </button>
                     <button onClick={() => setConfirm(null)}>Annuler</button>
                   </>
@@ -146,9 +156,9 @@ export default function ProjectsPane({
         })}
       </ul>
       <p className="settings-hint">
-        Gutt et le projet ouvert ne se suppriment pas. Un projet supprimé
-        disparaît de la liste avec ses conversations ; ses tokens et son
-        historique restent sur le disque, dans projets-supprimes.
+        Gutt ne se supprime pas. Supprimer le projet ouvert rouvre Gutt. Un
+        projet supprimé disparaît de la liste avec ses conversations ; ses
+        tokens et son historique restent sur le disque, dans projets-supprimes.
       </p>
 
       <h4>Données</h4>

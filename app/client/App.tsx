@@ -64,6 +64,7 @@ import {
   downloadText,
   exportTokens,
   getState,
+  listProjects,
   request,
   type Bootstrap,
 } from './api.js';
@@ -174,6 +175,16 @@ export function Preview() {
   const { state, error } = useDesignState();
   const [override, setOverride] = useState<Tokens | null>(null);
   const [focus, setFocus] = useState<string | null>(null);
+  // Autre projet que Gutt : son nom remplace « gutt » dans l'en-tête.
+  const [brandName, setBrandName] = useState<string>();
+  useEffect(() => {
+    listProjects()
+      .then((l) => {
+        if (l.current !== 'gutt')
+          setBrandName(l.projects.find((p) => p.id === l.current)?.name);
+      })
+      .catch(() => undefined);
+  }, []);
   useEffect(() => {
     const onMessage = (e: MessageEvent) => {
       if (e.origin !== location.origin || e.source !== window.parent) return;
@@ -243,7 +254,11 @@ export function Preview() {
     };
   }, [focus, loaded, scenario]);
   return state ? (
-    <Scenario tokens={override ?? state.tokens} scenario={scenario} />
+    <Scenario
+      tokens={override ?? state.tokens}
+      scenario={scenario}
+      brandName={brandName}
+    />
   ) : (
     <p role="alert">{error || 'Chargement du scénario…'}</p>
   );
@@ -1515,7 +1530,7 @@ export default function App() {
     {
       target: '.ds-layout',
       title: 'Ton Design System',
-      text: 'Choisis une catégorie dans le menu, puis modifie une couleur ou une taille : l’aperçu suit tout de suite.',
+      text: 'Choisis une catégorie dans le menu, puis modifie une couleur ou une taille : l’aperçu suit tout de suite. Dans Composants, la planche montre tous les états.',
       before: () => {
         setChatOpen(false);
         setCompare(false);
@@ -1532,7 +1547,7 @@ export default function App() {
     {
       target: 'save',
       title: 'Enregistre quand tu es prêt',
-      text: 'Rien n’est écrit tant que tu ne valides pas. « Enregistrer » (ou Cmd + S) ouvre le diff : tu vérifies, puis tu valides.',
+      text: 'Rien n’est écrit tant que tu ne valides pas. « Enregistrer » (ou Cmd + S) ouvre le diff : tu vérifies, puis tu valides. Si Figma est relié, la case « Envoyer aussi vers Figma » l’envoie en même temps.',
       before: () => {
         setSearch('');
         setSelection({ kind: 'tokens', id: 'colors' });
@@ -1541,7 +1556,7 @@ export default function App() {
     {
       target: 'preview',
       title: 'Vois le résultat',
-      text: 'Change d’écran avec les flèches et teste les formats, du mobile 320 au grand écran 1440.',
+      text: 'Change d’écran avec les flèches et teste les formats, du mobile 320 au grand écran 1440. Zoome avec − / + ou en pinçant, et glisse pour te déplacer.',
       before: () => {
         setChatOpen(false);
         setCompare(false);
@@ -1558,9 +1573,18 @@ export default function App() {
       },
     },
     {
+      target: 'figma',
+      title: 'Relie Figma',
+      text: 'Colle le lien de ton fichier Figma ici. « Lire Figma » récupère tes variables (dans le diff, à valider) et tes composants (groupe « Depuis Figma » du menu).',
+      before: () => {
+        setCompare(false);
+        setChatOpen(false);
+      },
+    },
+    {
       target: '#chat-panel',
       title: 'Demande à Claude',
-      text: 'Décris ce que tu veux changer, Claude propose et tu valides. Choisis le modèle et surveille ton quota avec le cercle. Pour finir, en haut à droite : exporte, règle l’atelier avec la roue crantée, et relance cette visite avec « ? ».',
+      text: 'Décris ce que tu veux changer, Claude propose et tu valides. Choisis le modèle et surveille ton quota avec le cercle. Pour finir : le menu sous le nom de l’app gère tes projets ; en haut à droite, exporte, règle l’atelier avec la roue crantée, et relance cette visite avec « ? ».',
       before: () => {
         setCompare(false);
         setChatOpen(true);
@@ -1851,6 +1875,10 @@ export default function App() {
                     : null
               }
               onError={setError}
+              onManage={() => {
+                setSettingsTab('projects');
+                setSettingsOpen(true);
+              }}
             />
           </div>
         </div>
@@ -1928,6 +1956,7 @@ export default function App() {
         <div className="header-actions">
           <button
             className="brief-pill figma-pill"
+            data-tour="figma"
             aria-label="Figma"
             title={
               figmaState === 'ok'

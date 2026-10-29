@@ -464,7 +464,8 @@ test('projets : créer, isoler les tokens et le brief, rouvrir, onglet périmé 
   assert.equal(created.projects.length, 2);
   const state = await get('state');
   assert.equal(state.revision, 0);
-  assert.equal(state.tokens['color.brand'].$value, seed['color.brand'].$value);
+  // Départ neutre : pas la couleur de Gutt.
+  assert.equal(state.tokens['color.brand'].$value, '#3A3A3A');
   assert.equal((await get('project')).project.name, 'Betclic Poker');
   assert.equal((await get('bootstrap')).project, 'betclic-poker');
   // Un onglet resté sur Gutt ne peut pas écrire dans le nouveau projet.
@@ -498,10 +499,16 @@ test('projets : renommer, supprimer vers projets-supprimes, dossier des données
   const { origin, post, directory } = await fixture(t);
   const get = async (route: string) =>
     (await fetch(origin + '/api/' + route)).json();
+  // Supprimer le projet ouvert rouvre Gutt.
+  await post('projects/create', { name: 'Brouillon', from: 'neutre' });
+  const gone = await (
+    await post('projects/delete', { id: 'brouillon' })
+  ).json();
+  assert.equal(gone.current, 'gutt');
+  assert.equal((await get('bootstrap')).project, 'gutt');
   await post('projects/create', { name: 'École', from: 'neutre' });
-  // Le projet ouvert et Gutt ne se suppriment pas.
-  assert.equal((await post('projects/delete', { id: 'ecole' })).status, 409);
   await post('projects/open', { id: 'gutt' });
+  // Gutt ne se supprime pas.
   assert.equal((await post('projects/delete', { id: 'gutt' })).status, 400);
   assert.equal(
     (await post('projects/rename', { id: 'ecole', name: '' })).status,
@@ -521,11 +528,23 @@ test('projets : renommer, supprimer vers projets-supprimes, dossier des données
   );
   // Rien n'est effacé : le dossier est rangé dans projets-supprimes.
   const kept = await readdir(path.join(directory, 'projets-supprimes'));
-  assert.equal(kept.length, 1);
-  assert.match(kept[0], /^ecole-\d+$/);
+  assert.equal(kept.length, 2);
+  assert.ok(kept.some((k) => /^ecole-\d+$/.test(k)));
   const info = await get('data-info');
   assert.equal(info.dir, directory);
   assert.match(info.version, /^\d+\.\d+\.\d+/);
   const open = await (await post('open-data-folder', {})).json();
   assert.deepEqual(open, { opened: false, dir: directory });
+});
+
+test('projets : le départ neutre respecte les contrastes AA', async () => {
+  const { neutralTokens } = await import('../app/server/projects.js');
+  const { contrast } = await import('../app/shared/model.js');
+  const t = neutralTokens(seed);
+  const c = (k: string) => String(t[k as keyof typeof t].$value);
+  assert.ok(contrast(c('color.onBrand'), c('color.brand')) >= 4.5);
+  assert.ok(contrast(c('color.text'), c('color.canvas')) >= 4.5);
+  assert.ok(contrast(c('color.muted'), c('color.surface')) >= 4.5);
+  assert.ok(contrast(c('color.border'), c('color.surface')) >= 3);
+  assert.ok(contrast(c('color.danger'), c('color.surface')) >= 4.5);
 });

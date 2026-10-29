@@ -6,7 +6,12 @@ import { z } from 'zod';
 import { proposeSchema } from '../shared/model.js';
 import { Store, StudioError } from './store.js';
 import { ProjectStore } from './project.js';
-import { Projects, newProjectSchema } from './projects.js';
+import {
+  Projects,
+  defaultProjectId,
+  neutralTokens,
+  newProjectSchema,
+} from './projects.js';
 import { readPrivate } from './files.js';
 import { projectSchema } from '../shared/project.js';
 import { CodexAdapter } from '../../connectors/agents/codex.js';
@@ -101,7 +106,7 @@ export async function createStudioServer(options: {
       projects: await Promise.all(
         r.projects.map(async (p) => ({ ...p, brand: await brandOf(p.id) })),
       ),
-      base: palette(options.store.seed),
+      base: palette(neutralTokens(options.store.seed)),
     };
   };
   const csrf = randomBytes(32).toString('hex');
@@ -261,7 +266,9 @@ export async function createStudioServer(options: {
         if (url.pathname === '/api/projects/create') {
           const b = newProjectSchema.parse(body);
           const seed =
-            b.from === 'copie' ? store.snapshot().tokens : options.store.seed;
+            b.from === 'copie'
+              ? store.snapshot().tokens
+              : neutralTokens(options.store.seed);
           const id = await projects.create(b.name);
           await openProject(id, seed);
           await project.save('', {
@@ -288,6 +295,9 @@ export async function createStudioServer(options: {
             .object({ id: z.string().max(40) })
             .strict()
             .parse(body);
+          // Projet ouvert : on revient d'abord sur Gutt.
+          if (b.id === projectId && b.id !== defaultProjectId)
+            await openProject(defaultProjectId);
           await projects.remove(b.id);
           return send(200, await projectList());
         }

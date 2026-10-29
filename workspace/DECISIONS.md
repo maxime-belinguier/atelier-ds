@@ -739,3 +739,28 @@ navigateur (Tag affiché, tokens liés) ; suite complète (69 unitaires, 33
 navigateur) ; audit de mise en page sans anomalie ; visite guidée 1:1.
 Limite : rendu approximatif (pas d’images ni d’ombres) ; lecture auto au plus
 toutes les 5 min, sinon clic sur « Lire Figma ».
+
+## 29/10/2026 · Paramètres, projets et visite guidée remis à jour
+
+Problème : couleur du logo limitée à 5 choix ; Apparence en une seule
+colonne sans séparation ; « Partir de zéro » reprenait les couleurs de Gutt ;
+suppression de projet introuvable (cachée dans Paramètres, impossible pour
+le projet ouvert) ; visite guidée muette sur Figma, le zoom et les projets.
+Décision : « Au choix » pour la couleur du logo, avec le sélecteur de
+couleur de l’atelier ; Apparence en trois cartes (Identité, Thème, Police).
+Nouveau projet « zéro » : gris neutres contrastés (AA vérifié par test),
+arrondi 8 ; le nom du projet remplace « gutt » dans l’en-tête de l’aperçu.
+Menu de projet : lien « Renommer ou supprimer… » vers Paramètres › Projets ;
+le projet ouvert se supprime aussi (Gutt est rouvert, dossier gardé dans
+projets-supprimes). Visite guidée : 7 étapes, avec « Relie Figma », la case
+d’envoi vers Figma, le zoom et le menu des projets.
+Écarté : créer des composants dans l’app sans Claude (gros éditeur, doublon
+de Figma, qui alimente déjà l’app) ; écrans de test propres à chaque projet
+(les écrans restent ceux de Gutt, seul le nom change).
+Preuves : tests serveur (départ neutre, suppression du projet ouvert,
+contrastes) ; tests navigateur (logo au choix appliqué, nom dans l’aperçu,
+lien du menu, visite 7 étapes) ; suite complète (70 unitaires, 33
+navigateur) ; audit de mise en page sans anomalie ; visite guidée 1:1 aux
+trois tailles.
+Limite : les composants et écrans de l’aperçu restent ceux de Gutt pour
+tout projet.

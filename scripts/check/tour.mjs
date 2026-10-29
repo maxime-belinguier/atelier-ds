@@ -12,7 +12,7 @@ for (const [w, h] of [
   await p.goto(process.env.DS_URL ?? 'http://127.0.0.1:4332/');
   await p.waitForTimeout(400);
   const report = [];
-  for (let i = 1; i <= 6; i++) {
+  for (let i = 1; i <= 7; i++) {
     // Échantillonne la carte à chaque image pendant la transition.
     const samples = await p.evaluate(
       () =>

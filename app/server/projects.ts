@@ -3,6 +3,7 @@ import { promises as fs } from 'node:fs';
 import { z } from 'zod';
 import { atomicWrite, readPrivate } from './files.js';
 import { StudioError } from './store.js';
+import { tokensSchema, type Tokens } from '../shared/model.js';
 
 // Liste des projets de l'atelier. Le projet historique (Gutt) garde le
 // dossier de données d'origine : aucune migration, rien n'est déplacé.
@@ -21,6 +22,29 @@ const registrySchema = z
   .strict();
 export type ProjectEntry = z.infer<typeof entrySchema>;
 export type Registry = z.infer<typeof registrySchema>;
+// « Partir de zéro » : gris neutres, sans la couleur ni l'arrondi de Gutt.
+// Contrastes AA vérifiés par le test projects.
+const neutralValues: Record<string, string | number> = {
+  'color.brand': '#3A3A3A',
+  'color.brandHover': '#1F1F1F',
+  'color.onBrand': '#FFFFFF',
+  'color.surface': '#FFFFFF',
+  'color.canvas': '#F5F5F5',
+  'color.text': '#1A1A1A',
+  'color.muted': '#5C5C5C',
+  'color.border': '#8A8A8A',
+  'color.danger': '#B42318',
+  'color.success': '#1E7A46',
+  'color.focus': '#2563EB',
+  'radius.control': 8,
+};
+export function neutralTokens(seed: Tokens): Tokens {
+  const next = structuredClone(seed) as Record<string, { $value: unknown }>;
+  for (const [k, v] of Object.entries(neutralValues))
+    if (next[k]) next[k].$value = v;
+  return tokensSchema.parse(next);
+}
+
 export const newProjectSchema = z
   .object({
     name: z.string().trim().min(1, 'Nom du projet requis.').max(60),
@@ -121,7 +145,8 @@ export class Projects {
   }
   // Retire le projet de la liste et range son dossier dans
   // <données>/projets-supprimes/ : rien n'est effacé du disque.
-  // Gutt (dossier d'origine) et le projet ouvert ne peuvent pas être retirés.
+  // Gutt (dossier d'origine) ne peut pas être retiré ; le serveur rouvre Gutt
+  // avant de retirer le projet ouvert.
   async remove(id: string) {
     idSchema.parse(id);
     const r = await this.read();

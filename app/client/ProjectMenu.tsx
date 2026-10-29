@@ -217,6 +217,7 @@ export default function ProjectMenu({
   tokens,
   locked,
   onError,
+  onManage,
 }: {
   current: string | undefined;
   /** Tokens enregistrés du projet ouvert (aperçu « Copier »). */
@@ -224,6 +225,8 @@ export default function ProjectMenu({
   /** Raison qui empêche de changer de projet (modifs en cours, demande IA). */
   locked: string | null;
   onError: (message: string) => void;
+  /** Ouvre Paramètres › Projets (renommer, supprimer). */
+  onManage: () => void;
 }) {
   const [list, setList] = useState<ProjectList>();
   const [open, setOpen] = useState(false);
@@ -390,6 +393,15 @@ export default function ProjectMenu({
             }}
           >
             <span aria-hidden="true">+</span> Nouveau projet
+          </button>
+          <button
+            className="project-manage"
+            onClick={() => {
+              setOpen(false);
+              onManage();
+            }}
+          >
+            Renommer ou supprimer…
           </button>
         </div>
       )}

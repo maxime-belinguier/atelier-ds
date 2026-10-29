@@ -789,14 +789,14 @@ test('aperçu : Comparer affiche deux formats qui suivent les modifications', as
   await expect(page.locator('iframe')).toHaveCount(1);
 });
 
-test('visite guidée : 6 étapes, ouverte au premier lancement, relancée avec « ? »', async ({
+test('visite guidée : 7 étapes, ouverte au premier lancement, relancée avec « ? »', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/');
   const tour = page.getByRole('dialog', { name: 'Ton Design System' });
   await expect(tour).toBeVisible();
-  await expect(tour).toContainText('Étape 1 sur 6');
+  await expect(tour).toContainText('Étape 1 sur 7');
   const next = () =>
     page.getByRole('button', { name: 'Suivant', exact: true }).click();
   await next();
@@ -818,6 +818,9 @@ test('visite guidée : 6 étapes, ouverte au premier lancement, relancée avec �
   for (let i = 0; i < 4; i++) await next();
   await expect(page.getByRole('dialog', { name: 'Compare' })).toBeVisible();
   await expect(page.locator('.compare-stage')).toHaveCount(1);
+  await next();
+  await expect(page.getByRole('dialog', { name: 'Relie Figma' })).toBeVisible();
+  await expect(page.locator('.compare-stage')).toHaveCount(0);
   await next();
   await expect(page.locator('#chat-panel')).toBeVisible();
   await page.getByRole('button', { name: 'Terminer' }).click();
@@ -915,6 +918,17 @@ test('paramètres : onglets, apparence appliquée et mémorisée, Échap', async
     dialog.getByRole('dialog', { name: 'Couleur : Fond' }),
   ).toHaveCount(0);
   await expect(dialog).toBeVisible();
+  // Couleur du logo au choix : même sélecteur, appliquée au carré du logo.
+  await dialog
+    .getByRole('button', { name: 'Couleur du logo au choix' })
+    .click();
+  await dialog.getByLabel('Code HEX : Couleur du logo').fill('#118855');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.wordmark .brand-symbol')).toHaveCSS(
+    'background-color',
+    'rgb(17, 136, 85)',
+  );
+  await page.keyboard.press('Escape');
   // Recherche de police.
   await dialog.getByLabel('Rechercher une police').fill('futura');
   await expect(dialog.locator('.font-pick')).toHaveCount(1);
@@ -1163,6 +1177,13 @@ test('projets : créer, changer, verrou si modifs en cours', async ({
   await dialog.getByRole('button', { name: 'Créer le projet' }).click();
   await expect(page.getByRole('button', { name: /Projet test/ })).toBeVisible();
   expect((await state(page)).revision).toBe(0);
+  // Départ neutre (pas les couleurs de Gutt), nom du projet dans l'aperçu.
+  expect((await state(page)).tokens['color.brand'].$value).toBe('#3A3A3A');
+  await expect(
+    page
+      .frameLocator('iframe[title="Aperçu responsive"]')
+      .locator('.scenario-head strong'),
+  ).toHaveText('Projet test');
   await expect(page.getByText('Projet « Projet test » créé.')).toBeVisible();
   await page.getByRole('button', { name: 'Remplir le brief' }).click();
   await expect(page.getByText('Projet « Projet test » créé.')).toBeHidden();
@@ -1232,8 +1253,13 @@ test('paramètres : nom et logo de l’app, mode sombre, projets', async ({
   // Identité et mode gardés après rechargement.
   await expect(page.locator('.wordmark strong')).toHaveText('Atelier Max');
   await expect(page.locator('html')).toHaveAttribute('data-mode', 'dark');
-  await page.getByRole('button', { name: 'Paramètres' }).click();
-  await dialog.getByRole('tab', { name: 'Projets' }).click();
+  // Accès direct depuis le menu de projet.
+  await page.locator('.project-trigger').click();
+  await page.getByRole('button', { name: 'Renommer ou supprimer…' }).click();
+  await expect(dialog.getByRole('tab', { name: 'Projets' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
   const rows = dialog.locator('.projects-list li');
   await expect(dialog.getByLabel('Nom du projet École')).toBeVisible();
   const before = await rows.count();

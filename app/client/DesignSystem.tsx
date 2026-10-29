@@ -641,16 +641,19 @@ export const screens: {
 export function Scenario({
   tokens,
   scenario,
+  brandName,
 }: {
   tokens: Tokens;
   scenario: string;
+  /** Nom du projet (autre que Gutt) affiché à la place de « gutt ». */
+  brandName?: string;
 }) {
   return (
     <DSProvider tokens={tokens}>
       <div className="scenario">
         <header className="scenario-head">
-          <strong>gutt</strong>
-          <span className="ds-badge">Bordeaux</span>
+          <strong>{brandName ?? 'gutt'}</strong>
+          {!brandName && <span className="ds-badge">Bordeaux</span>}
         </header>
         <Navigation />
         <main>
@@ -674,7 +677,11 @@ export function Scenario({
             </div>
           )}
         </main>
-        <footer>Gutt · prototype PFE, données fictives</footer>
+        <footer>
+          {brandName
+            ? `${brandName} · écrans de test, données fictives`
+            : 'Gutt · prototype PFE, données fictives'}
+        </footer>
       </div>
     </DSProvider>
   );
