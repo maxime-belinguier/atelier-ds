@@ -11,7 +11,12 @@ import {
 } from 'react';
 import { DSProvider, Scenario, components, screens } from './DesignSystem.js';
 import ProjectBrief from './ProjectBrief.js';
-import FitBox, { ZoomControl, clampZoom, usePinchZoom } from './FitBox.js';
+import FitBox, {
+  ZoomControl,
+  clampZoom,
+  useDragPan,
+  usePinchZoom,
+} from './FitBox.js';
 import ScreenPicker from './ScreenPicker.js';
 import ProjectMenu, { newProjectKey } from './ProjectMenu.js';
 import ColorPicker from './ColorPicker.js';
@@ -504,6 +509,10 @@ export default function App() {
   const [sheetScale, setSheetScale] = useState(1);
   const [sheetZoom, setSheetZoom] = useState(1);
   const sheetStage = useRef<HTMLDivElement>(null);
+  useDragPan(sheetStage, () => ({
+    x: sheetStage.current?.querySelector<HTMLElement>('.fit-box') ?? null,
+    y: sheetStage.current?.querySelector<HTMLElement>(':scope > .ds') ?? null,
+  }));
   usePinchZoom(
     sheetStage,
     () => sheetScale,
@@ -1090,6 +1099,7 @@ export default function App() {
   chatOpenRef.current = chatOpen;
   // Pincement ou Cmd + molette sur l'aperçu ; 0 = comparaison, sans zoom.
   const previewScale = useRef(1);
+  useDragPan(stage, () => ({ x: stage.current, y: stage.current }));
   usePinchZoom(
     stage,
     () => previewScale.current,
@@ -2693,7 +2703,10 @@ export default function App() {
               </div>
             )}
           </div>
-          <div className="stage" ref={stage}>
+          <div
+            className={`stage${!layout.fit && !compare ? ' is-zoomed' : ''}`}
+            ref={stage}
+          >
             {vision !== 'none' && (
               <div className="vision-sticky">
                 <span className="vision-chip" role="status">

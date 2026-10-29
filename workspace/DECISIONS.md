@@ -686,4 +686,12 @@ planche 100 % puis 125 %) ; pincement vérifié sur l’écran et sur le fond ;
 suite complète (68 unitaires, 33 navigateur) ; audit de mise en page sans
 anomalie (outils de l’aperçu qui passent à la ligne à 1100 px) ; visite
 guidée 1:1 ; captures relues.
-Limite : en mode Comparer, le zoom reste automatique.
+Suite : la vue zoomée se déplace en glissant (curseur main, comme Figma) sur
+la planche et sur le fond de l’aperçu ; Espace + glisser marche aussi
+au-dessus de l’écran de l’aperçu. Un clic reste un clic (déplacement après
+4 px). Barres de défilement toujours visibles (masquées par défaut sur Mac).
+Preuves (suite) : test navigateur (planche à 125 %, glisser = défilement
+horizontal) ; Espace + glisser vérifié sur l’écran ; suite complète (33
+navigateur) ; audit de mise en page sans anomalie ; visite guidée 1:1.
+Limite : en mode Comparer, le zoom reste automatique ; sans Espace, glisser
+sur l’écran de l’aperçu agit sur l’écran (boutons, champs), pas sur la vue.

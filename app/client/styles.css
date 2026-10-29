@@ -4658,3 +4658,42 @@ html[data-focus='nav'] [data-ds='nav'] {
   row-gap: 8px;
   min-width: 0;
 }
+/* Vue zoomée : main pour glisser, barres de défilement toujours visibles
+   (sur Mac elles sont masquées par défaut). */
+.stage.is-zoomed,
+.component-stage > .ds:has(.fit-box.is-real) {
+  cursor: grab;
+}
+.stage iframe {
+  cursor: auto;
+}
+.stage.is-dragging,
+.component-stage.is-dragging > .ds,
+.stage.is-panning,
+.component-stage.is-panning > .ds {
+  cursor: grabbing;
+  user-select: none;
+}
+.stage.is-panning iframe,
+.stage.is-dragging iframe {
+  pointer-events: none;
+}
+.stage::-webkit-scrollbar,
+.fit-box.is-real::-webkit-scrollbar,
+.component-stage > .ds::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.stage::-webkit-scrollbar-thumb,
+.fit-box.is-real::-webkit-scrollbar-thumb,
+.component-stage > .ds::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.stage::-webkit-scrollbar-track,
+.fit-box.is-real::-webkit-scrollbar-track,
+.component-stage > .ds::-webkit-scrollbar-track {
+  background: transparent;
+}

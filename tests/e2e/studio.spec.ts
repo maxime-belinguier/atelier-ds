@@ -1269,6 +1269,15 @@ test('composant : planche à gauche, écran cohérent et contour à droite', asy
   await expect(sheet).toContainText('taille réelle');
   await sheetZoom.getByRole('button', { name: 'Zoomer', exact: true }).click();
   await expect(sheetZoom.locator('.zoom-value')).toHaveText('125 %');
+  // Vue zoomée : glisser déplace la planche de droite à gauche.
+  const box = (await sheet.locator('.fit-box').boundingBox())!;
+  await page.mouse.move(box.x + 300, box.y + 60);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 100, box.y + 60, { steps: 5 });
+  await page.mouse.up();
+  expect(
+    await sheet.locator('.fit-box').evaluate((el) => el.scrollLeft),
+  ).toBeGreaterThan(0);
   await sheetZoom.getByRole('button', { name: /revenir à 100 %/ }).click();
   // Le contour suit le composant ouvert.
   await expect(frame.locator('html')).toHaveAttribute('data-focus', 'buttons');

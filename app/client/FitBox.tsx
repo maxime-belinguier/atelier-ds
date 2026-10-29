@@ -42,6 +42,83 @@ export function usePinchZoom(
   });
 }
 
+// Glisser pour déplacer la vue zoomée (main, comme dans Figma). Un clic
+// simple reste un clic : le déplacement démarre après 4 px. Espace + glisser
+// marche aussi au-dessus d'une iframe (classe is-panning : voir styles.css).
+export function useDragPan(
+  target: React.RefObject<HTMLElement | null>,
+  scrollers: () => { x: HTMLElement | null; y: HTMLElement | null },
+) {
+  const latest = useRef(scrollers);
+  latest.current = scrollers;
+  useEffect(() => {
+    const el = target.current;
+    if (!el) return;
+    let space = false;
+    const editable = (t: EventTarget | null) =>
+      t instanceof HTMLElement &&
+      !!t.closest(
+        'input, textarea, select, [contenteditable="true"], .resize-handle',
+      );
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code !== 'Space' || editable(e.target)) return;
+      // Espace ne sert à déplacer que si la souris est sur la zone.
+      if (e.type === 'keydown' && !el.matches(':hover')) return;
+      if (e.type === 'keydown') e.preventDefault();
+      space = e.type === 'keydown';
+      el.classList.toggle('is-panning', space);
+    };
+    const onDown = (e: PointerEvent) => {
+      if (e.button !== 0 || (!space && editable(e.target))) return;
+      const { x, y } = latest.current();
+      const start = {
+        px: e.clientX,
+        py: e.clientY,
+        x: x?.scrollLeft ?? 0,
+        y: y?.scrollTop ?? 0,
+      };
+      let dragging = false;
+      const onMove = (m: PointerEvent) => {
+        const dx = m.clientX - start.px;
+        const dy = m.clientY - start.py;
+        if (!dragging && Math.hypot(dx, dy) < 4) return;
+        if (!dragging) {
+          dragging = true;
+          el.classList.add('is-dragging');
+          el.setPointerCapture(e.pointerId);
+        }
+        if (x) x.scrollLeft = start.x - dx;
+        if (y) y.scrollTop = start.y - dy;
+      };
+      const onUp = () => {
+        el.removeEventListener('pointermove', onMove);
+        el.removeEventListener('pointerup', onUp);
+        el.removeEventListener('pointercancel', onUp);
+        if (!dragging) return;
+        el.classList.remove('is-dragging');
+        // Le glissé ne doit pas finir en clic sur un bouton de la planche.
+        el.addEventListener('click', (c) => c.stopPropagation(), {
+          capture: true,
+          once: true,
+        });
+      };
+      el.addEventListener('pointermove', onMove);
+      el.addEventListener('pointerup', onUp);
+      el.addEventListener('pointercancel', onUp);
+    };
+    el.addEventListener('pointerdown', onDown);
+    addEventListener('keydown', onKey);
+    addEventListener('keyup', onKey);
+    return () => {
+      el.removeEventListener('pointerdown', onDown);
+      removeEventListener('keydown', onKey);
+      removeEventListener('keyup', onKey);
+      el.classList.remove('is-panning', 'is-dragging');
+    };
+    // Sans dépendances : l'élément peut apparaître après le premier rendu.
+  });
+}
+
 // Fit | − NN % + : Fit fait tout tenir, NN % revient à la taille réelle.
 export function ZoomControl({
   label,
