@@ -3514,7 +3514,15 @@ export default function App() {
       )}
       {tourOpen && (
         <Tour
-          steps={tourSteps}
+          // Projet libre : pas d'écran ni de Comparer à montrer.
+          steps={
+            libre
+              ? tourSteps.filter(
+                  (s) =>
+                    s.title !== 'Vois le résultat' && s.title !== 'Compare',
+                )
+              : tourSteps
+          }
           onClose={() => {
             setTourOpen(false);
             setCompare(tourPrev.current.compare);

@@ -243,8 +243,9 @@ export default function Settings({
             ))}
           </div>
           <p className="settings-note">
-            Préférences de l’atelier, gardées dans ce navigateur. Ton Design
-            System n’est pas modifié.
+            {tab === 'projects'
+              ? 'Les projets sont enregistrés sur ce poste, dans le dossier des données.'
+              : 'Préférences de l’atelier, gardées dans ce navigateur. Ton Design System n’est pas modifié.'}
           </p>
         </aside>
 

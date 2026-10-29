@@ -999,9 +999,10 @@ small,
     height: auto;
     min-height: 100dvh;
   }
+  /* Écran étroit : l'en-tête passe à la ligne au lieu de s'empiler. */
   .studio-header {
-    flex-direction: column;
-    align-items: flex-start;
+    flex-wrap: wrap;
+    row-gap: 8px;
     padding: 10px 14px;
   }
   .save-status {

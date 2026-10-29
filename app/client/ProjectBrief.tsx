@@ -115,10 +115,8 @@ export default function ProjectBrief() {
         Exporter le brief enregistré (.md)
       </button>
       <p className="privacy-note">
-        Si tu utilises l’assistant (Claude ou Codex), ce brief rejoint le
-        contexte envoyé au fournisseur. Ne saisis pas de données sensibles. Pour
-        ton agent externe, exporte tes choix dans workspace/PFE.md après
-        relecture.
+        Le chat Claude reçoit ce brief avec ta demande. Ne saisis pas de données
+        sensibles.
       </p>
     </div>
   );

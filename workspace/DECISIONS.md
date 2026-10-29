@@ -917,3 +917,17 @@ et visite guidée sans anomalie ; captures relues.
 Limite : bonnes pratiques écrites à la main pour les 5 composants Gutt
 (conseils, pas des règles vérifiées) ; composants lus dans Figma sans bonnes
 pratiques ; écrans et Contrôle qualité gardent la vue habituelle.
+
+## 29/10/2026 · Audit : petites frictions corrigées
+
+Problème : audit du parcours (12 sections × 2 modes, menus, visite, chat,
+Comparer, 3 largeurs) : aucun bug ni erreur console ; 4 frictions.
+Décision : en-tête sur une ligne à 768 px (au lieu de 3) ; note des
+Paramètres juste pour l’onglet Projets (enregistrés sur le poste) ; Brief sans
+mention de Codex ni de workspace/PFE.md ; visite d’un projet libre sans les
+étapes Aperçu et Comparer (absents).
+Écarté : mémoriser Éditer / Bibliothèque par section (plus confus).
+Preuves : tests navigateur visite, brief, paramètres, projets ; audit de mise
+en page sans anomalie ; capture 768 px relue.
+Limite : non vérifiés ici : menu Figma connecté en capture, vrai chat Claude,
+Terminal macOS.
