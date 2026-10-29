@@ -4697,3 +4697,47 @@ html[data-focus='nav'] [data-ds='nav'] {
 .component-stage > .ds::-webkit-scrollbar-track {
   background: transparent;
 }
+/* Lire Figma : accès direct dans l'en-tête, pastille des nouveautés. */
+.figma-read svg {
+  flex: none;
+}
+.figma-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  margin-left: 2px;
+  border-radius: 9px;
+  background: var(--accent-strong);
+  color: var(--on-accent, #fff);
+  font-size: 11px;
+  font-weight: 700;
+}
+/* Écran moyen : « Lire Figma » devient une icône (nom gardé en aria-label). */
+@media (max-width: 1279px) {
+  .figma-read .figma-read-label,
+  .figma-pill .figma-pill-label,
+  .brief-pill .brief-pill-label {
+    display: none;
+  }
+}
+
+/* Composants lus dans Figma : une colonne par variante. */
+.figma-sheet {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 24px;
+  padding: 8px;
+}
+.figma-variant {
+  margin: 0;
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+}
+.figma-variant figcaption {
+  font-size: 12px;
+  color: var(--color-muted, #536078);
+}

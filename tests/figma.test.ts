@@ -265,3 +265,39 @@ test('Figma : la garde ne laisse passer qu’un appel, au script exact', async (
   assert.equal(second.status, 2);
   assert.match(second.stderr, /déjà effectué/);
 });
+
+test('Composants Figma : données externes relues et bornées', async () => {
+  const { parseComponents } = await import('../app/shared/figmaComponents.js');
+  const { readCode } = await import('../connectors/figma/scripts.js');
+  const out = parseComponents([
+    {
+      id: '1:2',
+      name: 'Tag',
+      variants: [
+        {
+          id: '1:3',
+          name: 'Type=A',
+          root: {
+            t: 'COMPONENT',
+            f: { c: '#09d8d0', v: 'color/brand' },
+            s: { c: 'red', v: 'x;}body{' },
+            gv: 'space/sm); background: url(x',
+            k: [{ t: 'TEXT', tx: 'a'.repeat(500) }],
+          },
+        },
+      ],
+    },
+    { id: '1:4', name: 'Vide', variants: [] },
+    'junk',
+  ]);
+  assert.equal(out.length, 1);
+  const root = out[0].variants[0].root;
+  assert.deepEqual(root.f, { c: '#09D8D0', v: 'color/brand' });
+  assert.equal(root.s, undefined);
+  assert.equal(root.gv, undefined);
+  assert.equal(root.k?.[0].tx?.length, 300);
+  // La lecture des variables seule ne change pas ; les composants sont en plus.
+  assert.ok(!readCode().includes('findAllWithCriteria'));
+  assert.ok(readCode(true).includes('findAllWithCriteria'));
+  assert.ok(!readCode(true).includes('loadAllPagesAsync'));
+});

@@ -10,7 +10,10 @@ import { tokensSchema } from '../app/shared/model.js';
 import { createStudioServer } from '../app/server/http.js';
 import type { AgentAdapter } from '../connectors/agents/types.js';
 import type { FigmaConnector } from '../app/server/figma.js';
-import { fakeFigmaConnector } from './fixtures/fakeFigmaConnector.js';
+import {
+  fakeFigmaConnector,
+  sampleComponent,
+} from './fixtures/fakeFigmaConnector.js';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const seed = tokensSchema.parse(
   JSON.parse(
@@ -343,12 +346,15 @@ test('connexion d’un assistant : commande officielle fixe, rien d’autre', as
 });
 
 test('Figma : lien requis, lecture en diff, écriture validée une seule fois', async (t) => {
-  const fake = fakeFigmaConnector([
-    { name: 'color/brand', type: 'COLOR', value: '#b85c00' },
-    { name: 'color/warning', type: 'COLOR', value: '#9A5B00' },
-    { name: 'space/md', type: 'STRING', value: 'oops' },
-    { name: 'Bouton/Primaire/Fond', type: 'COLOR', value: '#000000' },
-  ]);
+  const fake = fakeFigmaConnector(
+    [
+      { name: 'color/brand', type: 'COLOR', value: '#b85c00' },
+      { name: 'color/warning', type: 'COLOR', value: '#9A5B00' },
+      { name: 'space/md', type: 'STRING', value: 'oops' },
+      { name: 'Bouton/Primaire/Fond', type: 'COLOR', value: '#000000' },
+    ],
+    [sampleComponent],
+  );
   const { origin, post, store } = await fixture(
     t,
     false,
@@ -383,6 +389,10 @@ test('Figma : lien requis, lecture en diff, écriture validée une seule fois', 
     ['color.brand', 'color.warning'],
   );
   assert.equal(pulled.ignored.length, 2);
+  // Composants lus avec la lecture, servis en lecture seule.
+  const comps = await (await fetch(origin + '/api/figma/components')).json();
+  assert.equal(comps.components[0].name, 'Tag');
+  assert.equal(comps.components[0].variants[0].root.f.v, 'color/danger');
   assert.equal(store.snapshot().revision, 0);
   assert.equal((await post('commit', { id: pulled.proposal.id })).status, 200);
   assert.equal(store.snapshot().tokens['color.warning'].$value, '#9A5B00');
@@ -395,6 +405,9 @@ test('Figma : lien requis, lecture en diff, écriture validée une seule fois', 
   assert.equal(applied.status, 200);
   assert.equal((await applied.json()).verified, true);
   assert.equal(fake.variables.get('space/md')?.value, 16);
+  // L'envoi relit sans les composants mais garde les derniers lus.
+  const kept = await (await fetch(origin + '/api/figma/components')).json();
+  assert.equal(kept.components.length, 1);
   const replay = await post('figma/apply', { approvalId: preview.approvalId });
   assert.equal(replay.status, 404);
   // Aperçu périmé si le DS change entre-temps.

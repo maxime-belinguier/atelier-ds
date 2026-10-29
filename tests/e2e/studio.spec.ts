@@ -1027,6 +1027,18 @@ test('Figma (simulé) : lire en diff, puis envoyer avec aperçu et validation', 
     .click();
   await expect(diff(page)).not.toBeVisible();
   expect((await state(page)).tokens['color.warning'].$value).toBe('#9A5B00');
+  // Les composants du fichier apparaissent, liés aux tokens.
+  await page.getByRole('button', { name: 'Tag (Figma)' }).click();
+  const planche = page.getByRole('region', { name: 'Planche : Tag' });
+  await expect(planche.getByText('Variantes lues dans Figma')).toBeVisible();
+  await expect(planche.getByText('Red flag')).toBeVisible();
+  await expect(planche.getByText('Type : Alerte')).toBeVisible();
+  await expect(
+    page.getByText('Lu dans Figma : rendu approximatif'),
+  ).toBeVisible();
+  await expect(
+    page.getByLabel('Couleur d’alerte', { exact: true }),
+  ).toBeVisible();
   // Envoi : aperçu des variables à écrire, puis validation explicite.
   await page.getByRole('button', { name: 'Figma', exact: true }).click();
   await settings.getByRole('button', { name: 'Envoyer vers Figma' }).click();
@@ -1061,6 +1073,25 @@ test('Figma (simulé) : lire en diff, puis envoyer avec aperçu et validation', 
       'Figma a déjà toutes les valeurs enregistrées de l’atelier.',
     ),
   ).toBeVisible();
+  await settings.getByRole('button', { name: 'Fermer les paramètres' }).click();
+  // Lire Figma en un clic depuis l'en-tête : rien de nouveau.
+  const read = page.getByRole('button', { name: /^Lire Figma/ });
+  await read.click();
+  await expect(page.getByText('Figma : rien de nouveau ✓')).toBeVisible();
+  // Enregistré sans envoi : à l'ouverture, l'app voit l'écart toute seule.
+  await page.getByLabel('Couleur de marque', { exact: true }).fill('#225522');
+  await page.getByRole('button', { name: /^Enregistrer/ }).click();
+  await diff(page).getByLabel('Envoyer aussi vers Figma').uncheck();
+  await diff(page)
+    .getByRole('button', { name: /Valider|Enregistrer/ })
+    .click();
+  await page.reload();
+  await expect(read).toHaveAccessibleName('Lire Figma, 1 nouveauté');
+  await read.click();
+  await expect(diff(page).getByText('Lu dans Figma')).toBeVisible();
+  await expect(diff(page).getByText('color.brand')).toBeVisible();
+  await diff(page).getByRole('button', { name: 'Ne pas appliquer' }).click();
+  await page.evaluate(() => localStorage.setItem('ds-studio-figma-auto', '1'));
 });
 
 test('assistant : historique gardé, nouvelle conversation, réouverture', async ({

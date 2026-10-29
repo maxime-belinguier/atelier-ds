@@ -54,10 +54,13 @@ export default function FigmaPanel({
   revision,
   onConnect,
   onProposal,
+  onRead,
 }: {
   revision: number;
   onConnect: () => Promise<{ opened: boolean; command: string }>;
   onProposal: (p: Proposal) => void;
+  /** Lecture faite : l'atelier recharge les composants lus. */
+  onRead?: () => void;
 }) {
   const [status, setStatus] = useState<Status>();
   const [checking, setChecking] = useState(false);
@@ -131,6 +134,7 @@ export default function FigmaPanel({
             .map((i) => `${i.name} (${i.reason})`)
             .join(', ')}.`
         : '';
+      onRead?.();
       if (r.proposal) onProposal(r.proposal);
       else setMessage(r.message + skipped);
       void check();

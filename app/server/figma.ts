@@ -2,6 +2,7 @@ import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { atomicWrite, readPrivate } from './files.js';
 import { Store, StudioError } from './store.js';
+import { parseComponents } from '../shared/figmaComponents.js';
 import { ProjectStore } from './project.js';
 import {
   figmaToChanges,
@@ -14,7 +15,11 @@ import type { FigmaStatus } from '../../connectors/figma/claudeFigma.js';
 
 export interface FigmaConnector {
   status(): Promise<FigmaStatus>;
-  read(fileKey: string, signal?: AbortSignal): Promise<FigmaRead>;
+  read(
+    fileKey: string,
+    signal?: AbortSignal,
+    components?: boolean,
+  ): Promise<FigmaRead>;
   write(
     fileKey: string,
     plan: PushPlan,
@@ -30,6 +35,7 @@ export interface FigmaConnector {
 export interface FigmaSnapshot extends FigmaRead {
   fileKey: string;
   readAt: string;
+  componentsAt?: string;
 }
 
 interface Approval {
@@ -70,7 +76,7 @@ export class FigmaSync {
 
   async snapshot(): Promise<FigmaSnapshot | null> {
     try {
-      const raw = await readPrivate(this.file, 500_000);
+      const raw = await readPrivate(this.file, 3_000_000);
       const value = JSON.parse(raw) as FigmaSnapshot;
       return Array.isArray(value.variables) ? value : null;
     } catch {
@@ -79,13 +85,30 @@ export class FigmaSync {
   }
 
   private async save(fileKey: string, read: FigmaRead) {
+    // Une lecture sans composants (envoi vers Figma) garde les derniers lus.
+    const prev = read.components ? null : await this.snapshot();
     const snap: FigmaSnapshot = {
       fileKey,
       readAt: new Date().toISOString(),
       ...read,
+      ...(prev?.fileKey === fileKey && prev.components
+        ? { components: prev.components, componentsAt: prev.componentsAt }
+        : {}),
     };
+    if (read.components) snap.componentsAt = snap.readAt;
     await atomicWrite(this.file, JSON.stringify(snap, null, 2) + '\n');
     return snap;
+  }
+
+  // Composants lus au dernier « Lire Figma » (lecture seule).
+  async components() {
+    const [file, snap] = await Promise.all([this.fileKey(), this.snapshot()]);
+    if (!snap?.components || snap.fileKey !== file.key)
+      return { readAt: null, components: [] };
+    return {
+      readAt: snap.componentsAt ?? snap.readAt,
+      components: parseComponents(snap.components),
+    };
   }
 
   async status() {
@@ -111,7 +134,7 @@ export class FigmaSync {
   // Figma → atelier : proposition ordinaire, validée dans le diff habituel.
   async pull(revision: number, signal?: AbortSignal) {
     const key = await this.requireKey();
-    const read = await this.connector.read(key, signal);
+    const read = await this.connector.read(key, signal, true);
     await this.save(key, read);
     const tokens = this.store.snapshot().tokens;
     const { changes, ignored } = figmaToChanges(read, tokens);

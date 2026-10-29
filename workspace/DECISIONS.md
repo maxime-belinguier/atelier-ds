@@ -695,3 +695,47 @@ horizontal) ; Espace + glisser vérifié sur l’écran ; suite complète (33
 navigateur) ; audit de mise en page sans anomalie ; visite guidée 1:1.
 Limite : en mode Comparer, le zoom reste automatique ; sans Espace, glisser
 sur l’écran de l’aperçu agit sur l’écran (boutons, champs), pas sur la vue.
+
+## 29/10/2026 · « Lire Figma » en accès direct, vérification automatique
+
+Problème : « Lire depuis Figma » était caché dans Paramètres › Figma, et rien
+ne prévenait d’un changement fait dans Figma.
+Décision : bouton « Lire Figma » dans l’en-tête, à côté de la bulle Figma
+(visible quand Figma est connecté et lié). L’app lit Figma seule à
+l’ouverture et au retour sur la fenêtre (au plus une fois toutes les 5 min,
+car chaque lecture passe par Claude Code) ; s’il y a des écarts, une pastille
+affiche leur nombre. Un clic ouvre le diff habituel ; rien n’est appliqué sans
+validation. Sans écart : « Figma : rien de nouveau ✓ ». Un envoi après
+Enregistrer attend la fin d’une lecture en cours.
+Écrans moyens (< 1280 px) : Figma, Lire Figma et Brief passent en icônes
+(nom gardé pour les lecteurs d’écran) pour garder l’en-tête sur une ligne.
+Écarté : appliquer automatiquement ce qui vient de Figma (contraire à la
+règle du diff validé) ; lire Figma en continu (coût et quota).
+Preuves : test navigateur (lecture « rien de nouveau », puis écart détecté
+seul au rechargement : « Lire Figma, 1 nouveauté », clic = diff « Lu dans
+Figma ») ; suite complète (68 unitaires, 33 navigateur) ; audit de mise en
+page sans anomalie ; en-tête sur une ligne à 1024 px ; visite guidée 1:1.
+Limite : pendant une lecture auto (20 à 60 s), le chat peut répondre « déjà
+en cours ». Composants : voir l’entrée suivante.
+
+## 29/10/2026 · Composants Figma visibles dans l’atelier (Figma → app)
+
+Problème : un composant créé dans Figma n’apparaissait pas dans l’app ; seules
+les variables étaient lues.
+Décision : la lecture Figma (bouton « Lire Figma », lecture auto, Paramètres)
+lit aussi les composants du fichier, dans le même appel unique et gardé par
+empreinte. Ils apparaissent dans un groupe « Depuis Figma » sous Composants,
+une colonne par variante. Le rendu est approximatif (auto-layout, couleurs,
+marges, arrondis, textes) ; chaque valeur liée à une variable devient le
+token de l’atelier, donc le rendu suit les modifs en cours. Les données
+Figma sont relues et bornées avant stockage et affichage. Un message
+« Composants Figma à jour ✓ » signale un changement.
+Écarté : app → Figma pour les composants (pas fiable) ; un appel séparé pour
+les composants (double quota) ; images, effets et icônes vectorielles.
+Preuves : lecture réelle du fichier Gutt via Claude Code et la garde (18
+variables, Bouton, Fiche logement, Tag, 14 s) ; test unitaire du nettoyage
+des données ; tests serveur (lecture, conservation après envoi) et
+navigateur (Tag affiché, tokens liés) ; suite complète (69 unitaires, 33
+navigateur) ; audit de mise en page sans anomalie ; visite guidée 1:1.
+Limite : rendu approximatif (pas d’images ni d’ombres) ; lecture auto au plus
+toutes les 5 min, sinon clic sur « Lire Figma ».

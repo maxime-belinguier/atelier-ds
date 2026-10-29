@@ -51,12 +51,16 @@ try {
   // Parcours navigateur automatisés uniquement : Figma simulé en mémoire.
   const figma =
     process.env.DS_STUDIO_FAKE_FIGMA === '1'
-      ? (
-          await import('../../tests/fixtures/fakeFigmaConnector.js')
-        ).fakeFigmaConnector([
-          { name: 'color/brand', type: 'COLOR', value: '#B85C00' },
-          { name: 'color/warning', type: 'COLOR', value: '#9A5B00' },
-        ]).connector
+      ? await import('../../tests/fixtures/fakeFigmaConnector.js').then(
+          (m) =>
+            m.fakeFigmaConnector(
+              [
+                { name: 'color/brand', type: 'COLOR', value: '#B85C00' },
+                { name: 'color/warning', type: 'COLOR', value: '#9A5B00' },
+              ],
+              [m.sampleComponent],
+            ).connector,
+        )
       : undefined;
   const app = await createStudioServer({
     root,

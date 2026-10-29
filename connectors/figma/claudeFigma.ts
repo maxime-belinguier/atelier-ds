@@ -1,3 +1,4 @@
+import { parseComponents } from '../../app/shared/figmaComponents.js';
 import { createHash, randomUUID } from 'node:crypto';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -89,11 +90,17 @@ export class ClaudeFigmaConnector {
     return parseMcpGet(out);
   }
 
-  async read(fileKey: string, signal?: AbortSignal): Promise<FigmaRead> {
+  async read(
+    fileKey: string,
+    signal?: AbortSignal,
+    components = false,
+  ): Promise<FigmaRead> {
     const result = await this.run(
       fileKey,
-      readCode(),
-      'DS-Studio : lire les variables de la collection DS-Studio',
+      readCode(components),
+      components
+        ? 'DS-Studio : lire les variables DS-Studio et les composants (lecture seule)'
+        : 'DS-Studio : lire les variables de la collection DS-Studio',
       signal,
     );
     return parseRead(result);
@@ -166,6 +173,8 @@ export class ClaudeFigmaConnector {
             DS_FIGMA_FILE: fileKey,
             DS_FIGMA_EXPECT: createHash('sha256').update(code).digest('hex'),
             DS_FIGMA_ONCE: once,
+            // Les composants lus peuvent dépasser la limite par défaut.
+            MAX_MCP_OUTPUT_TOKENS: '60000',
           },
         },
         signal,
@@ -371,6 +380,9 @@ export function parseRead(value: Record<string, unknown>): FigmaRead {
         ? value.collection.slice(0, 100)
         : null,
     variables,
+    ...(Array.isArray(value.components)
+      ? { components: parseComponents(value.components) }
+      : {}),
   };
 }
 

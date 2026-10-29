@@ -11,6 +11,8 @@ import {
 } from 'react';
 import { DSProvider, Scenario, components, screens } from './DesignSystem.js';
 import ProjectBrief from './ProjectBrief.js';
+import { FigmaSheet, figmaTokenKeys } from './FigmaComponentView';
+import type { FigmaComponent } from '../shared/figmaComponents';
 import FitBox, {
   ZoomControl,
   clampZoom,
@@ -473,7 +475,8 @@ type Selection =
   | { kind: 'tokens'; id: string }
   | { kind: 'component'; id: string }
   | { kind: 'screen'; id: string }
-  | { kind: 'audit'; id: string };
+  | { kind: 'audit'; id: string }
+  | { kind: 'figma'; id: string };
 
 export default function App() {
   const { state, setState, error: stateError } = useDesignState();
@@ -645,6 +648,9 @@ export default function App() {
   async function pushToFigma(revision: number, keys: string[]) {
     setFigmaSync({ tone: 'sending', text: 'Envoi vers Figma…' });
     try {
+      // Une lecture automatique en cours occupe Figma : on attend sa fin.
+      for (let i = 0; figmaReadingRef.current && i < 120; i++)
+        await new Promise((r) => setTimeout(r, 500));
       const plan = await request<{
         approvalId: string | null;
         patches: { key: string }[];
@@ -683,6 +689,87 @@ export default function App() {
       });
     }
   }
+  // Figma → atelier : lecture en un clic depuis l'en-tête. L'app vérifie
+  // aussi seule (ouverture, retour sur la fenêtre, 5 min minimum entre deux
+  // lectures : chaque lecture passe par Claude Code). Rien n'est appliqué :
+  // la pastille annonce les nouveautés, le clic ouvre le diff.
+  const [figmaNews, setFigmaNews] = useState<Proposal | null>(null);
+  // Composants lus dans Figma (lecture seule), rafraîchis à chaque lecture.
+  const [figmaComps, setFigmaComps] = useState<{
+    readAt: string | null;
+    components: FigmaComponent[];
+  }>({ readAt: null, components: [] });
+  async function loadFigmaComps() {
+    try {
+      const r = await request<typeof figmaComps>('figma/components');
+      setFigmaComps(r);
+      return r;
+    } catch {
+      return null;
+    }
+  }
+  useEffect(() => {
+    void loadFigmaComps();
+  }, []);
+  const [figmaReading, setFigmaReading] = useState(false);
+  const figmaReadingRef = useRef(false);
+  figmaReadingRef.current = figmaReading;
+  const lastFigmaRead = useRef(0);
+  async function readFigma(silent: boolean) {
+    if (!state || figmaReading) return;
+    setFigmaReading(true);
+    figmaReadingRef.current = true;
+    lastFigmaRead.current = Date.now();
+    try {
+      const r = await request<{ proposal: Proposal | null; message: string }>(
+        'figma/pull',
+        { revision: state.revision },
+      );
+      setFigmaNews(r.proposal);
+      const before = JSON.stringify(figmaComps.components);
+      const comps = await loadFigmaComps();
+      const compsChanged =
+        !!comps && JSON.stringify(comps.components) !== before;
+      if (compsChanged)
+        setFigmaSync({
+          tone: 'ok',
+          text: `Composants Figma à jour ✓ · ${comps.components.length}`,
+        });
+      if (!silent) {
+        if (r.proposal) setProposal(r.proposal);
+        else if (!compsChanged)
+          setFigmaSync({ tone: 'ok', text: 'Figma : rien de nouveau ✓' });
+      }
+    } catch (e) {
+      if (!silent)
+        setFigmaSync({
+          tone: 'warn',
+          text: `Lecture Figma impossible : ${(e as Error).message}`,
+        });
+    } finally {
+      figmaReadingRef.current = false;
+      setFigmaReading(false);
+    }
+  }
+  const readFigmaRef = useRef(readFigma);
+  readFigmaRef.current = readFigma;
+  useEffect(() => {
+    if (figmaState !== 'ok') return;
+    const auto = () => {
+      if (
+        document.visibilityState === 'visible' &&
+        Date.now() - lastFigmaRead.current > 5 * 60_000
+      )
+        void readFigmaRef.current(true);
+    };
+    auto();
+    addEventListener('focus', auto);
+    document.addEventListener('visibilitychange', auto);
+    return () => {
+      removeEventListener('focus', auto);
+      document.removeEventListener('visibilitychange', auto);
+    };
+  }, [figmaState]);
   const [theme, setTheme] = useState<Theme>(readTheme);
   useEffect(() => {
     applyTheme(theme);
@@ -1000,6 +1087,7 @@ export default function App() {
     await perform(async () => {
       const next = await commit(proposal);
       setState(next);
+      setFigmaNews(null);
       setProposal(undefined);
       announceChange();
       setNotice(`Changement n°${next.revision} enregistré sur ta machine.`);
@@ -1224,6 +1312,10 @@ export default function App() {
   let description = '';
   let keys: TokenKey[] = [];
   let demo: (typeof components)[number] | undefined;
+  const figmaComp =
+    selection.kind === 'figma'
+      ? figmaComps.components.find((c) => c.id === selection.id)
+      : undefined;
   if (query) {
     title = 'Résultats';
     description = `${matches.length} token${matches.length > 1 ? 's' : ''} pour « ${search.trim()} ».`;
@@ -1239,6 +1331,18 @@ export default function App() {
     description = c.description;
     keys = c.tokens;
     demo = c;
+  } else if (selection.kind === 'figma' && figmaComp) {
+    title = figmaComp.name;
+    description = `${figmaComp.desc ? figmaComp.desc + ' ' : ''}Lu dans Figma : rendu approximatif, qui suit tes tokens.`;
+    keys = figmaTokenKeys(figmaComp, allKeys(state.tokens)) as TokenKey[];
+    demo = {
+      id: figmaComp.id,
+      label: figmaComp.name,
+      description,
+      tokens: keys,
+      usedIn: [],
+      render: () => <FigmaSheet c={figmaComp} />,
+    };
   } else if (selection.kind === 'audit') {
     title = 'Contrôle d’accessibilité';
     description =
@@ -1304,6 +1408,7 @@ export default function App() {
     component: 'components',
     screen: 'screens',
     audit: 'quality',
+    figma: 'figma',
   };
   const groupHead = (id: string, label: string, count: number) => {
     const open = !collapsed.includes(id);
@@ -1823,6 +1928,7 @@ export default function App() {
         <div className="header-actions">
           <button
             className="brief-pill figma-pill"
+            aria-label="Figma"
             title={
               figmaState === 'ok'
                 ? 'Figma connecté'
@@ -1854,10 +1960,50 @@ export default function App() {
               <circle cx="15.5" cy="12.5" r="3.5" />
             </svg>
             <span className="figma-dot" aria-hidden="true" />
-            Figma
+            <span className="figma-pill-label">Figma</span>
           </button>
+          {figmaState === 'ok' && (
+            <button
+              className="brief-pill figma-read"
+              aria-label={
+                figmaReading
+                  ? 'Lire Figma : lecture en cours'
+                  : `Lire Figma${figmaNews ? `, ${figmaNews.patches.length} nouveauté${figmaNews.patches.length > 1 ? 's' : ''}` : ''}`
+              }
+              title="Lire les variables de Figma (diff à valider)"
+              disabled={figmaReading}
+              onClick={() =>
+                figmaNews && figmaNews.revision === state.revision
+                  ? setProposal(figmaNews)
+                  : void readFigma(false)
+              }
+            >
+              <svg
+                aria-hidden="true"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 4v12M6 11l6 6 6-6M5 20h14" />
+              </svg>
+              <span className="figma-read-label">
+                {figmaReading ? 'Lecture…' : 'Lire Figma'}
+              </span>
+              {figmaNews && !figmaReading && (
+                <span className="figma-badge" aria-hidden="true">
+                  {figmaNews.patches.length}
+                </span>
+              )}
+            </button>
+          )}
           <button
             className="brief-pill"
+            aria-label="Brief"
             title="Brief du projet"
             onClick={() => setBriefOpen(true)}
           >
@@ -1877,7 +2023,7 @@ export default function App() {
               <path d="M8 13h8" />
               <path d="M8 17h5" />
             </svg>
-            Brief
+            <span className="brief-pill-label">Brief</span>
           </button>
           <div
             className="icon-group"
@@ -2190,6 +2336,15 @@ export default function App() {
                     </option>
                   ))}
                 </optgroup>
+                {figmaComps.components.length > 0 && (
+                  <optgroup label="Depuis Figma">
+                    {figmaComps.components.map((c) => (
+                      <option key={c.id} value={`figma:${c.id}`}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
                 <optgroup label="Écrans">
                   {screens.map((sc) => (
                     <option key={sc.id} value={`screen:${sc.id}`}>
@@ -2257,6 +2412,39 @@ export default function App() {
                     {c.label}
                   </button>
                 ))}
+              {figmaComps.components.length > 0 && (
+                <>
+                  {groupHead(
+                    'figma',
+                    'Depuis Figma',
+                    figmaComps.components.length,
+                  )}
+                  {figmaComps.components
+                    .filter((c) =>
+                      show(
+                        'figma',
+                        selection.kind === 'figma' && selection.id === c.id,
+                      ),
+                    )
+                    .map((c) => (
+                      <button
+                        key={c.id}
+                        className="side-item"
+                        aria-current={
+                          !query &&
+                          selection.kind === 'figma' &&
+                          selection.id === c.id
+                            ? 'page'
+                            : undefined
+                        }
+                        aria-label={`${c.name} (Figma)`}
+                        onClick={() => select({ kind: 'figma', id: c.id })}
+                      >
+                        {c.name}
+                      </button>
+                    ))}
+                </>
+              )}
               {groupHead('screens', 'Écrans', screens.length)}
               {screens
                 .filter((s) =>
@@ -2321,9 +2509,11 @@ export default function App() {
                 >
                   <div className="stage-bar">
                     <span>
-                      {demo.sheet
-                        ? 'Tous les états'
-                        : 'Rendu · planche des états à venir'}
+                      {selection.kind === 'figma'
+                        ? 'Variantes lues dans Figma'
+                        : demo.sheet
+                          ? 'Tous les états'
+                          : 'Rendu · planche des états à venir'}
                       {sheetScale === 1 ? ' · taille réelle' : ''}
                     </span>
                     <ZoomControl
@@ -2415,8 +2605,9 @@ export default function App() {
                 </>
               ) : (
                 <p className="empty">
-                  Aucun token ne correspond. Essaie « couleur », « space » ou «
-                  police ».
+                  {selection.kind === 'figma' && !query
+                    ? 'Aucune variable DS-Studio liée à ce composant dans Figma.'
+                    : 'Aucun token ne correspond. Essaie « couleur », « space » ou « police ».'}
                 </p>
               )}
             </div>
@@ -2913,6 +3104,7 @@ export default function App() {
           figmaPanel={
             <FigmaPanel
               revision={state.revision}
+              onRead={() => void loadFigmaComps()}
               onConnect={() =>
                 request<{ opened: boolean; command: string }>('agent-login', {
                   agent: 'figma',

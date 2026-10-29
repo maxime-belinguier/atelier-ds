@@ -6,6 +6,7 @@ import {
   type Tokens,
   type TokenValue,
 } from '../../app/shared/model.js';
+import type { FigmaComponent } from '../../app/shared/figmaComponents.js';
 
 // Correspondance tokens de l'atelier ↔ variables Figma, et scripts Plugin API
 // exécutés par l'outil use_figma du serveur MCP officiel de Figma.
@@ -24,6 +25,8 @@ export interface FigmaVariable {
 export interface FigmaRead {
   collection: string | null;
   variables: FigmaVariable[];
+  /** Présent seulement quand la lecture inclut les composants. */
+  components?: FigmaComponent[];
 }
 
 // Lien de partage Figma → clé du fichier (les branches gardent leur clé propre).
@@ -177,14 +180,15 @@ export function planPush(tokens: Tokens, read: FigmaRead): PushPlan {
 }
 
 // Lecture seule : variables de la collection DS-Studio, mode par défaut.
-export function readCode() {
+// Avec components : aussi les composants du fichier (arbre compact, valeurs
+// et variables liées), pour les afficher dans l'atelier.
+export function readCode(components = false) {
   return `const COLLECTION = ${JSON.stringify(collectionName)};
 const hex = (c) => '#' + [c.r, c.g, c.b].map((x) => Math.round(x * 255).toString(16).padStart(2, '0')).join('').toUpperCase();
 const cols = await figma.variables.getLocalVariableCollectionsAsync();
 const col = cols.find((c) => c.name === COLLECTION);
-if (!col) return { dsStudio: 1, collection: null, variables: [] };
 const out = [];
-for (const id of col.variableIds) {
+if (col) for (const id of col.variableIds) {
   const v = await figma.variables.getVariableByIdAsync(id);
   if (!v) continue;
   let val = v.valuesByMode[col.defaultModeId];
@@ -195,8 +199,46 @@ for (const id of col.variableIds) {
   if (v.resolvedType === 'COLOR' && val && typeof val === 'object') val = hex(val);
   out.push({ name: v.name, type: v.resolvedType, value: val ?? null });
 }
-return { dsStudio: 1, collection: col.name, variables: out };`;
+const res = { dsStudio: 1, collection: col ? col.name : null, variables: out };
+${components ? componentsCode : ''}return res;`;
 }
+
+const componentsCode = `const names = {};
+for (const v of await figma.variables.getLocalVariablesAsync()) names[v.id] = v.name;
+const vn = (a) => { const x = Array.isArray(a) ? a[0] : a; return (x && names[x.id]) || undefined; };
+const num = (x) => (typeof x === 'number' ? Math.round(x * 10) / 10 : undefined);
+const paint = (ps) => {
+  if (!Array.isArray(ps)) return undefined;
+  const p = ps.find((p) => p.visible !== false && p.type === 'SOLID');
+  return p ? { c: hex(p.color), o: num(p.opacity), v: vn(p.boundVariables && p.boundVariables.color) } : undefined;
+};
+let left = 900;
+const node = (n, d) => {
+  if (left-- <= 0 || n.visible === false) return null;
+  const b = n.boundVariables || {};
+  const o = { t: n.type, n: n.name.slice(0, 60), w: num(n.width), h: num(n.height), x: num(n.x), y: num(n.y), f: paint(n.fills), s: paint(n.strokes) };
+  if (o.s) o.sw = num(n.strokeWeight);
+  if (n.layoutMode && n.layoutMode !== 'NONE') Object.assign(o, { l: n.layoutMode[0], g: num(n.itemSpacing), gv: vn(b.itemSpacing), p: [n.paddingTop, n.paddingRight, n.paddingBottom, n.paddingLeft].map(num), pv: vn(b.paddingTop), ph: vn(b.paddingLeft), ai: n.counterAxisAlignItems, aj: n.primaryAxisAlignItems });
+  if (n.layoutSizingHorizontal) { o.sh = n.layoutSizingHorizontal[0]; o.sv = n.layoutSizingVertical[0]; }
+  if (n.type === 'ELLIPSE') o.r = 9999;
+  else if (num(n.cornerRadius)) { o.r = num(n.cornerRadius); o.rv = vn(b.topLeftRadius); }
+  if (n.clipsContent) o.cl = 1;
+  if (n.type === 'TEXT') Object.assign(o, { tx: n.characters.slice(0, 300), fs: num(n.fontSize), fsv: vn(b.fontSize), fw: num(n.fontWeight), ff: typeof n.fontName === 'object' ? n.fontName.family : undefined, ta: n.textAlignHorizontal });
+  if (d < 8 && 'children' in n) o.k = n.children.map((c) => node(c, d + 1)).filter(Boolean);
+  return o;
+};
+res.components = [];
+for (const page of figma.root.children) {
+  await page.loadAsync();
+  for (const c of page.findAllWithCriteria({ types: ['COMPONENT_SET', 'COMPONENT'] })) {
+    if (res.components.length >= 40 || left <= 0) break;
+    if (c.type === 'COMPONENT' && c.parent && c.parent.type === 'COMPONENT_SET') continue;
+    const set = c.type === 'COMPONENT_SET';
+    res.components.push({ id: c.id, name: c.name.slice(0, 80), page: page.name.slice(0, 60), desc: (c.description || '').slice(0, 200),
+      variants: (set ? c.children.slice(0, 8) : [c]).map((v) => ({ id: v.id, name: set ? v.name.slice(0, 80) : '', root: node(v, 0) })).filter((v) => v.root) });
+  }
+}
+`;
 
 // Écriture : contrôle des valeurs attendues (rien n'est écrit si Figma a
 // changé depuis l'aperçu), création ou mise à jour, puis relecture.

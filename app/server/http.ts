@@ -198,6 +198,8 @@ export async function createStudioServer(options: {
             });
           if (url.pathname === '/api/figma/status')
             return send(200, await figma.status());
+          if (url.pathname === '/api/figma/components')
+            return send(200, await figma.components());
           if (url.pathname === '/api/agents')
             return send(
               200,
