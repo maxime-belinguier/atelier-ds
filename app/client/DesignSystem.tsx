@@ -462,9 +462,22 @@ export const components: {
   measures?: (t: Tokens) => string;
   /** Écrans qui contiennent ce composant (l'Aperçu ouvre le premier). */
   usedIn: string[];
+  /** Bonnes pratiques affichées dans la Bibliothèque (conseils, pas des règles vérifiées). */
+  usage?: { do: string[]; dont: string[] };
 }[] = [
   {
     id: 'buttons',
+    usage: {
+      do: [
+        'Un seul bouton principal par écran.',
+        'Un libellé verbe d’action : Garder, Ajouter.',
+        'Supprimer en rouge, avec confirmation.',
+      ],
+      dont: [
+        'Deux boutons principaux côte à côte.',
+        'Un bouton désactivé sans dire pourquoi.',
+      ],
+    },
     usedIn: ['cards', 'form'],
     label: 'Boutons',
     description:
@@ -497,6 +510,16 @@ export const components: {
   },
   {
     id: 'logement',
+    usage: {
+      do: [
+        'Une fiche par logement comparé.',
+        'Prix au m² et points à vérifier toujours visibles.',
+      ],
+      dont: [
+        'Cacher les alertes dans un menu.',
+        'Plus d’une action principale par fiche.',
+      ],
+    },
     usedIn: ['cards'],
     label: 'Fiche logement',
     description: 'Un logement comparé : loyer, prix au m², points à vérifier.',
@@ -522,6 +545,13 @@ export const components: {
   },
   {
     id: 'verification',
+    usage: {
+      do: [
+        'Une liste à cocher avant de signer.',
+        'La progression visible (2 / 5).',
+      ],
+      dont: ['Signaler une alerte par la couleur seule : ajouter l’icône ⚠.'],
+    },
     usedIn: ['cards'],
     label: 'Points à vérifier',
     description: 'Liste à cocher avant de signer, avec progression.',
@@ -545,6 +575,16 @@ export const components: {
   },
   {
     id: 'form',
+    usage: {
+      do: [
+        'Un libellé visible au-dessus de chaque champ.',
+        'L’erreur sous le champ, avec la correction attendue.',
+      ],
+      dont: [
+        'Un placeholder à la place du libellé.',
+        'Un champ désactivé sans explication.',
+      ],
+    },
     usedIn: ['form'],
     label: 'Formulaire',
     description: 'Champs, case à cocher, champ désactivé et erreur de saisie.',
@@ -569,6 +609,13 @@ export const components: {
   },
   {
     id: 'nav',
+    usage: {
+      do: [
+        '3 à 5 onglets au plus.',
+        'L’onglet actif marqué par la couleur et le style.',
+      ],
+      dont: ['Changer l’ordre des onglets selon l’écran.'],
+    },
     usedIn: ['cards', 'form'],
     label: 'Navigation',
     description: 'Onglets de l’application, avec l’onglet actif.',

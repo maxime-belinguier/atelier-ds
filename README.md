@@ -103,6 +103,8 @@ contenant des espaces est accepté. N’utilisez ni `sudo` ni installation de se
 - **Interface** : deux panneaux redimensionnables (Design System et Aperçu), menu du
   Design System par catégories repliables (Tokens, Composants, Écrans, Contrôle qualité),
   sélecteur de couleur HEX/RGB/HSL, enregistrement manuel groupé (Ctrl/Cmd + S).
+- **Bibliothèque** : mode « Éditer | Bibliothèque » du Design System. La Bibliothèque
+  montre la doc en lecture seule (spécimens, rendu, bonnes pratiques, tokens, écrans, Figma).
 - **Aperçu** : formats 320 à 1440 px ou libre, mockups téléphone, tablette et
   navigateur, zoom en bas à droite (Ajuster, − %, +, glisser pour se déplacer), et mode Comparer (deux formats côte à côte, ou
   avant / après des modifications en cours).
@@ -111,7 +113,7 @@ contenant des espaces est accepté. N’utilisez ni `sudo` ni installation de se
   fond, accent, police), assistant IA, connexion et synchro Figma, projets (renommer, supprimer
   vers `projets-supprimes/`, dossier des données), préférences de démarrage, conversations,
   raccourcis, réinitialisation et à propos.
-- **En-tête** : bouton Brief, puis Historique, Importer et Exporter en icônes.
+- **En-tête** : bouton Figma (état, dernière lecture, menu Lire / Réglages), Brief, puis Historique, Fichiers (importer, exporter), Paramètres et Aide.
 - **Exports** (valeurs enregistrées uniquement) : Tokens JSON, Variables CSS,
   Tailwind v4, Tailwind v3 et Documentation (page HTML imprimable en PDF).
 - **Accessibilité** : dans Couleurs, choix du « Type de vision » (vision classique par

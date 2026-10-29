@@ -223,7 +223,7 @@ test('export navigateur, import valide avec diff, fichier invalide sans écritur
   await expect(page.getByRole('heading', { name: 'Couleurs' })).toBeVisible();
   const before = await state(page);
   const download = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Exporter', exact: true }).click();
+  await page.getByRole('button', { name: 'Fichiers', exact: true }).click();
   await page.getByRole('menuitem', { name: /^Tokens JSON/ }).click();
   const file = await download;
   const { readFile } = await import('node:fs/promises');
@@ -657,7 +657,7 @@ test('en-tête en icônes : export CSS et Tailwind depuis le menu', async ({
     [/^Tailwind v4/, 'theme.css', '@theme {'],
     [/^Tailwind v3/, 'tailwind.config.js', '"extend"'],
   ] as const) {
-    await page.getByRole('button', { name: 'Exporter', exact: true }).click();
+    await page.getByRole('button', { name: 'Fichiers', exact: true }).click();
     const download = page.waitForEvent('download');
     await page.getByRole('menuitem', { name: item }).click();
     const d = await download;
@@ -665,17 +665,17 @@ test('en-tête en icônes : export CSS et Tailwind depuis le menu', async ({
     expect(await readFile((await d.path())!, 'utf8')).toContain(needle);
   }
   // Le menu se ferme avec Échap.
-  await page.getByRole('button', { name: 'Exporter', exact: true }).click();
-  await expect(page.getByRole('menu', { name: 'Exporter' })).toBeVisible();
+  await page.getByRole('button', { name: 'Fichiers', exact: true }).click();
+  await expect(page.getByRole('menu', { name: 'Fichiers' })).toBeVisible();
   await page.keyboard.press('Escape');
-  await expect(page.getByRole('menu', { name: 'Exporter' })).toHaveCount(0);
+  await expect(page.getByRole('menu', { name: 'Fichiers' })).toHaveCount(0);
 });
 
 test('export Documentation : page HTML complète et autonome', async ({
   page,
 }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Exporter', exact: true }).click();
+  await page.getByRole('button', { name: 'Fichiers', exact: true }).click();
   const download = page.waitForEvent('download');
   await page.getByRole('menuitem', { name: /^Documentation/ }).click();
   const d = await download;
@@ -1019,7 +1019,7 @@ test('Figma (simulé) : lire en diff, puis envoyer avec aperçu et validation', 
   page,
 }) => {
   await page.goto('/');
-  const pill = page.getByRole('button', { name: 'Figma', exact: true });
+  const pill = page.getByRole('button', { name: /^Figma/ });
   // Pastille : orange tant qu'aucun fichier n'est lié, verte ensuite.
   await expect(pill).toHaveAttribute('data-figma', 'off');
   await expect(pill).toHaveAttribute('title', 'Figma à connecter');
@@ -1042,8 +1042,9 @@ test('Figma (simulé) : lire en diff, puis envoyer avec aperçu et validation', 
   ).toBeVisible();
   await settings.getByRole('button', { name: 'Fermer les paramètres' }).click();
   await expect(pill).toHaveAttribute('data-figma', 'ok');
-  await expect(pill).toHaveAttribute('title', 'Figma connecté');
+  await expect(pill).toHaveAttribute('title', /^Figma connecté/);
   await pill.click();
+  await page.getByRole('menuitem', { name: /^Réglages Figma/ }).click();
   await settings.getByRole('button', { name: 'Lire depuis Figma' }).click();
   // Le diff habituel s'ouvre : rien n'est écrit avant validation.
   await expect(diff(page)).toBeVisible();
@@ -1081,7 +1082,12 @@ test('Figma (simulé) : lire en diff, puis envoyer avec aperçu et validation', 
       .getByText('Mes biens'),
   ).toBeVisible();
   // Envoi : aperçu des variables à écrire, puis validation explicite.
-  await page.getByRole('button', { name: 'Figma', exact: true }).click();
+  // Figma connecté : le bouton ouvre un menu (lire, réglages).
+  const figmaMenu = async (item: string | RegExp) => {
+    await page.getByRole('button', { name: /^Figma/ }).click();
+    await page.getByRole('menuitem', { name: item }).click();
+  };
+  await figmaMenu(/^Réglages Figma/);
   await settings.getByRole('button', { name: 'Envoyer vers Figma' }).click();
   const preview = settings.getByLabel('Changements prévus dans Figma');
   await expect(preview).toBeVisible();
@@ -1107,7 +1113,7 @@ test('Figma (simulé) : lire en diff, puis envoyer avec aperçu et validation', 
     .getByRole('button', { name: /Valider|Enregistrer/ })
     .click();
   await expect(page.getByText(/Envoyé à Figma ✓ · 1 variable/)).toBeVisible();
-  await page.getByRole('button', { name: 'Figma', exact: true }).click();
+  await figmaMenu(/^Réglages Figma/);
   await settings.getByRole('button', { name: 'Envoyer vers Figma' }).click();
   await expect(
     settings.getByText(
@@ -1115,9 +1121,9 @@ test('Figma (simulé) : lire en diff, puis envoyer avec aperçu et validation', 
     ),
   ).toBeVisible();
   await settings.getByRole('button', { name: 'Fermer les paramètres' }).click();
-  // Lire Figma en un clic depuis l'en-tête : rien de nouveau.
-  const read = page.getByRole('button', { name: /^Lire Figma/ });
-  await read.click();
+  // Lire Figma depuis le menu Figma de l'en-tête : rien de nouveau.
+  const read = page.getByRole('button', { name: /^Figma/ });
+  await figmaMenu(/^Lire Figma maintenant/);
   await expect(page.getByText('Figma : rien de nouveau ✓')).toBeVisible();
   await expect(read.locator('.figma-read-age')).toHaveText('à l’instant');
   // Enregistré sans envoi : à l'ouverture, l'app voit l'écart toute seule.
@@ -1128,8 +1134,8 @@ test('Figma (simulé) : lire en diff, puis envoyer avec aperçu et validation', 
     .getByRole('button', { name: /Valider|Enregistrer/ })
     .click();
   await page.reload();
-  await expect(read).toHaveAccessibleName('Lire Figma, 1 nouveauté');
-  await read.click();
+  await expect(read).toHaveAccessibleName('Figma, 1 nouveauté');
+  await figmaMenu(/^Voir 1 nouveauté/);
   await expect(diff(page).getByText('Lu dans Figma')).toBeVisible();
   await expect(diff(page).getByText('color.brand')).toBeVisible();
   await diff(page).getByRole('button', { name: 'Ne pas appliquer' }).click();
@@ -1155,7 +1161,7 @@ test('Figma (simulé) : lire en diff, puis envoyer avec aperçu et validation', 
     await route.continue();
   });
   await page.reload();
-  await expect(read).toHaveAccessibleName('Lire Figma : lecture en cours');
+  await expect(read).toHaveAccessibleName('Figma : lecture en cours');
   await page.getByRole('button', { name: 'Ouvrir l’assistant' }).click();
   await page.getByLabel('Ta demande').fill('Une question');
   await page.keyboard.press('Enter');
@@ -1164,7 +1170,7 @@ test('Figma (simulé) : lire en diff, puis envoyer avec aperçu et validation', 
   ).toBeVisible();
   await expect(page.getByText('Réponse simulée.')).toBeVisible();
   // Retour sur l'app : nouvelle lecture seule, pas avant 20 s.
-  await expect(read).toHaveAccessibleName(/^Lire Figma(,|$)/);
+  await expect(read).toHaveAccessibleName(/^Figma(,|$)/);
   const pulls: string[] = [];
   page.on('request', (r) => {
     if (r.url().endsWith('/api/figma/pull')) pulls.push(r.url());
@@ -1508,4 +1514,38 @@ test('survol : proposé quand la marque change, suppression assombrie', async ({
   await page
     .getByRole('button', { name: 'Annuler les modifications non enregistrées' })
     .click();
+});
+
+test('bibliothèque : fondations et composants en lecture seule', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Bibliothèque', exact: true }).click();
+  const tokens = page.getByRole('list', { name: 'Tokens' });
+  await expect(tokens.getByText('color.brand', { exact: true })).toBeVisible();
+  // Lecture seule : pas de champ de saisie ni d'ajout.
+  await expect(
+    page.getByLabel('Couleur de marque', { exact: true }),
+  ).toHaveCount(0);
+  await page
+    .getByRole('button', { name: /^Boutons/ })
+    .first()
+    .click();
+  await expect(page.getByText('Bonnes pratiques')).toBeVisible();
+  await expect(
+    page.getByText('Un seul bouton principal par écran.'),
+  ).toBeVisible();
+  await page
+    .getByRole('button', { name: 'Mes biens', exact: true })
+    .last()
+    .click();
+  await expect(page.getByRole('heading', { name: 'Mes biens' })).toBeVisible();
+  await page.getByRole('button', { name: 'Éditer', exact: true }).click();
+  await page
+    .getByRole('button', { name: /^Couleurs/ })
+    .first()
+    .click();
+  await expect(
+    page.getByLabel('Couleur de marque', { exact: true }),
+  ).toBeVisible();
 });

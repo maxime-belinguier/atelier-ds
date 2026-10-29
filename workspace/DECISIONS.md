@@ -891,3 +891,27 @@ glisser) ; audit de mise en page et visite guidée sans anomalie ; captures
 relues.
 Limite : plus de raccourci direct vers 100 % (passer par + ou −) ; barre
 masquée en mode Comparer (les deux aperçus restent ajustés).
+
+## 29/10/2026 · En-tête simplifié, mode Bibliothèque
+
+Problème : en-tête chargé (bouton Figma, bouton « Lire Figma » avec l’âge,
+Importer et Exporter séparés) ; « ✓ » à côté de chaque composant relié à
+Figma, du bruit puisque c’est la norme ; pas de vue « doc » du Design System,
+seulement l’édition.
+Décision : un seul bouton Figma (pastille d’état, âge de la lecture,
+nouveautés) qui ouvre un menu : voir les nouveautés, lire maintenant,
+réglages. Non connecté : il ouvre Paramètres › Figma. Importer et Exporter
+regroupés dans « Fichiers ». Menu des composants : seul « Hors Figma » reste
+affiché. Onglet Design System : interrupteur « Éditer | Bibliothèque ». La
+Bibliothèque est en lecture seule : fondations en spécimens (couleur, police,
+taille, espacement, arrondi) ; chaque composant avec rendu, mesures, bonnes
+pratiques, tokens utilisés, écrans où il apparaît, statut Figma.
+Écarté : rédiger les bonnes pratiques avec Claude à chaque ouverture (coût
+en tokens) ; un éditeur de doc (trop gros avant la soutenance).
+Preuves : test navigateur Bibliothèque (spécimens, aucun champ de saisie,
+bonnes pratiques, lien vers un écran, retour en Éditer) ; test Figma adapté au
+menu ; suite complète (70 unitaires, 34 navigateur) ; audit de mise en page
+et visite guidée sans anomalie ; captures relues.
+Limite : bonnes pratiques écrites à la main pour les 5 composants Gutt
+(conseils, pas des règles vérifiées) ; composants lus dans Figma sans bonnes
+pratiques ; écrans et Contrôle qualité gardent la vue habituelle.

@@ -17,6 +17,7 @@ import {
 } from './DesignSystem.js';
 import ProjectBrief from './ProjectBrief.js';
 import { FigmaSheet, figmaTokenKeys } from './FigmaComponentView';
+import { LibraryComponent, LibraryTokens } from './Library.js';
 import type { FigmaComponent } from '../shared/figmaComponents';
 import FitBox, {
   ZoomControl,
@@ -620,7 +621,26 @@ export default function App() {
   const [limits, setLimits] = useState(readLimits);
   const [creditsOpen, setCreditsOpen] = useState(false);
   const [pickerFor, setPickerFor] = useState<TokenKey | null>(null);
-  const [exportOpen, setExportOpen] = useState(false);
+  // Menus de l'en-tête (Figma, Fichiers) : un seul ouvert à la fois.
+  const [library, setLibraryState] = useState(() => {
+    try {
+      return localStorage.getItem('ds-studio-library') === '1';
+    } catch {
+      return false;
+    }
+  });
+  const setLibrary = (on: boolean) => {
+    setLibraryState(on);
+    try {
+      localStorage.setItem('ds-studio-library', on ? '1' : '');
+    } catch {
+      /* facultatif */
+    }
+  };
+  const [openMenu, setOpenMenu] = useState<'figma' | 'files' | null>(null);
+  const exportOpen = openMenu === 'files';
+  const setExportOpen = (v: boolean) => setOpenMenu(v ? 'files' : null);
+  const importInput = useRef<HTMLInputElement>(null);
   // Visite guidée : ouverte au premier lancement, puis avec le bouton « ? ».
   // État de l'atelier avant la visite, rétabli à la fin (chat, Comparer).
   const tourPrev = useRef<{
@@ -902,13 +922,12 @@ export default function App() {
     }
   }, [collapsed]);
   useEffect(() => {
-    if (!exportOpen) return;
+    if (!openMenu) return;
     const close = (e: MouseEvent) => {
-      if (!(e.target as Element).closest?.('.export-wrap'))
-        setExportOpen(false);
+      if (!(e.target as Element).closest?.('.export-wrap')) setOpenMenu(null);
     };
     const key = (e: globalThis.KeyboardEvent) => {
-      if (e.key === 'Escape') setExportOpen(false);
+      if (e.key === 'Escape') setOpenMenu(null);
     };
     addEventListener('mousedown', close);
     addEventListener('keydown', key);
@@ -916,7 +935,7 @@ export default function App() {
       removeEventListener('mousedown', close);
       removeEventListener('keydown', key);
     };
-  }, [exportOpen]);
+  }, [openMenu]);
   const [limitsMissing, setLimitsMissing] = useState(false);
   useEffect(() => {
     if (!creditsOpen) return;
@@ -1458,6 +1477,38 @@ export default function App() {
     keys = s.tokens;
   }
 
+  // Bibliothèque : fondations et composants en lecture seule (doc).
+  const libraryView =
+    !library || query ? null : selection.kind === 'tokens' ? (
+      <LibraryTokens keys={keys} tokens={preview} />
+    ) : (selection.kind === 'component' || selection.kind === 'figma') &&
+      demo ? (
+      <LibraryComponent
+        render={demo.render()}
+        tokens={preview}
+        keys={keys}
+        usage={'usage' in demo ? demo.usage : undefined}
+        usedIn={demo.usedIn.flatMap((id) =>
+          screens
+            .filter((x) => x.id === id)
+            .map(({ id, label }) => ({ id, label })),
+        )}
+        figma={
+          selection.kind === 'figma'
+            ? 'seulement'
+            : !figmaRead
+              ? null
+              : twin
+                ? 'relié'
+                : 'hors'
+        }
+        measures={demo.measures?.(preview)}
+        onScreen={(id) => {
+          setScenario(id);
+          setSelection({ kind: 'screen', id });
+        }}
+      />
+    ) : null;
   function select(next: Selection) {
     setSearch('');
     setSelection(next);
@@ -2044,58 +2095,36 @@ export default function App() {
           )}
         </div>
         <div className="header-actions">
-          <button
-            className="brief-pill figma-pill"
-            data-tour="figma"
-            aria-label="Figma"
-            title={
-              figmaState === 'ok'
-                ? 'Figma connecté'
-                : figmaState === 'off'
-                  ? 'Figma à connecter'
-                  : 'Vérification de Figma…'
-            }
-            data-figma={figmaState}
-            onClick={() => {
-              setSettingsTab('figma');
-              setSettingsOpen(true);
-            }}
-          >
-            <svg
-              aria-hidden="true"
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M12 2H8.5a3.5 3.5 0 0 0 0 7H12z" />
-              <path d="M12 9H8.5a3.5 3.5 0 0 0 0 7H12z" />
-              <path d="M12 16H8.5A3.5 3.5 0 1 0 12 19.5z" />
-              <path d="M12 2h3.5a3.5 3.5 0 0 1 0 7H12z" />
-              <circle cx="15.5" cy="12.5" r="3.5" />
-            </svg>
-            <span className="figma-dot" aria-hidden="true" />
-            <span className="figma-pill-label">Figma</span>
-          </button>
-          {figmaState === 'ok' && (
+          {/* Un seul bouton Figma : état, âge de la lecture, nouveautés, et menu. */}
+          <div className="export-wrap">
             <button
-              className="brief-pill figma-read"
+              className="brief-pill figma-pill"
+              data-tour="figma"
               aria-label={
-                figmaReading
-                  ? 'Lire Figma : lecture en cours'
-                  : `Lire Figma${figmaNews ? `, ${figmaNews.patches.length} nouveauté${figmaNews.patches.length > 1 ? 's' : ''}` : ''}`
+                figmaState !== 'ok'
+                  ? 'Figma'
+                  : figmaReading
+                    ? 'Figma : lecture en cours'
+                    : `Figma${figmaNews ? `, ${figmaNews.patches.length} nouveauté${figmaNews.patches.length > 1 ? 's' : ''}` : ''}`
               }
-              title={`Lire les variables et composants de Figma${figmaAge ? ` · dernière lecture ${figmaAge}` : ''}`}
-              disabled={figmaReading}
-              onClick={() =>
-                figmaNews && figmaNews.revision === state.revision
-                  ? setProposal(figmaNews)
-                  : void readFigma(false)
+              title={
+                figmaState === 'ok'
+                  ? `Figma connecté${figmaAge ? ` · lu ${figmaAge}` : ''}`
+                  : figmaState === 'off'
+                    ? 'Figma à connecter'
+                    : 'Vérification de Figma…'
               }
+              data-figma={figmaState}
+              aria-haspopup={figmaState === 'ok' ? 'menu' : undefined}
+              aria-expanded={
+                figmaState === 'ok' ? openMenu === 'figma' : undefined
+              }
+              onClick={() => {
+                if (figmaState === 'ok')
+                  return setOpenMenu(openMenu === 'figma' ? null : 'figma');
+                setSettingsTab('figma');
+                setSettingsOpen(true);
+              }}
             >
               <svg
                 aria-hidden="true"
@@ -2104,17 +2133,22 @@ export default function App() {
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="2.2"
+                strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               >
-                <path d="M12 4v12M6 11l6 6 6-6M5 20h14" />
+                <path d="M12 2H8.5a3.5 3.5 0 0 0 0 7H12z" />
+                <path d="M12 9H8.5a3.5 3.5 0 0 0 0 7H12z" />
+                <path d="M12 16H8.5A3.5 3.5 0 1 0 12 19.5z" />
+                <path d="M12 2h3.5a3.5 3.5 0 0 1 0 7H12z" />
+                <circle cx="15.5" cy="12.5" r="3.5" />
               </svg>
-              <span className="figma-read-label">
-                {figmaReading ? 'Lecture…' : 'Lire Figma'}
-              </span>
-              {figmaAge && !figmaReading && (
-                <span className="figma-read-age">{figmaAge}</span>
+              <span className="figma-dot" aria-hidden="true" />
+              <span className="figma-pill-label">Figma</span>
+              {figmaState === 'ok' && (
+                <span className="figma-read-age">
+                  {figmaReading ? 'lecture…' : figmaAge}
+                </span>
               )}
               {figmaNews && !figmaReading && (
                 <span className="figma-badge" aria-hidden="true">
@@ -2122,7 +2156,51 @@ export default function App() {
                 </span>
               )}
             </button>
-          )}
+            {openMenu === 'figma' && (
+              <div className="export-menu" role="menu" aria-label="Figma">
+                {figmaNews && figmaNews.revision === state.revision && (
+                  <button
+                    role="menuitem"
+                    onClick={() => {
+                      setOpenMenu(null);
+                      setProposal(figmaNews);
+                    }}
+                  >
+                    <strong>
+                      Voir {figmaNews.patches.length} nouveauté
+                      {figmaNews.patches.length > 1 ? 's' : ''}
+                    </strong>
+                    <span>Changements lus dans Figma, à valider</span>
+                  </button>
+                )}
+                <button
+                  role="menuitem"
+                  disabled={figmaReading}
+                  onClick={() => {
+                    setOpenMenu(null);
+                    void readFigma(false);
+                  }}
+                >
+                  <strong>Lire Figma maintenant</strong>
+                  <span>
+                    Variables et composants
+                    {figmaAge ? ` · dernière lecture ${figmaAge}` : ''}
+                  </span>
+                </button>
+                <button
+                  role="menuitem"
+                  onClick={() => {
+                    setOpenMenu(null);
+                    setSettingsTab('figma');
+                    setSettingsOpen(true);
+                  }}
+                >
+                  <strong>Réglages Figma</strong>
+                  <span>Lien du fichier, envoi vers Figma</span>
+                </button>
+              </div>
+            )}
+          </div>
           <button
             className="brief-pill"
             aria-label="Brief"
@@ -2175,55 +2253,36 @@ export default function App() {
                 <path d="M12 7v5l3 2" />
               </svg>
             </button>
-            <label
-              className="header-icon file-icon"
-              title="Importer un JSON de tokens"
-            >
-              <svg
-                aria-hidden="true"
-                width="17"
-                height="17"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <path d="M17 8l-5-5-5 5" />
-                <path d="M12 3v12" />
-              </svg>
-              <span className="sr-only">Importer un JSON</span>
-              <input
-                type="file"
-                aria-label="Importer un JSON"
-                accept=".json,application/json"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  e.target.value = '';
-                  if (file)
-                    void perform(async () => {
-                      if (file.size > 128000)
-                        throw new Error(
-                          'Fichier trop volumineux (128 Ko maximum).',
-                        );
-                      const tokens = JSON.parse(await file.text());
-                      setProposal(
-                        await request('import', {
-                          revision: state.revision,
-                          tokens,
-                        }),
+            <input
+              ref={importInput}
+              type="file"
+              hidden
+              aria-label="Importer un JSON"
+              accept=".json,application/json"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = '';
+                if (file)
+                  void perform(async () => {
+                    if (file.size > 128000)
+                      throw new Error(
+                        'Fichier trop volumineux (128 Ko maximum).',
                       );
-                    });
-                }}
-              />
-            </label>
+                    const tokens = JSON.parse(await file.text());
+                    setProposal(
+                      await request('import', {
+                        revision: state.revision,
+                        tokens,
+                      }),
+                    );
+                  });
+              }}
+            />
             <div className="export-wrap" data-tour="export">
               <button
                 className="header-icon"
-                aria-label="Exporter"
-                title="Exporter"
+                aria-label="Fichiers"
+                title="Importer ou exporter"
                 aria-haspopup="menu"
                 aria-expanded={exportOpen}
                 onClick={() => setExportOpen(!exportOpen)}
@@ -2239,13 +2298,22 @@ export default function App() {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 >
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <path d="M7 10l5 5 5-5" />
-                  <path d="M12 15V3" />
+                  <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
                 </svg>
               </button>
               {exportOpen && (
-                <div className="export-menu" role="menu" aria-label="Exporter">
+                <div className="export-menu" role="menu" aria-label="Fichiers">
+                  <button
+                    role="menuitem"
+                    onClick={() => {
+                      setExportOpen(false);
+                      importInput.current?.click();
+                    }}
+                  >
+                    <strong>Importer un JSON</strong>
+                    <span>Tokens d’un fichier, montrés en diff à valider</span>
+                  </button>
+                  <p className="menu-label">Exporter</p>
                   {pendingCount > 0 && (
                     <p className="export-note">
                       Valeurs enregistrées seulement : tes modifications en
@@ -2428,6 +2496,19 @@ export default function App() {
             <h2 id="ds-title" tabIndex={-1}>
               Design System
             </h2>
+            {/* Éditer : modifier les tokens. Bibliothèque : la doc, en lecture seule. */}
+            <div
+              className="segmented ds-mode"
+              role="group"
+              aria-label="Mode du Design System"
+            >
+              <button aria-pressed={!library} onClick={() => setLibrary(false)}>
+                Éditer
+              </button>
+              <button aria-pressed={library} onClick={() => setLibrary(true)}>
+                Bibliothèque
+              </button>
+            </div>
           </div>
           <div className="ds-layout">
             <nav
@@ -2549,12 +2630,13 @@ export default function App() {
                   >
                     {c.label}
                     {/* Statut visuel ; le nom accessible reste le libellé. */}
-                    {figmaRead && (
+                    {/* Seule l'exception se voit : relié à Figma est la norme. */}
+                    {figmaRead && !twinOf(c.label) && (
                       <span
                         aria-hidden="true"
-                        className={`side-count side-source${twinOf(c.label) ? '' : ' is-missing'}`}
+                        className="side-count side-source is-missing"
                       >
-                        {twinOf(c.label) ? '✓' : 'Hors Figma'}
+                        Hors Figma
                       </span>
                     )}
                   </button>
@@ -2646,129 +2728,151 @@ export default function App() {
             <div className="ds-content">
               <div className="content-head">
                 <h3>{title}</h3>
-                <p role={query ? 'status' : undefined}>{description}</p>
+                <p role={query ? 'status' : undefined}>
+                  {library && selection.kind === 'tokens' && !query
+                    ? `${keys.length} token${keys.length > 1 ? 's' : ''}, en lecture seule. Passe sur « Éditer » pour les modifier.`
+                    : description}
+                </p>
               </div>
-              {demo && (
-                <div
-                  ref={sheetStage}
-                  className="component-stage"
-                  role="region"
-                  aria-label={`Planche : ${title}`}
-                >
-                  <div className="stage-bar">
-                    <span>
-                      {selection.kind === 'figma'
-                        ? 'Variantes lues dans Figma'
-                        : demo.sheet
-                          ? 'Tous les états'
-                          : 'Rendu · planche des états à venir'}
-                      {sheetScale === 1 ? ' · taille réelle' : ''}
-                    </span>
-                    <ZoomControl
-                      label="Zoom de la planche"
-                      fit={sheetFit}
-                      shown={sheetScale}
-                      onFit={() => setSheetFit(true)}
-                      onZoom={(z) => {
-                        setSheetFit(false);
-                        setSheetZoom(z);
-                      }}
-                    />
-                  </div>
-                  <DSProvider tokens={preview}>
-                    <div className="stage-inner">
-                      <FitBox
-                        fit={sheetFit}
-                        zoom={sheetZoom}
-                        onScale={setSheetScale}
-                      >
-                        {demo.sheet ? demo.sheet() : demo.render()}
-                      </FitBox>
-                    </div>
-                  </DSProvider>
-                  {demo.measures && (
-                    <p className="stage-measures">{demo.measures(preview)}</p>
-                  )}
-                </div>
-              )}
-              {selection.kind === 'component' && figmaRead && !query && (
-                <section
-                  className="figma-twin"
-                  aria-label={`Version Figma : ${title}`}
-                >
-                  {twin ? (
-                    <>
-                      <p className="figma-twin-head">
-                        <strong>Dans Figma ✓</strong> « {twin.name} » · rendu lu
-                        dans Figma, approximatif
-                      </p>
+              {libraryView ?? (
+                <>
+                  {demo && (
+                    <div
+                      ref={sheetStage}
+                      className="component-stage"
+                      role="region"
+                      aria-label={`Planche : ${title}`}
+                    >
+                      <div className="stage-bar">
+                        <span>
+                          {selection.kind === 'figma'
+                            ? 'Variantes lues dans Figma'
+                            : demo.sheet
+                              ? 'Tous les états'
+                              : 'Rendu · planche des états à venir'}
+                          {sheetScale === 1 ? ' · taille réelle' : ''}
+                        </span>
+                        <ZoomControl
+                          label="Zoom de la planche"
+                          fit={sheetFit}
+                          shown={sheetScale}
+                          onFit={() => setSheetFit(true)}
+                          onZoom={(z) => {
+                            setSheetFit(false);
+                            setSheetZoom(z);
+                          }}
+                        />
+                      </div>
                       <DSProvider tokens={preview}>
-                        <div className="figma-twin-body">
-                          <FigmaSheet c={twin} />
+                        <div className="stage-inner">
+                          <FitBox
+                            fit={sheetFit}
+                            zoom={sheetZoom}
+                            onScale={setSheetScale}
+                          >
+                            {demo.sheet ? demo.sheet() : demo.render()}
+                          </FitBox>
                         </div>
                       </DSProvider>
-                    </>
-                  ) : (
-                    <p className="figma-twin-head is-missing">
-                      <strong>Absent de Figma.</strong> Crée un composant nommé
-                      « {title} » dans ton fichier pour les relier.
-                    </p>
+                      {demo.measures && (
+                        <p className="stage-measures">
+                          {demo.measures(preview)}
+                        </p>
+                      )}
+                    </div>
                   )}
-                </section>
-              )}
-              {selection.kind === 'audit' && !query ? (
-                <AuditView
-                  onAsk={
-                    agents.some((a) => a.id === agent && a.available)
-                      ? () => void sendMessage(auditMessage())
-                      : undefined
-                  }
-                  report={auditAll(preview)}
-                  targets={targets}
-                  onGo={(p, k) => {
-                    if (isColorProfile(p) || groups[0].keys.includes(k))
-                      setProfile(p);
-                    const g = groups.find((x) => x.keys.includes(k));
-                    if (g) select({ kind: 'tokens', id: g.id });
-                    setFocusKey(k);
-                  }}
-                />
-              ) : selection.kind !== 'tokens' && !query ? (
-                <p className="rows-title">Tokens utilisés</p>
-              ) : null}
-              {!query &&
-                selection.kind === 'tokens' &&
-                selection.id === 'colors' &&
-                keys.length > 0 && (
-                  <div className="profile-bar">
-                    <label htmlFor="profile-select">Type de vision</label>
-                    <select
-                      id="profile-select"
-                      value={profile}
-                      onChange={(e) => setProfile(e.target.value as Profile)}
+                  {selection.kind === 'component' && figmaRead && !query && (
+                    <section
+                      className="figma-twin"
+                      aria-label={`Version Figma : ${title}`}
                     >
-                      {profiles.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.label}
-                        </option>
-                      ))}
-                    </select>
-                    <p>
-                      {profiles.find((p) => p.id === profile)?.hint}{' '}
-                      {!profileChecks.length
-                        ? 'Rien à mesurer encore : ajoute aussi texte et fond.'
-                        : profileChecks.some((c) => c.status === 'fail')
-                          ? `${profileChecks.filter((c) => c.status === 'fail').length} point(s) à corriger ci-dessous.`
-                          : 'Tout est OK pour ce profil.'}
-                    </p>
-                  </div>
-                )}
-              {selection.kind === 'audit' && !query ? null : keys.length ? (
-                <>
-                  <ul className="token-rows" data-tour="tokens">
-                    {keys.map(renderRow)}
-                  </ul>
-                  {selection.kind === 'tokens' && !query && (
+                      {twin ? (
+                        <>
+                          <p className="figma-twin-head">
+                            <strong>Dans Figma ✓</strong> « {twin.name} » ·
+                            rendu lu dans Figma, approximatif
+                          </p>
+                          <DSProvider tokens={preview}>
+                            <div className="figma-twin-body">
+                              <FigmaSheet c={twin} />
+                            </div>
+                          </DSProvider>
+                        </>
+                      ) : (
+                        <p className="figma-twin-head is-missing">
+                          <strong>Absent de Figma.</strong> Crée un composant
+                          nommé « {title} » dans ton fichier pour les relier.
+                        </p>
+                      )}
+                    </section>
+                  )}
+                  {selection.kind === 'audit' && !query ? (
+                    <AuditView
+                      onAsk={
+                        agents.some((a) => a.id === agent && a.available)
+                          ? () => void sendMessage(auditMessage())
+                          : undefined
+                      }
+                      report={auditAll(preview)}
+                      targets={targets}
+                      onGo={(p, k) => {
+                        if (isColorProfile(p) || groups[0].keys.includes(k))
+                          setProfile(p);
+                        const g = groups.find((x) => x.keys.includes(k));
+                        if (g) select({ kind: 'tokens', id: g.id });
+                        setFocusKey(k);
+                      }}
+                    />
+                  ) : selection.kind !== 'tokens' && !query ? (
+                    <p className="rows-title">Tokens utilisés</p>
+                  ) : null}
+                  {!query &&
+                    selection.kind === 'tokens' &&
+                    selection.id === 'colors' &&
+                    keys.length > 0 && (
+                      <div className="profile-bar">
+                        <label htmlFor="profile-select">Type de vision</label>
+                        <select
+                          id="profile-select"
+                          value={profile}
+                          onChange={(e) =>
+                            setProfile(e.target.value as Profile)
+                          }
+                        >
+                          {profiles.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.label}
+                            </option>
+                          ))}
+                        </select>
+                        <p>
+                          {profiles.find((p) => p.id === profile)?.hint}{' '}
+                          {!profileChecks.length
+                            ? 'Rien à mesurer encore : ajoute aussi texte et fond.'
+                            : profileChecks.some((c) => c.status === 'fail')
+                              ? `${profileChecks.filter((c) => c.status === 'fail').length} point(s) à corriger ci-dessous.`
+                              : 'Tout est OK pour ce profil.'}
+                        </p>
+                      </div>
+                    )}
+                  {selection.kind === 'audit' && !query ? null : keys.length ? (
+                    <>
+                      <ul className="token-rows" data-tour="tokens">
+                        {keys.map(renderRow)}
+                      </ul>
+                      {selection.kind === 'tokens' && !query && (
+                        <AddToken
+                          key={selection.id}
+                          prefixes={prefixOfGroup[selection.id] ?? ['color']}
+                          tokens={state.tokens}
+                          onPropose={(key, value) =>
+                            proposeChanges([{ key, value }])
+                          }
+                        />
+                      )}
+                    </>
+                  ) : selection.kind === 'tokens' && !query ? (
+                    // Groupe vide (projet libre) : on propose d'ajouter.
                     <AddToken
                       key={selection.id}
                       prefixes={prefixOfGroup[selection.id] ?? ['color']}
@@ -2777,22 +2881,14 @@ export default function App() {
                         proposeChanges([{ key, value }])
                       }
                     />
+                  ) : (
+                    <p className="empty">
+                      {selection.kind === 'figma' && !query
+                        ? 'Aucune variable DS-Studio liée à ce composant dans Figma.'
+                        : 'Aucun token ne correspond. Essaie « couleur », « space » ou « police ».'}
+                    </p>
                   )}
                 </>
-              ) : selection.kind === 'tokens' && !query ? (
-                // Groupe vide (projet libre) : on propose d'ajouter.
-                <AddToken
-                  key={selection.id}
-                  prefixes={prefixOfGroup[selection.id] ?? ['color']}
-                  tokens={state.tokens}
-                  onPropose={(key, value) => proposeChanges([{ key, value }])}
-                />
-              ) : (
-                <p className="empty">
-                  {selection.kind === 'figma' && !query
-                    ? 'Aucune variable DS-Studio liée à ce composant dans Figma.'
-                    : 'Aucun token ne correspond. Essaie « couleur », « space » ou « police ».'}
-                </p>
               )}
             </div>
           </div>
