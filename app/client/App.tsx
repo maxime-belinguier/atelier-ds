@@ -2496,19 +2496,25 @@ export default function App() {
             <h2 id="ds-title" tabIndex={-1}>
               Design System
             </h2>
-            {/* Éditer : modifier les tokens. Bibliothèque : la doc, en lecture seule. */}
-            <div
-              className="segmented ds-mode"
-              role="group"
-              aria-label="Mode du Design System"
-            >
-              <button aria-pressed={!library} onClick={() => setLibrary(false)}>
-                Éditer
-              </button>
-              <button aria-pressed={library} onClick={() => setLibrary(true)}>
-                Bibliothèque
-              </button>
-            </div>
+            {/* Éditer : modifier les tokens. Bibliothèque : la doc, en lecture seule.
+                Seulement pour Tokens et Composants. */}
+            {selection.kind !== 'screen' && selection.kind !== 'audit' && (
+              <div
+                className="segmented ds-mode"
+                role="group"
+                aria-label="Mode du Design System"
+              >
+                <button
+                  aria-pressed={!library}
+                  onClick={() => setLibrary(false)}
+                >
+                  Éditer
+                </button>
+                <button aria-pressed={library} onClick={() => setLibrary(true)}>
+                  Bibliothèque
+                </button>
+              </div>
+            )}
           </div>
           <div className="ds-layout">
             <nav

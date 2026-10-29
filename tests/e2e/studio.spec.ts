@@ -1540,11 +1540,15 @@ test('bibliothèque : fondations et composants en lecture seule', async ({
     .last()
     .click();
   await expect(page.getByRole('heading', { name: 'Mes biens' })).toBeVisible();
-  await page.getByRole('button', { name: 'Éditer', exact: true }).click();
+  // Écrans : pas de choix Éditer / Bibliothèque.
+  await expect(
+    page.getByRole('group', { name: 'Mode du Design System' }),
+  ).toHaveCount(0);
   await page
     .getByRole('button', { name: /^Couleurs/ })
     .first()
     .click();
+  await page.getByRole('button', { name: 'Éditer', exact: true }).click();
   await expect(
     page.getByLabel('Couleur de marque', { exact: true }),
   ).toBeVisible();

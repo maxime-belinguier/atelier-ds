@@ -902,7 +902,9 @@ Décision : un seul bouton Figma (pastille d’état, âge de la lecture,
 nouveautés) qui ouvre un menu : voir les nouveautés, lire maintenant,
 réglages. Non connecté : il ouvre Paramètres › Figma. Importer et Exporter
 regroupés dans « Fichiers ». Menu des composants : seul « Hors Figma » reste
-affiché. Onglet Design System : interrupteur « Éditer | Bibliothèque ». La
+affiché. Onglet Design System : interrupteur « Éditer | Bibliothèque ». Il
+n’apparaît que pour Tokens et Composants (pas pour Écrans ni Contrôle
+qualité). La
 Bibliothèque est en lecture seule : fondations en spécimens (couleur, police,
 taille, espacement, arrondi) ; chaque composant avec rendu, mesures, bonnes
 pratiques, tokens utilisés, écrans où il apparaît, statut Figma.
