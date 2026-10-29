@@ -38,7 +38,8 @@
   transition: background 0.12s;
   min-height: 44px;
 }
-.ds-button.primary:hover {
+.ds-button.primary:hover,
+.ds-button.primary.is-hover {
   background: var(--color-brandHover);
 }
 .ds-button.secondary {
@@ -46,7 +47,8 @@
   background: var(--color-surface);
   color: var(--color-brand);
 }
-.ds-button.secondary:hover {
+.ds-button.secondary:hover,
+.ds-button.secondary.is-hover {
   background: var(--color-canvas);
 }
 .ds-button.danger {
@@ -57,7 +59,8 @@
   opacity: 0.45;
   cursor: not-allowed;
 }
-.ds :focus-visible {
+.ds :focus-visible,
+.ds .is-focus {
   outline: 3px solid var(--color-focus);
   outline-offset: 3px;
 }
@@ -184,7 +187,8 @@
   background: var(--color-canvas);
   opacity: 0.6;
 }
-.ds-form input:user-invalid {
+.ds-form input:user-invalid,
+.ds-form input.is-invalid {
   border-color: var(--color-danger);
 }
 .ds-form .ds-check {

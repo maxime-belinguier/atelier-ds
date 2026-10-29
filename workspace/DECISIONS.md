@@ -559,3 +559,60 @@ renommer, supprimer, ouvrir le dossier, retour à DS-Studio) ; suite complète
 relues en clair et en sombre (atelier, chat, Paramètres).
 Limite : l’ouverture du Finder reste à essayer sur mon Mac (désactivée dans
 les tests) ; restaurer un projet supprimé se fait à la main pour l’instant.
+
+## 28/10/2026 · Composants : planche à gauche, écran cohérent à droite
+
+Problème : un composant n’était visible qu’en petite démo ; impossible de voir
+ses états (survol, focus, désactivé), et l’Aperçu ne montrait pas forcément
+un écran qui le contient.
+Décision : quand un composant est ouvert dans le menu :
+- à gauche, sa planche à taille réelle au-dessus de ses tokens : Boutons en
+  3 variantes × 4 états (survol et focus forcés, sans souris), Fit / 100 %,
+  mesures calculées depuis les tokens. On modifie et on voit tout de suite ;
+- à droite, l’Aperçu passe sur un écran qui contient le composant, l’entoure
+  en pointillé, l’amène à l’écran s’il est sous le pli et indique « Boutons ·
+  1 sur cet écran ». Si on choisit à la main un écran sans ce composant, un
+  message le dit et propose l’écran qui le contient.
+La planche garde le fond du DS, même en mode sombre. Le contour n’altère pas
+la forme du composant (outline seulement).
+Constat sur Gutt : le bouton Suppression n’a pas d’état survol (identique au
+normal) ; le survol principal ne suit pas un changement de couleur de marque
+(token séparé `color.brandHover`).
+Écarté après essai : un mode « Composant » dans l’Aperçu avec bouton Écran /
+Composant (on ne voyait plus l’écran en même temps) ; la page séparée façon
+Storybook ; le lien token ↔ aperçu au survol (moins direct pour ce besoin).
+Preuves : test navigateur (Formulaire ouvre l’écran du formulaire et
+l’entoure, planche à 12 boutons, survol et focus visibles, 100 %, contour qui
+suit le composant et disparaît sur Couleurs, token modifié reflété) ; suite
+complète (68 unitaires, 31 navigateur) ; audit de mise en page sans anomalie ;
+visite guidée : une position par étape ; captures relues en clair et sombre.
+Suite : planches d’états pour les 4 autres composants. Fiche logement
+(normale, gardée), Points à vérifier (0, 2 et 5 sur 5), Formulaire (champ et
+case : normal, focus, rempli, erreur, désactivé ; états en lignes pour rester
+lisible sans réduire), Navigation (normal, focus, actif). Pas de colonne
+survol pour les onglets : le DS n’en a pas, la planche ne l’invente pas.
+Correctif : le nombre « X sur cet écran » pouvait rester à 0 si l’écran de
+l’Aperçu n’avait pas fini de charger ; il est recompté quand l’écran change,
+et une réponse de l’écran précédent est ignorée.
+Écarté : Formulaire en colonnes d’états (réduit à 49 %, illisible).
+Preuves (suite) : test navigateur par composant (2 fiches, 3 progressions,
+5 champs avec erreur et focus visibles, onglet actif unique) ; suite complète
+(68 unitaires, 32 navigateur, 6 passages de suite sans échec) ; audit de mise
+en page sans anomalie ; visite guidée 1:1 ; captures relues en clair et sombre.
+Limite : la liste des écrans par composant est écrite à la main ; l’erreur
+du champ n’a pas de message texte, seulement la bordure (comme dans le DS).
+
+## 29/10/2026 · Composants : planche collée en haut
+
+Problème : en descendant vers les derniers tokens (taille du texte), la
+planche sortait de l’écran ; on ne voyait plus l’effet du réglage.
+Décision : la planche reste collée en haut du panneau pendant le défilement,
+avec une ombre légère. Hauteur limitée à 46 % de l’écran pour laisser la
+place aux réglages ; au-delà, la planche défile à l’intérieur.
+Écarté : réduire la planche au défilement (plus complexe, moins lisible) ;
+un aperçu flottant séparé.
+Preuves : test navigateur (taille du texte à 20 px en bas de liste : planche
+toujours visible, mesure « texte 20 px ») ; suite complète (32 navigateur) ;
+audit de mise en page sans anomalie ; visite guidée 1:1 ; captures relues en
+clair et sombre.
+Limite : sur un petit écran, la planche occupe près de la moitié du panneau.

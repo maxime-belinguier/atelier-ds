@@ -22,17 +22,22 @@ export function Button({
   children,
   disabled = false,
   onClick,
+  state,
 }: {
   variant?: 'primary' | 'secondary' | 'danger';
   children: ReactNode;
   disabled?: boolean;
   onClick?: () => void;
+  /** Planche du composant : état affiché sans souris ni clavier. */
+  state?: 'hover' | 'focus';
 }) {
   return (
     <button
-      className={`ds-button ${variant}`}
+      className={`ds-button ${variant}${state ? ` is-${state}` : ''}`}
+      data-ds="buttons"
       disabled={disabled}
       onClick={onClick}
+      tabIndex={state ? -1 : undefined}
     >
       {children}
     </button>
@@ -40,10 +45,10 @@ export function Button({
 }
 
 // Fiche d'un logement comparé par l'utilisateur.
-export function LogementCard() {
-  const [kept, setKept] = useState(false);
+export function LogementCard({ kept: initial = false }: { kept?: boolean }) {
+  const [kept, setKept] = useState(initial);
   return (
-    <article className="ds-card">
+    <article className="ds-card" data-ds="logement">
       <div className="card-kicker">T2 · 38 M² · CHARTRONS</div>
       <h3>Appartement lumineux, 2e étage</h3>
       <p>720 € charges comprises · disponible le 1er décembre.</p>
@@ -88,17 +93,13 @@ const points = [
 
 // Liste des points à vérifier avant de signer. Seul élément ludique :
 // la progression.
-export function VerificationCard() {
-  const [done, setDone] = useState<boolean[]>([
-    true,
-    true,
-    false,
-    false,
-    false,
-  ]);
+export function VerificationCard({ checked = 2 }: { checked?: number }) {
+  const [done, setDone] = useState<boolean[]>(
+    points.map((_, i) => i < checked),
+  );
   const count = done.filter(Boolean).length;
   return (
-    <article className="ds-card">
+    <article className="ds-card" data-ds="verification">
       <div className="card-kicker">AVANT DE SIGNER</div>
       <h3>Points à vérifier</h3>
       <div
@@ -147,6 +148,7 @@ export function AjoutLogementForm() {
       : '';
   return (
     <form
+      data-ds="form"
       className="ds-form"
       onSubmit={(e) => {
         e.preventDefault();
@@ -196,7 +198,7 @@ export function AjoutLogementForm() {
       <label className="ds-check">
         <input type="checkbox" required /> J’ai visité ce logement
       </label>
-      <button className="ds-button primary" type="submit">
+      <button className="ds-button primary" type="submit" data-ds="buttons">
         Analyser ce logement
       </button>
       <p role="status">
@@ -211,7 +213,7 @@ export function AjoutLogementForm() {
 export function Navigation() {
   const [tab, setTab] = useState('Mes biens');
   return (
-    <nav aria-label="Navigation du scénario" className="ds-nav">
+    <nav aria-label="Navigation du scénario" className="ds-nav" data-ds="nav">
       {['Mes biens', 'À vérifier', 'Profil'].map((t) => (
         <button
           key={t}
@@ -235,15 +237,235 @@ export function Navigation() {
 // Registre des composants affichés dans l'atelier. « tokens » liste les
 // variables réellement lues par leurs règles CSS (styles.css, section .ds),
 // de la plus visible à la moins visible. À tenir à jour avec le CSS.
+const buttonVariants = [
+  ['primary', 'Principal', 'Garder'],
+  ['secondary', 'Secondaire', 'Annuler'],
+  ['danger', 'Suppression', 'Supprimer'],
+] as const;
+const buttonStates = [
+  ['default', 'Normal'],
+  ['hover', 'Survol'],
+  ['focus', 'Focus'],
+  ['disabled', 'Désactivé'],
+] as const;
+
+// Planche des boutons : chaque variante dans chaque état, à taille réelle.
+// Les états survol et focus sont forcés par classe (is-hover, is-focus).
+export function ButtonSheet() {
+  return (
+    <table className="sheet-table">
+      <caption className="sr-only">
+        Boutons : variantes en lignes, états en colonnes
+      </caption>
+      <thead>
+        <tr>
+          <td />
+          {buttonStates.map(([id, label]) => (
+            <th key={id} scope="col">
+              {label}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {buttonVariants.map(([variant, label, text]) => (
+          <tr key={variant}>
+            <th scope="row">{label}</th>
+            {buttonStates.map(([state]) => (
+              <td key={state}>
+                <Button
+                  variant={variant}
+                  disabled={state === 'disabled'}
+                  state={
+                    state === 'hover' || state === 'focus' ? state : undefined
+                  }
+                >
+                  {text}
+                </Button>
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+// Planche à une ligne : chaque colonne montre le composant dans un état.
+function StateRow({
+  caption,
+  cells,
+  wide = false,
+}: {
+  caption: string;
+  cells: [string, ReactNode][];
+  /** Fiches : colonnes de largeur fixe pour comparer les états. */
+  wide?: boolean;
+}) {
+  return (
+    <table className="sheet-table">
+      <caption className="sr-only">{caption}</caption>
+      <thead>
+        <tr>
+          {cells.map(([label]) => (
+            <th key={label} scope="col">
+              {label}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          {cells.map(([label, node]) => (
+            <td key={label} className={wide ? 'sheet-card' : undefined}>
+              {node}
+            </td>
+          ))}
+        </tr>
+      </tbody>
+    </table>
+  );
+}
+
+export function LogementSheet() {
+  return (
+    <StateRow
+      caption="Fiche logement : états en colonnes"
+      wide
+      cells={[
+        ['Normal', <LogementCard />],
+        ['Gardé', <LogementCard kept />],
+      ]}
+    />
+  );
+}
+
+export function VerificationSheet() {
+  return (
+    <StateRow
+      caption="Points à vérifier : progression en colonnes"
+      wide
+      cells={[
+        ['À commencer', <VerificationCard checked={0} />],
+        ['En cours', <VerificationCard />],
+        ['Terminé', <VerificationCard checked={points.length} />],
+      ]}
+    />
+  );
+}
+
+const fieldStates = [
+  ['default', 'Normal'],
+  ['focus', 'Focus'],
+  ['filled', 'Rempli'],
+  ['invalid', 'Erreur'],
+  ['disabled', 'Désactivé'],
+] as const;
+
+// Champ et case à cocher dans chaque état. Focus et erreur sont forcés par
+// classe (is-focus, is-invalid) : sans saisie, le navigateur ne les montre pas.
+export function FormSheet() {
+  return (
+    <div className="ds-form">
+      <table className="sheet-table">
+        <caption className="sr-only">
+          Formulaire : états en lignes, champ et case en colonnes
+        </caption>
+        <thead>
+          <tr>
+            <td />
+            <th scope="col">Champ</th>
+            <th scope="col">Case</th>
+          </tr>
+        </thead>
+        <tbody>
+          {fieldStates.map(([state, label]) => (
+            <tr key={state}>
+              <th scope="row">{label}</th>
+              <td className="sheet-field">
+                <input
+                  aria-label={`Loyer, ${label}`}
+                  readOnly
+                  tabIndex={-1}
+                  placeholder="720"
+                  defaultValue={
+                    state === 'filled' ? '720' : state === 'invalid' ? '0' : ''
+                  }
+                  disabled={state === 'disabled'}
+                  aria-invalid={state === 'invalid' || undefined}
+                  className={
+                    state === 'focus'
+                      ? 'is-focus'
+                      : state === 'invalid'
+                        ? 'is-invalid'
+                        : undefined
+                  }
+                />
+              </td>
+              <td>
+                {state === 'invalid' ? null : (
+                  <label className="ds-check">
+                    <input
+                      type="checkbox"
+                      readOnly
+                      tabIndex={-1}
+                      checked={state === 'filled'}
+                      disabled={state === 'disabled'}
+                      className={state === 'focus' ? 'is-focus' : undefined}
+                    />{' '}
+                    Visité
+                  </label>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// Le DS n'a pas de survol pour les onglets : la planche ne l'invente pas.
+export function NavSheet() {
+  const tab = (state?: 'focus' | 'active') => (
+    <nav className="ds-nav" aria-label={`Onglet ${state ?? 'normal'}`}>
+      <button
+        tabIndex={-1}
+        className={state === 'focus' ? 'is-focus' : undefined}
+        aria-current={state === 'active' ? 'page' : undefined}
+      >
+        À vérifier
+      </button>
+    </nav>
+  );
+  return (
+    <StateRow
+      caption="Navigation : états de l’onglet en colonnes"
+      cells={[
+        ['Normal', tab()],
+        ['Focus', tab('focus')],
+        ['Actif', tab('active')],
+      ]}
+    />
+  );
+}
+
 export const components: {
   id: string;
   label: string;
   description: string;
   tokens: TokenKey[];
   render: () => ReactNode;
+  /** Planche des états ; sinon le rendu simple. */
+  sheet?: () => ReactNode;
+  /** Mesures affichées sous la planche, calculées depuis les tokens. */
+  measures?: (t: Tokens) => string;
+  /** Écrans qui contiennent ce composant (l'Aperçu ouvre le premier). */
+  usedIn: string[];
 }[] = [
   {
     id: 'buttons',
+    usedIn: ['cards', 'form'],
     label: 'Boutons',
     description:
       'Action principale, secondaire, suppression et état désactivé.',
@@ -269,9 +491,13 @@ export const components: {
         <Button disabled>Indisponible</Button>
       </div>
     ),
+    sheet: () => <ButtonSheet />,
+    measures: (t) =>
+      `hauteur min. 44 px · arrondi ${t['radius.control'].$value} px · marges ${t['space.sm'].$value} × ${t['space.md'].$value} px · texte ${t['font.body'].$value} px`,
   },
   {
     id: 'logement',
+    usedIn: ['cards'],
     label: 'Fiche logement',
     description: 'Un logement comparé : loyer, prix au m², points à vérifier.',
     tokens: [
@@ -290,9 +516,13 @@ export const components: {
       'font.body',
     ],
     render: () => <LogementCard />,
+    sheet: () => <LogementSheet />,
+    measures: (t) =>
+      `marge interne ${t['space.lg'].$value} px · arrondi ${t['radius.control'].$value} px · bordure 1 px · texte ${Math.round(Number(t['font.body'].$value) * 0.875)} px`,
   },
   {
     id: 'verification',
+    usedIn: ['cards'],
     label: 'Points à vérifier',
     description: 'Liste à cocher avant de signer, avec progression.',
     tokens: [
@@ -309,9 +539,13 @@ export const components: {
       'font.body',
     ],
     render: () => <VerificationCard />,
+    sheet: () => <VerificationSheet />,
+    measures: (t) =>
+      `barre 8 px · ligne min. 44 px · case 18 px · écart ${t['space.sm'].$value} px`,
   },
   {
     id: 'form',
+    usedIn: ['form'],
     label: 'Formulaire',
     description: 'Champs, case à cocher, champ désactivé et erreur de saisie.',
     tokens: [
@@ -329,9 +563,13 @@ export const components: {
       'font.body',
     ],
     render: () => <AjoutLogementForm />,
+    sheet: () => <FormSheet />,
+    measures: (t) =>
+      `champ min. 44 px · arrondi ${t['radius.control'].$value} px · marges ${t['space.sm'].$value} × ${t['space.md'].$value} px · écart entre champs ${t['space.md'].$value} px`,
   },
   {
     id: 'nav',
+    usedIn: ['cards', 'form'],
     label: 'Navigation',
     description: 'Onglets de l’application, avec l’onglet actif.',
     tokens: [
@@ -344,6 +582,9 @@ export const components: {
       'font.body',
     ],
     render: () => <Navigation />,
+    sheet: () => <NavSheet />,
+    measures: (t) =>
+      `onglet min. 44 px · arrondi ${t['radius.control'].$value} px · marge ${t['space.sm'].$value} px · texte ${Math.round(Number(t['font.body'].$value) * 0.8)} px`,
   },
 ];
 

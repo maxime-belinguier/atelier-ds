@@ -11,6 +11,7 @@ import {
 } from 'react';
 import { DSProvider, Scenario, components, screens } from './DesignSystem.js';
 import ProjectBrief from './ProjectBrief.js';
+import FitBox from './FitBox.js';
 import ScreenPicker from './ScreenPicker.js';
 import ProjectMenu, { newProjectKey } from './ProjectMenu.js';
 import ColorPicker from './ColorPicker.js';
@@ -163,9 +164,19 @@ function announceChange() {
 export function Preview() {
   const { state, error } = useDesignState();
   const [override, setOverride] = useState<Tokens | null>(null);
+  const [focus, setFocus] = useState<string | null>(null);
   useEffect(() => {
     const onMessage = (e: MessageEvent) => {
       if (e.origin !== location.origin || e.source !== window.parent) return;
+      // Composant ouvert dans l'atelier : contour sur ses occurrences, et
+      // nombre renvoyé pour le pied de l'Aperçu.
+      if (e.data?.type === 'ds-focus') {
+        const id = typeof e.data.id === 'string' ? e.data.id : '';
+        if (id) document.documentElement.dataset.focus = id;
+        else delete document.documentElement.dataset.focus;
+        setFocus(id);
+        return;
+      }
       if (e.data?.type !== 'ds-preview') return;
       if (e.data.tokens === null) return setOverride(null);
       const parsed = tokensSchema.safeParse(e.data.tokens);
@@ -177,6 +188,38 @@ export function Preview() {
   }, []);
   const scenario =
     new URLSearchParams(location.search).get('scenario') ?? 'cards';
+  // Compté une fois l'écran rendu, puis recompté s'il change : un compte
+  // pris pendant le chargement serait à 0.
+  const loaded = state !== null;
+  useEffect(() => {
+    if (focus === null || !loaded) return;
+    let frame = 0;
+    let last = -1;
+    const count = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const found = focus
+          ? document.querySelectorAll(`[data-ds="${CSS.escape(focus)}"]`)
+          : [];
+        if (found.length === last) return;
+        // La première occurrence est amenée à l'écran si elle est sous le pli.
+        if (last <= 0)
+          found[0]?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        last = found.length;
+        window.parent.postMessage(
+          { type: 'ds-focus-count', id: focus, n: found.length, scenario },
+          location.origin,
+        );
+      });
+    };
+    count();
+    const observer = new MutationObserver(count);
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => {
+      observer.disconnect();
+      cancelAnimationFrame(frame);
+    };
+  }, [focus, loaded, scenario]);
   return state ? (
     <Scenario tokens={override ?? state.tokens} scenario={scenario} />
   ) : (
@@ -433,6 +476,9 @@ export default function App() {
   const [freeOpen, setFreeOpen] = useState(false);
   // Mode Comparer : deux formats côte à côte (mobile et desktop par défaut).
   const [compare, setCompare] = useState(false);
+  // Planche du composant (colonne de gauche) : ajustée à la largeur ou 100 %.
+  const [sheetFit, setSheetFit] = useState(true);
+  const [sheetScale, setSheetScale] = useState(1);
   // Comparer deux formats, ou l'avant (enregistré) et l'après (modifs en cours).
   const [compareMode, setCompareMode] = useState<'formats' | 'before'>(
     'formats',
@@ -756,6 +802,41 @@ export default function App() {
     return () => removeEventListener('message', onReady);
   }, [previewTokens]);
 
+  // Composant ouvert à gauche : l'Aperçu entoure ses occurrences et dit
+  // combien il y en a sur l'écran affiché.
+  const focusId =
+    selection.kind === 'component' && !search.trim() ? selection.id : '';
+  const [focusCount, setFocusCount] = useState<{ id: string; n: number }>();
+  useEffect(() => {
+    const frames = () => [...(stage.current?.querySelectorAll('iframe') ?? [])];
+    const post = () =>
+      frames().forEach((f) =>
+        f.contentWindow?.postMessage(
+          { type: 'ds-focus', id: focusId },
+          location.origin,
+        ),
+      );
+    post();
+    const onMessage = (e: MessageEvent) => {
+      if (
+        e.origin !== location.origin ||
+        !frames().some((f) => e.source === f.contentWindow)
+      )
+        return;
+      if (e.data?.type === 'ds-preview-ready') post();
+      if (
+        e.data?.type === 'ds-focus-count' &&
+        typeof e.data.n === 'number' &&
+        e.data.id === focusId &&
+        // Réponse d'un écran précédent, pendant le changement d'écran : ignorée.
+        e.data.scenario === scenario
+      )
+        setFocusCount({ id: focusId, n: e.data.n });
+    };
+    addEventListener('message', onMessage);
+    return () => removeEventListener('message', onMessage);
+  }, [focusId, scenario, compare]);
+
   // Zones cliquables mesurées dans l'écran affiché, tant que l'audit est ouvert.
   const [targets, setTargets] = useState<Check[]>([]);
   useEffect(() => {
@@ -1003,7 +1084,7 @@ export default function App() {
   let title = '';
   let description = '';
   let keys: TokenKey[] = [];
-  let demo: (() => ReactNode) | undefined;
+  let demo: (typeof components)[number] | undefined;
   if (query) {
     title = 'Résultats';
     description = `${matches.length} token${matches.length > 1 ? 's' : ''} pour « ${search.trim()} ».`;
@@ -1018,7 +1099,7 @@ export default function App() {
     title = c.label;
     description = c.description;
     keys = c.tokens;
-    demo = c.render;
+    demo = c;
   } else if (selection.kind === 'audit') {
     title = 'Contrôle d’accessibilité';
     description =
@@ -1034,6 +1115,11 @@ export default function App() {
     setSearch('');
     setSelection(next);
     if (next.kind === 'screen') setScenario(next.id);
+    // Composant : l'Aperçu montre un écran qui le contient.
+    if (next.kind === 'component') {
+      const c = components.find((x) => x.id === next.id);
+      if (c && !c.usedIn.includes(scenario)) setScenario(c.usedIn[0]);
+    }
   }
   // Bornes en pixels : le Design System garde 440 px et l'Aperçu 380 px.
   const W = workspaceWidth || 1200;
@@ -2014,11 +2100,49 @@ export default function App() {
               {demo && (
                 <div
                   className="component-stage"
-                  aria-label={`Aperçu : ${title}`}
+                  role="region"
+                  aria-label={`Planche : ${title}`}
                 >
+                  <div className="stage-bar">
+                    <span>
+                      {demo.sheet
+                        ? 'Tous les états'
+                        : 'Rendu · planche des états à venir'}
+                      {sheetScale < 1 && sheetFit
+                        ? ` · ${Math.round(sheetScale * 100)} %`
+                        : ' · taille réelle'}
+                    </span>
+                    <div
+                      className="segmented"
+                      role="group"
+                      aria-label="Zoom de la planche"
+                    >
+                      <button
+                        aria-pressed={sheetFit}
+                        title="Fit : la planche tient dans la largeur"
+                        onClick={() => setSheetFit(true)}
+                      >
+                        Fit
+                      </button>
+                      <button
+                        aria-pressed={!sheetFit}
+                        title="100 % : taille réelle, défilement si besoin"
+                        onClick={() => setSheetFit(false)}
+                      >
+                        100 %
+                      </button>
+                    </div>
+                  </div>
                   <DSProvider tokens={preview}>
-                    <div className="stage-inner">{demo()}</div>
+                    <div className="stage-inner">
+                      <FitBox fit={sheetFit} onScale={setSheetScale}>
+                        {demo.sheet ? demo.sheet() : demo.render()}
+                      </FitBox>
+                    </div>
                   </DSProvider>
+                  {demo.measures && (
+                    <p className="stage-measures">{demo.measures(preview)}</p>
+                  )}
                 </div>
               )}
               {selection.kind === 'audit' && !query ? (
@@ -2406,6 +2530,29 @@ export default function App() {
                     </svg>
                   </button>
                 </span>
+              </div>
+            )}
+            {focusId && focusCount?.id === focusId && (
+              <div className="focus-sticky">
+                {(() => {
+                  const c = components.find((x) => x.id === focusId)!;
+                  const other = screens.find((x) => x.id === c.usedIn[0]);
+                  return focusCount.n > 0 ? (
+                    <span className="focus-chip" role="status">
+                      <i aria-hidden="true" />
+                      {c.label} · {focusCount.n} sur cet écran
+                    </span>
+                  ) : (
+                    <span className="focus-chip is-empty" role="status">
+                      Pas de « {c.label} » sur cet écran
+                      {other && (
+                        <button onClick={() => setScenario(other.id)}>
+                          Voir {other.label}
+                        </button>
+                      )}
+                    </span>
+                  );
+                })()}
               </div>
             )}
             <VisionFilters />

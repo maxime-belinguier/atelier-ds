@@ -1840,7 +1840,8 @@ select,
   min-width: 52px;
 }
 .picker-trigger {
-  width: 176px;
+  /* Largeur fixe (la barre ne bouge pas) qui loge « Ajouter un logement ». */
+  width: 204px;
   justify-content: flex-start;
 }
 .picker-trigger strong {
@@ -4433,4 +4434,145 @@ kbd {
   background: var(--bg-deep);
   font-size: 12px;
   word-break: break-all;
+}
+
+/* Composant ouvert : planche à gauche (Fit ou 100 %), contour dans l'Aperçu. */
+.stage-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px 0 16px;
+  font-size: 12px;
+  color: var(--text-2);
+}
+.component-stage .stage-inner {
+  max-width: none;
+  padding: 16px;
+}
+.fit-box {
+  overflow: hidden;
+}
+.fit-box.is-real {
+  overflow-x: auto;
+}
+.fit-inner {
+  width: max-content;
+}
+.stage-measures {
+  margin: 0;
+  padding: 0 16px 12px;
+  font-size: 12px;
+  color: var(--text-2);
+}
+.sheet-table {
+  width: auto;
+  border-collapse: collapse;
+}
+.sheet-table th,
+.sheet-table td {
+  border: 0;
+  padding: 6px 10px;
+  background: none;
+  vertical-align: middle;
+}
+.sheet-table th {
+  font: 600 11px var(--font-ui);
+  letter-spacing: 0.4px;
+  color: var(--text-2);
+  text-align: left;
+  white-space: nowrap;
+}
+.sheet-table thead th {
+  padding-bottom: 2px;
+  text-transform: uppercase;
+}
+.sheet-table tbody th {
+  padding-left: 0;
+  padding-right: 16px;
+}
+/* Fiches et champs : largeur fixe pour comparer les états côte à côte. */
+.sheet-table .sheet-card {
+  width: 300px;
+  vertical-align: top;
+}
+.sheet-table .sheet-field {
+  width: 200px;
+}
+.focus-sticky {
+  position: sticky;
+  top: 0;
+  height: 0;
+  z-index: 4;
+  display: flex;
+  justify-content: flex-end;
+}
+.focus-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--accent-border);
+  color: var(--accent-text);
+  font-size: 12px;
+  font-weight: 600;
+  box-shadow: 0 6px 18px #2c265026;
+  transform: translate(4px, -6px);
+}
+.focus-chip i {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  border: 2px dashed var(--accent-strong);
+}
+.focus-chip.is-empty {
+  padding-right: 4px;
+  border-color: var(--border-strong);
+  color: var(--text-2);
+}
+.focus-chip button {
+  height: 24px;
+  padding: 0 10px !important;
+  border-radius: 999px;
+  font-size: 12px;
+}
+/* Dans l'iframe : occurrences du composant ouvert dans l'atelier. */
+html[data-focus='buttons'] [data-ds='buttons'],
+html[data-focus='logement'] [data-ds='logement'],
+html[data-focus='verification'] [data-ds='verification'],
+html[data-focus='form'] [data-ds='form'],
+html[data-focus='nav'] [data-ds='nav'] {
+  /* Contour seulement : la forme du composant (arrondi) ne change pas. */
+  outline: 2px dashed var(--accent-strong);
+  outline-offset: 4px;
+}
+/* La planche garde le fond du DS (pas celui de l'atelier), même en sombre. */
+.component-stage > .ds {
+  margin: 10px 12px 12px;
+  border-radius: 12px;
+  background: var(--color-canvas);
+}
+.component-stage .sheet-table th {
+  color: var(--color-muted);
+}
+/* La planche reste visible en haut quand on descend dans les tokens : on
+   règle une valeur en bas et on voit le composant changer. Hauteur bornée
+   pour laisser la place aux réglages ; au-delà, la planche défile. */
+.component-stage {
+  position: sticky;
+  /* Collée au bord du panneau, sans le jour de sa marge haute (8 px). */
+  top: -8px;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  max-height: 46vh;
+  box-shadow: 0 8px 18px -14px rgb(0 0 0 / 0.35);
+}
+.component-stage > .ds {
+  min-height: 0;
+  overflow: auto;
+  flex-shrink: 1;
 }

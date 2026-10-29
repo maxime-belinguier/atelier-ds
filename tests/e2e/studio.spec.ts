@@ -53,9 +53,11 @@ test('boucle centrale : aperçu immédiat, diff, validation, recharge, retour en
   await expect(page.getByText('Enregistré', { exact: true })).toBeVisible();
   expect((await state(page)).tokens['color.brand'].$value).toBe('#8A3B20');
   await page.getByRole('button', { name: 'Boutons' }).click();
+  // Composant choisi : sa planche des états, dans la colonne de gauche.
   const main = page
-    .locator('.ds-pane')
-    .getByRole('button', { name: 'Action principale', exact: true });
+    .locator('.component-stage')
+    .getByRole('button', { name: 'Garder', exact: true })
+    .first();
   await expect(main).toHaveCSS('background-color', 'rgb(138, 59, 32)');
   await page.reload();
   await expect(keep).toHaveCSS('background-color', 'rgb(138, 59, 32)');
@@ -1198,4 +1200,91 @@ test('paramètres : nom et logo de l’app, mode sombre, projets', async ({
   await dialog.getByRole('tab', { name: 'Apparence' }).click();
   await dialog.getByRole('button', { name: 'Revenir à DS-Studio' }).click();
   await expect(page.locator('.wordmark strong')).toHaveText('DS-Studio');
+});
+
+test('composant : planche à gauche, écran cohérent et contour à droite', async ({
+  page,
+}) => {
+  await page.goto('/');
+  const frame = page.frameLocator('iframe[title="Aperçu responsive"]');
+  // Formulaire : l'Aperçu passe sur l'écran qui le contient et l'entoure.
+  await page.getByRole('button', { name: 'Formulaire', exact: true }).click();
+  await expect(
+    page.getByRole('button', { name: /Ajouter un logement/ }).first(),
+  ).toBeVisible();
+  await expect(frame.locator('html')).toHaveAttribute('data-focus', 'form');
+  await expect(frame.locator('[data-ds="form"]')).toHaveCSS(
+    'outline-style',
+    'dashed',
+  );
+  await expect(page.getByText('Formulaire · 1 sur cet écran')).toBeVisible();
+  // Boutons : planche des 12 états à gauche, survol et focus visibles.
+  await page.getByRole('button', { name: 'Boutons', exact: true }).click();
+  const sheet = page.getByRole('region', { name: 'Planche : Boutons' });
+  await expect(sheet.locator('.ds-button')).toHaveCount(12);
+  await expect(sheet.locator('.ds-button.primary.is-hover')).toHaveCSS(
+    'background-color',
+    'rgb(36, 63, 153)',
+  );
+  await expect(sheet.locator('.ds-button.primary.is-focus')).toHaveCSS(
+    'outline-style',
+    'solid',
+  );
+  await expect(sheet).toContainText('arrondi');
+  // En bas des tokens, la planche reste visible et suit la taille du texte.
+  await page.getByLabel('Taille du texte', { exact: true }).fill('20');
+  await expect(sheet).toBeInViewport();
+  await expect(sheet).toContainText('texte 20 px');
+  await page.getByLabel('Taille du texte', { exact: true }).fill('16');
+  // Fit / 100 % : la planche passe à la taille réelle.
+  await sheet.getByRole('button', { name: '100 %' }).click();
+  await expect(sheet).toContainText('taille réelle');
+  // Le contour suit le composant ouvert.
+  await expect(frame.locator('html')).toHaveAttribute('data-focus', 'buttons');
+  await expect(page.getByText(/Boutons · \d+ sur cet écran/)).toBeVisible();
+  // Un token modifié change la planche tout de suite.
+  await page.getByRole('button', { name: /^Couleurs/ }).click();
+  await expect(frame.locator('html')).not.toHaveAttribute('data-focus', /.+/);
+  await page.getByLabel('Couleur de marque', { exact: true }).fill('#8A3B20');
+  await page.getByRole('button', { name: 'Boutons', exact: true }).click();
+  await expect(sheet.locator('.ds-button.primary').first()).toHaveCSS(
+    'background-color',
+    'rgb(138, 59, 32)',
+  );
+});
+
+test('composants : planche des états pour chaque composant', async ({
+  page,
+}) => {
+  await page.goto('/');
+  const open = async (name: string) => {
+    await page.getByRole('button', { name, exact: true }).click();
+    const sheet = page.getByRole('region', { name: `Planche : ${name}` });
+    await expect(sheet).toContainText('Tous les états');
+    return sheet;
+  };
+  const fiche = await open('Fiche logement');
+  await expect(fiche.locator('.ds-card')).toHaveCount(2);
+  await expect(fiche).toContainText('Logement gardé ✓');
+  const points = await open('Points à vérifier');
+  await expect(points.getByRole('progressbar')).toHaveCount(3);
+  await expect(points).toContainText('0 / 5 vérifiés');
+  await expect(points).toContainText('5 / 5 vérifiés');
+  const form = await open('Formulaire');
+  await expect(form.locator('input:not([type])')).toHaveCount(5);
+  await expect(form.locator('input.is-invalid')).not.toHaveCSS(
+    'border-top-color',
+    await form
+      .locator('input:not([type])')
+      .first()
+      .evaluate((el) => getComputedStyle(el).borderTopColor),
+  );
+  await expect(form.locator('input.is-focus').first()).toHaveCSS(
+    'outline-style',
+    'solid',
+  );
+  const nav = await open('Navigation');
+  await expect(nav.locator('.ds-nav button')).toHaveCount(3);
+  await expect(nav.locator('[aria-current="page"]')).toHaveCount(1);
+  await expect(nav).toContainText('onglet min. 44 px');
 });
