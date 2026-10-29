@@ -1042,16 +1042,28 @@ test('Figma (simulé) : lire en diff, puis envoyer avec aperçu et validation', 
   await expect(diff(page)).not.toBeVisible();
   expect((await state(page)).tokens['color.warning'].$value).toBe('#9A5B00');
   // Les composants du fichier apparaissent, liés aux tokens.
-  await page.getByRole('button', { name: 'Tag (Figma)' }).click();
+  await page.getByRole('button', { name: 'Tag (Figma, à coder)' }).click();
   const planche = page.getByRole('region', { name: 'Planche : Tag' });
   await expect(planche.getByText('Variantes lues dans Figma')).toBeVisible();
   await expect(planche.getByText('Red flag')).toBeVisible();
   await expect(planche.getByText('Type : Alerte')).toBeVisible();
   await expect(
-    page.getByText('Lu dans Figma : rendu approximatif'),
+    page.getByText(/Dans Figma, pas encore dans l’app : à coder/),
   ).toBeVisible();
   await expect(
     page.getByLabel('Couleur d’alerte', { exact: true }),
+  ).toBeVisible();
+  // Composant de l'app absent du fichier Figma : signalé.
+  await page.getByRole('button', { name: /^Boutons/ }).click();
+  await expect(page.getByText('Absent de Figma.')).toBeVisible();
+  // Même nom des deux côtés : relié, version Figma sous la planche.
+  const nav = page.getByRole('button', { name: /^Navigation/ });
+  await expect(nav).toHaveAttribute('title', 'Aussi dans Figma');
+  await nav.click();
+  await expect(
+    page
+      .getByRole('region', { name: 'Version Figma : Navigation' })
+      .getByText('Mes biens'),
   ).toBeVisible();
   // Envoi : aperçu des variables à écrire, puis validation explicite.
   await page.getByRole('button', { name: 'Figma', exact: true }).click();

@@ -58,7 +58,7 @@ try {
                 { name: 'color/brand', type: 'COLOR', value: '#B85C00' },
                 { name: 'color/warning', type: 'COLOR', value: '#9A5B00' },
               ],
-              [m.sampleComponent],
+              [m.sampleComponent, m.sampleNav],
             ).connector,
         )
       : undefined;

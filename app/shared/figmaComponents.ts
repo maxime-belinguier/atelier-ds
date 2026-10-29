@@ -29,7 +29,7 @@ export interface FigmaNode {
   ph?: string;
   ai?: string;
   aj?: string;
-  /** Taille : F (remplir), H (contenu), autre (fixe). */
+  /** Taille : F (remplir), H (contenu), X (fixe). */
   sh?: string;
   sv?: string;
   r?: number;

@@ -832,3 +832,23 @@ revient à refaire Figma, pas faisable proprement avant la soutenance.
 Preuves : suite complète et audit de mise en page après retrait ; test
 navigateur du Tag Figma dans le groupe Composants.
 Limite : aucune création de composant dans l’app.
+
+## 29/10/2026 · Composants : Figma et l’app reliés par leur nom
+
+Problème : les composants de l’app et ceux de Figma s’affichaient côte à
+côte sans lien ; impossible de savoir si les deux étaient cohérents.
+Décision : chaque composant de l’app est relié au composant Figma du même
+nom (accents, casse et pluriel ignorés : « Boutons » = « Bouton »). Menu :
+« ✓ » si présent dans Figma, « Hors Figma » sinon, « À coder » pour un
+composant présent seulement dans Figma. Sous la planche, la version Figma
+(rendu lu, approximatif, avec les tokens en cours) ou « Absent de Figma ».
+Dans le fichier Gutt, création des composants manquants « Points à
+vérifier », « Formulaire » et « Navigation », liés aux variables DS-Studio.
+Lecture Figma : tailles « fixe », « remplir » et « contenu » distinguées
+(avant, fixe et remplir étaient confondus : barre et cases invisibles).
+Écarté : recoder un composant depuis Figma automatiquement (pas fiable).
+Preuves : lecture réelle du fichier (6 composants) ; test navigateur
+(« Hors Figma », relié avec version Figma, « À coder ») ; suite complète
+(71 unitaires, 33 navigateur) ; audit de mise en page sans anomalie.
+Limite : le rapprochement se fait par le nom ; le rendu Figma reste
+approximatif ; le statut ne compare pas le détail (couleurs, marges).

@@ -1368,6 +1368,30 @@ export default function App() {
     selection.kind === 'figma'
       ? figmaComps.components.find((c) => c.id === selection.id)
       : undefined;
+  // Même composant des deux côtés : rapproché par son nom (accents, casse et
+  // pluriel ignorés : « Boutons » = « Bouton »).
+  const sameName = (x: string) =>
+    x
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .split(/\s+/)
+      .map((w) => w.replace(/s$/, ''))
+      .join(' ')
+      .trim();
+  const figmaRead = !!figmaComps.readAt;
+  const twinOf = (label: string) =>
+    figmaComps.components.find((f) => sameName(f.name) === sameName(label));
+  const figmaOnly = figmaComps.components.filter(
+    (f) => !components.some((c) => sameName(c.label) === sameName(f.name)),
+  );
+  const twin =
+    selection.kind === 'component'
+      ? twinOf(
+          (components.find((x) => x.id === selection.id) ?? components[0])
+            .label,
+        )
+      : undefined;
   if (query) {
     title = 'Résultats';
     description = `${matches.length} token${matches.length > 1 ? 's' : ''} pour « ${search.trim()} ».`;
@@ -1385,7 +1409,7 @@ export default function App() {
     demo = c;
   } else if (selection.kind === 'figma' && figmaComp) {
     title = figmaComp.name;
-    description = `${figmaComp.desc ? figmaComp.desc + ' ' : ''}Lu dans Figma : rendu approximatif, qui suit tes tokens.`;
+    description = `${figmaComp.desc ? figmaComp.desc + ' ' : ''}Dans Figma, pas encore dans l’app : à coder. Rendu lu dans Figma, approximatif, qui suit tes tokens.`;
     keys = figmaTokenKeys(figmaComp, allKeys(state.tokens)) as TokenKey[];
     demo = {
       id: figmaComp.id,
@@ -1612,7 +1636,7 @@ export default function App() {
     {
       target: 'figma',
       title: 'Relie Figma',
-      text: 'Colle le lien de ton fichier Figma ici. « Lire Figma » récupère tes variables (dans le diff, à valider) et tes composants (rangés dans Composants, marqués « Figma »).',
+      text: 'Colle le lien de ton fichier Figma ici. « Lire Figma » récupère tes variables (dans le diff, à valider) et tes composants : chacun est relié à celui de l’app du même nom.',
       before: () => {
         setCompare(false);
         setChatOpen(false);
@@ -2404,9 +2428,9 @@ export default function App() {
                       {c.label}
                     </option>
                   ))}
-                  {figmaComps.components.map((c) => (
+                  {figmaOnly.map((c) => (
                     <option key={c.id} value={`figma:${c.id}`}>
-                      {c.name} · Figma
+                      {c.name} · à coder
                     </option>
                   ))}
                 </optgroup>
@@ -2456,7 +2480,7 @@ export default function App() {
               {groupHead(
                 'components',
                 'Composants',
-                components.length + figmaComps.components.length,
+                components.length + figmaOnly.length,
               )}
               {components
                 .filter((c) =>
@@ -2476,15 +2500,31 @@ export default function App() {
                         ? 'page'
                         : undefined
                     }
+                    title={
+                      figmaRead
+                        ? twinOf(c.label)
+                          ? 'Aussi dans Figma'
+                          : 'Absent de ton fichier Figma'
+                        : undefined
+                    }
                     onClick={() => select({ kind: 'component', id: c.id })}
                   >
                     {c.label}
+                    {/* Statut visuel ; le nom accessible reste le libellé. */}
+                    {figmaRead && (
+                      <span
+                        aria-hidden="true"
+                        className={`side-count side-source${twinOf(c.label) ? '' : ' is-missing'}`}
+                      >
+                        {twinOf(c.label) ? '✓' : 'Hors Figma'}
+                      </span>
+                    )}
                   </button>
                 ))}
-              {/* Composants lus dans Figma : même groupe, marqués « Figma ». */}
-              {figmaComps.components.length > 0 && (
+              {/* Dans Figma mais pas encore dans l'app : même groupe, « À coder ». */}
+              {figmaOnly.length > 0 && (
                 <>
-                  {figmaComps.components
+                  {figmaOnly
                     .filter((c) =>
                       show(
                         'components',
@@ -2502,11 +2542,13 @@ export default function App() {
                             ? 'page'
                             : undefined
                         }
-                        aria-label={`${c.name} (Figma)`}
+                        aria-label={`${c.name} (Figma, à coder)`}
                         onClick={() => select({ kind: 'figma', id: c.id })}
                       >
                         {c.name}
-                        <span className="side-count side-source">Figma</span>
+                        <span className="side-count side-source is-todo">
+                          À coder
+                        </span>
                       </button>
                     ))}
                 </>
@@ -2608,6 +2650,31 @@ export default function App() {
                     <p className="stage-measures">{demo.measures(preview)}</p>
                   )}
                 </div>
+              )}
+              {selection.kind === 'component' && figmaRead && !query && (
+                <section
+                  className="figma-twin"
+                  aria-label={`Version Figma : ${title}`}
+                >
+                  {twin ? (
+                    <>
+                      <p className="figma-twin-head">
+                        <strong>Dans Figma ✓</strong> « {twin.name} » · rendu lu
+                        dans Figma, approximatif
+                      </p>
+                      <DSProvider tokens={preview}>
+                        <div className="figma-twin-body">
+                          <FigmaSheet c={twin} />
+                        </div>
+                      </DSProvider>
+                    </>
+                  ) : (
+                    <p className="figma-twin-head is-missing">
+                      <strong>Absent de Figma.</strong> Crée un composant nommé
+                      « {title} » dans ton fichier pour les relier.
+                    </p>
+                  )}
+                </section>
               )}
               {selection.kind === 'audit' && !query ? (
                 <AuditView

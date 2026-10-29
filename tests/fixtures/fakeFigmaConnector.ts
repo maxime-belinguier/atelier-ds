@@ -44,6 +44,52 @@ export const sampleComponent: FigmaComponent = {
 // Connecteur Figma simulé en mémoire : tests et parcours navigateur, jamais
 // de CLI, de réseau ni de quota. Il applique le même contrôle des valeurs
 // attendues que le script réel.
+// Même nom qu'un composant de l'atelier : relié à lui.
+export const sampleNav: FigmaComponent = {
+  id: '71:44',
+  name: 'Navigation',
+  page: 'Components',
+  desc: '',
+  variants: [
+    {
+      id: '71:44',
+      name: '',
+      root: {
+        t: 'COMPONENT',
+        n: 'Navigation',
+        l: 'H',
+        g: 8,
+        p: [8, 8, 8, 8],
+        f: { c: '#FFFFFF', v: 'color/surface' },
+        k: [
+          {
+            t: 'FRAME',
+            n: 'Onglet actif',
+            l: 'H',
+            p: [8, 8, 8, 8],
+            sh: 'H',
+            sv: 'H',
+            r: 10,
+            rv: 'radius/control',
+            f: { c: '#3154C4', v: 'color/brand' },
+            k: [
+              {
+                t: 'TEXT',
+                n: 'Libellé',
+                sh: 'H',
+                sv: 'H',
+                tx: 'Mes biens',
+                fs: 13,
+                f: { c: '#FFFFFF', v: 'color/onBrand' },
+              },
+            ],
+          },
+        ],
+      },
+    },
+  ],
+};
+
 export function fakeFigmaConnector(
   initial: FigmaVariable[] = [],
   components: FigmaComponent[] = [],

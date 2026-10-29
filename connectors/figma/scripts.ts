@@ -219,7 +219,8 @@ const node = (n, d) => {
   const o = { t: n.type, n: n.name.slice(0, 60), w: num(n.width), h: num(n.height), x: num(n.x), y: num(n.y), f: paint(n.fills), s: paint(n.strokes) };
   if (o.s) o.sw = num(n.strokeWeight);
   if (n.layoutMode && n.layoutMode !== 'NONE') Object.assign(o, { l: n.layoutMode[0], g: num(n.itemSpacing), gv: vn(b.itemSpacing), p: [n.paddingTop, n.paddingRight, n.paddingBottom, n.paddingLeft].map(num), pv: vn(b.paddingTop), ph: vn(b.paddingLeft), ai: n.counterAxisAlignItems, aj: n.primaryAxisAlignItems });
-  if (n.layoutSizingHorizontal) { o.sh = n.layoutSizingHorizontal[0]; o.sv = n.layoutSizingVertical[0]; }
+  const sz = { FILL: 'F', HUG: 'H', FIXED: 'X' };
+  if (n.layoutSizingHorizontal) { o.sh = sz[n.layoutSizingHorizontal]; o.sv = sz[n.layoutSizingVertical]; }
   if (n.type === 'ELLIPSE') o.r = 9999;
   else if (num(n.cornerRadius)) { o.r = num(n.cornerRadius); o.rv = vn(b.topLeftRadius); }
   if (n.clipsContent) o.cl = 1;

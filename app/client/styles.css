@@ -4807,3 +4807,33 @@ html[data-focus='nav'] [data-ds='nav'] {
   font-weight: 600;
   letter-spacing: 0.02em;
 }
+.side-count.side-source.is-missing {
+  color: var(--text-2);
+  opacity: 0.7;
+}
+.side-count.side-source.is-todo {
+  color: var(--accent-text);
+}
+/* Version Figma du composant, sous la planche. */
+.figma-twin {
+  margin: 0 0 16px;
+  padding: 12px 16px 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+.figma-twin-head {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+.figma-twin-head strong {
+  color: var(--text);
+}
+.figma-twin-head.is-missing {
+  margin: 0;
+}
+.figma-twin-body {
+  overflow: auto;
+  max-height: 360px;
+}
