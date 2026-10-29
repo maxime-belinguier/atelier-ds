@@ -638,3 +638,15 @@ suite complète (68 unitaires, 33 navigateur, 2 passages) ; audit de mise en
 page sans anomalie ; visite guidée 1:1 ; captures relues.
 Limite : le lanceur (scripts/launcher.mjs) garde le « vous » ; le survol
 proposé est un calcul simple (même rapport de luminosité), à juger à l’œil.
+
+## 29/10/2026 · Tests GitHub lancés à la main
+
+Problème : chaque push lançait toute la suite sur Linux, Windows et macOS ;
+les 2 000 minutes Actions du mois ont été épuisées (macOS compte ×10).
+Décision : la qualification GitHub ne part plus à chaque push, elle se lance
+à la main (Actions › Qualifier le starter › Run workflow). Les 3 systèmes sont
+gardés pour ce lancement.
+Écarté : garder Linux seul (moins de preuves multi-plateformes) ; « [skip ci] »
+à chaque push (oubli facile).
+Preuves : fichier relu ; les tests locaux restent faits avant chaque push.
+Limite : sans lancement manuel, aucune preuve Windows / macOS n’est produite.

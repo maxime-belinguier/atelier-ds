@@ -1,5 +1,7 @@
 name: Qualifier le starter
-on: [push, pull_request]
+# Lancé à la main (onglet Actions › Run workflow) : chaque passage coûte des
+# minutes Actions, surtout sur macOS (×10) et Windows (×2).
+on: workflow_dispatch
 permissions:
   contents: read
 jobs:
