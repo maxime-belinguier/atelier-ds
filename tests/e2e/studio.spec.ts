@@ -7,6 +7,21 @@ const diff = (page: Page) =>
 
 // La visite guidée s'ouvre au premier lancement : on la marque comme vue,
 // sauf dans le test qui la vérifie.
+// Zoom jusqu'à 100 % avec + / − (le % n'est plus un bouton).
+async function zoomTo100(group: import('@playwright/test').Locator) {
+  for (let i = 0; i < 8; i++) {
+    const t = (await group.locator('.zoom-value').textContent()) ?? '';
+    const pct = parseInt(t, 10);
+    if (pct === 100) return;
+    await group
+      .getByRole('button', {
+        name: pct < 100 ? 'Zoomer' : 'Dézoomer',
+        exact: true,
+      })
+      .click();
+  }
+}
+
 test.beforeEach(async ({ page }, info) => {
   if (!info.title.startsWith('visite guidée'))
     await page.addInitScript(() =>
@@ -123,11 +138,11 @@ test('largeurs réelles, ajustement visuel, interactions et formulaire', async (
       );
     expect(columns).toBe(width >= 700 ? 2 : 1);
   }
-  // « Fit » réduit l'affichage sans changer la largeur CSS réelle.
+  // « Ajuster » réduit l'affichage sans changer la largeur CSS réelle.
   const holder = page.locator('.frame-holder');
   expect(await holder.evaluate((el) => el.clientWidth)).toBeLessThan(1280);
   const zoom = page.getByRole('group', { name: 'Zoom', exact: true });
-  await zoom.getByRole('button', { name: /revenir à 100 %/ }).click();
+  await zoomTo100(zoom);
   expect(await holder.evaluate((el) => el.clientWidth)).toBeGreaterThanOrEqual(
     1280,
   );
@@ -137,7 +152,7 @@ test('largeurs réelles, ajustement visuel, interactions et formulaire', async (
   await expect(zoom.locator('.zoom-value')).toHaveText('75 %');
   expect(await holder.evaluate((el) => el.clientWidth)).toBeLessThan(1280);
   await expect(page.locator('iframe')).toHaveAttribute('width', '1280');
-  await page.getByRole('button', { name: 'Fit', exact: true }).click();
+  await page.getByRole('button', { name: 'Ajuster', exact: true }).click();
   await page
     .getByRole('button', { name: 'Mobile 375 px', exact: true })
     .click();
@@ -1398,7 +1413,7 @@ test('composant : planche à gauche, écran cohérent et contour à droite', asy
   await page.getByLabel('Taille du texte', { exact: true }).fill('16');
   // Fit / 100 % : la planche passe à la taille réelle, puis zoom + / −.
   const sheetZoom = sheet.getByRole('group', { name: 'Zoom de la planche' });
-  await sheetZoom.getByRole('button', { name: /revenir à 100 %/ }).click();
+  await zoomTo100(sheetZoom);
   await expect(sheet).toContainText('taille réelle');
   await sheetZoom.getByRole('button', { name: 'Zoomer', exact: true }).click();
   await expect(sheetZoom.locator('.zoom-value')).toHaveText('125 %');
@@ -1411,7 +1426,7 @@ test('composant : planche à gauche, écran cohérent et contour à droite', asy
   expect(
     await sheet.locator('.fit-box').evaluate((el) => el.scrollLeft),
   ).toBeGreaterThan(0);
-  await sheetZoom.getByRole('button', { name: /revenir à 100 %/ }).click();
+  await zoomTo100(sheetZoom);
   // Le contour suit le composant ouvert.
   await expect(frame.locator('html')).toHaveAttribute('data-focus', 'buttons');
   await expect(page.getByText(/Boutons · \d+ sur cet écran/)).toBeVisible();

@@ -104,7 +104,7 @@ contenant des espaces est accepté. N’utilisez ni `sudo` ni installation de se
   Design System par catégories repliables (Tokens, Composants, Écrans, Contrôle qualité),
   sélecteur de couleur HEX/RGB/HSL, enregistrement manuel groupé (Ctrl/Cmd + S).
 - **Aperçu** : formats 320 à 1440 px ou libre, mockups téléphone, tablette et
-  navigateur, mode Fit ou 100 %, et mode Comparer (deux formats côte à côte, ou
+  navigateur, zoom en bas à droite (Ajuster, − %, +, glisser pour se déplacer), et mode Comparer (deux formats côte à côte, ou
   avant / après des modifications en cours).
 - **Visite guidée** : au premier lancement, puis avec le bouton « ? » de l'en-tête.
 - **Paramètres** (roue crantée) : apparence (nom et logo de l'app, mode clair, sombre ou auto,

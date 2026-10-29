@@ -2854,21 +2854,6 @@ export default function App() {
                     }}
                   />
                   <div className="preview-tools">
-                    <ZoomControl
-                      label="Zoom"
-                      fit={layout.fit}
-                      shown={scale}
-                      disabled={compare}
-                      title={
-                        compare
-                          ? 'Comparer ajuste toujours les deux aperçus'
-                          : undefined
-                      }
-                      onFit={() => setLayout({ ...layout, fit: true })}
-                      onZoom={(z) =>
-                        setLayout({ ...layout, fit: false, zoom: z })
-                      }
-                    />
                     <label
                       className={`toggle${isFree && !compare ? ' is-disabled' : ''}`}
                       title={
@@ -3107,186 +3092,201 @@ export default function App() {
                   </div>
                 )}
               </div>
-              <div
-                className={`stage${!layout.fit && !compare ? ' is-zoomed' : ''}`}
-                ref={stage}
-              >
-                {vision !== 'none' && (
-                  <div className="vision-sticky">
-                    <span className="vision-chip" role="status">
-                      Vue : {visions.find((v) => v.id === vision)?.label}
-                      <button
-                        aria-label="Revenir à la vision normale"
-                        onClick={() => setProfile('aa')}
-                      >
-                        <svg
-                          aria-hidden="true"
-                          width="12"
-                          height="12"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2.6"
-                          strokeLinecap="round"
+              <div className="stage-wrap">
+                <div
+                  className={`stage${!layout.fit && !compare ? ' is-zoomed' : ''}`}
+                  ref={stage}
+                >
+                  {vision !== 'none' && (
+                    <div className="vision-sticky">
+                      <span className="vision-chip" role="status">
+                        Vue : {visions.find((v) => v.id === vision)?.label}
+                        <button
+                          aria-label="Revenir à la vision normale"
+                          onClick={() => setProfile('aa')}
                         >
-                          <path d="M18 6 6 18M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </span>
-                  </div>
-                )}
-                {focusId && focusCount?.id === focusId && (
-                  <div className="focus-sticky">
-                    {(() => {
-                      const c = components.find((x) => x.id === focusId)!;
-                      const other = screens.find((x) => x.id === c.usedIn[0]);
-                      return focusCount.n > 0 ? (
-                        <span className="focus-chip" role="status">
-                          <i aria-hidden="true" />
-                          {c.label} · {focusCount.n} sur cet écran
-                        </span>
-                      ) : (
-                        <span className="focus-chip is-empty" role="status">
-                          Pas de « {c.label} » sur cet écran
-                          {other && (
-                            <button onClick={() => setScenario(other.id)}>
-                              Voir {other.label}
-                            </button>
-                          )}
-                        </span>
-                      );
-                    })()}
-                  </div>
-                )}
-                <VisionFilters />
-                {compare ? (
-                  <div className="compare-stage">
-                    {pairFrames.map(({ d, k, w, h, sc }, i) => (
-                      <figure
-                        key={`${compareMode}-${i}`}
-                        className="compare-cell"
-                      >
-                        <div
-                          className="frame-holder"
-                          style={{ width: w * sc, height: h * sc }}
+                          <svg
+                            aria-hidden="true"
+                            width="12"
+                            height="12"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.6"
+                            strokeLinecap="round"
+                          >
+                            <path d="M18 6 6 18M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </span>
+                    </div>
+                  )}
+                  {focusId && focusCount?.id === focusId && (
+                    <div className="focus-sticky">
+                      {(() => {
+                        const c = components.find((x) => x.id === focusId)!;
+                        const other = screens.find((x) => x.id === c.usedIn[0]);
+                        return focusCount.n > 0 ? (
+                          <span className="focus-chip" role="status">
+                            <i aria-hidden="true" />
+                            {c.label} · {focusCount.n} sur cet écran
+                          </span>
+                        ) : (
+                          <span className="focus-chip is-empty" role="status">
+                            Pas de « {c.label} » sur cet écran
+                            {other && (
+                              <button onClick={() => setScenario(other.id)}>
+                                Voir {other.label}
+                              </button>
+                            )}
+                          </span>
+                        );
+                      })()}
+                    </div>
+                  )}
+                  <VisionFilters />
+                  {compare ? (
+                    <div className="compare-stage">
+                      {pairFrames.map(({ d, k, w, h, sc }, i) => (
+                        <figure
+                          key={`${compareMode}-${i}`}
+                          className="compare-cell"
                         >
                           <div
-                            className={`device device-${k}`}
-                            style={{
-                              width: w,
-                              height: h,
-                              transform: `scale(${sc})`,
-                            }}
+                            className="frame-holder"
+                            style={{ width: w * sc, height: h * sc }}
                           >
-                            {k === 'browser' && (
-                              <div className="browser-bar" aria-hidden="true">
-                                <i />
-                                <i />
-                                <i />
-                                <span>gutt.app</span>
-                              </div>
-                            )}
-                            {k === 'phone' && (
-                              <span
-                                className="device-island"
-                                aria-hidden="true"
+                            <div
+                              className={`device device-${k}`}
+                              style={{
+                                width: w,
+                                height: h,
+                                transform: `scale(${sc})`,
+                              }}
+                            >
+                              {k === 'browser' && (
+                                <div className="browser-bar" aria-hidden="true">
+                                  <i />
+                                  <i />
+                                  <i />
+                                  <span>gutt.app</span>
+                                </div>
+                              )}
+                              {k === 'phone' && (
+                                <span
+                                  className="device-island"
+                                  aria-hidden="true"
+                                />
+                              )}
+                              <iframe
+                                ref={i === 0 ? iframe : undefined}
+                                data-saved={
+                                  beforeAfter && i === 1 ? '' : undefined
+                                }
+                                style={{ filter: visionFilter(vision) }}
+                                title={
+                                  beforeAfter
+                                    ? i === 0
+                                      ? 'Aperçu après'
+                                      : 'Aperçu avant'
+                                    : `Aperçu ${d.title} ${d.width} px`
+                                }
+                                src={`/?preview=1&scenario=${scenario}`}
+                                width={d.width}
+                                height={d.height}
                               />
-                            )}
-                            <iframe
-                              ref={i === 0 ? iframe : undefined}
-                              data-saved={
-                                beforeAfter && i === 1 ? '' : undefined
-                              }
-                              style={{ filter: visionFilter(vision) }}
-                              title={
-                                beforeAfter
-                                  ? i === 0
-                                    ? 'Aperçu après'
-                                    : 'Aperçu avant'
-                                  : `Aperçu ${d.title} ${d.width} px`
-                              }
-                              src={`/?preview=1&scenario=${scenario}`}
-                              width={d.width}
-                              height={d.height}
-                            />
+                            </div>
                           </div>
-                        </div>
-                        <figcaption>
-                          {beforeAfter ? (
-                            i === 1 ? (
-                              <>
-                                <strong>Avant</strong> · enregistré
-                              </>
+                          <figcaption>
+                            {beforeAfter ? (
+                              i === 1 ? (
+                                <>
+                                  <strong>Avant</strong> · enregistré
+                                </>
+                              ) : (
+                                <>
+                                  <strong>Après</strong> ·{' '}
+                                  {previewTokens
+                                    ? `${pendingCount} modif${pendingCount > 1 ? 's' : ''} en cours`
+                                    : 'aucune modif en cours'}
+                                </>
+                              )
                             ) : (
                               <>
-                                <strong>Après</strong> ·{' '}
-                                {previewTokens
-                                  ? `${pendingCount} modif${pendingCount > 1 ? 's' : ''} en cours`
-                                  : 'aucune modif en cours'}
+                                {d.title} · {d.width} px ·{' '}
+                                {Math.round(sc * 100)} %
                               </>
-                            )
-                          ) : (
-                            <>
-                              {d.title} · {d.width} px · {Math.round(sc * 100)}{' '}
-                              %
-                            </>
-                          )}
-                        </figcaption>
-                      </figure>
-                    ))}
-                  </div>
-                ) : (
-                  <div
-                    className="frame-holder"
-                    style={{ width: outerW * scale, height: outerH * scale }}
-                  >
-                    <div
-                      className={`device device-${kind}`}
-                      style={{
-                        width: outerW,
-                        height: outerH,
-                        transform: `scale(${scale})`,
-                      }}
-                    >
-                      {kind === 'browser' && (
-                        <div className="browser-bar" aria-hidden="true">
-                          <i />
-                          <i />
-                          <i />
-                          <span>gutt.app</span>
-                        </div>
-                      )}
-                      {kind === 'phone' && (
-                        <span className="device-island" aria-hidden="true" />
-                      )}
-                      <iframe
-                        ref={iframe}
-                        style={{ filter: visionFilter(vision) }}
-                        title="Aperçu responsive"
-                        src={`/?preview=1&scenario=${scenario}`}
-                        width={dev.width}
-                        height={dev.height}
-                      />
+                            )}
+                          </figcaption>
+                        </figure>
+                      ))}
                     </div>
-                    {isFree && (
-                      <>
-                        <span
-                          className="resize-handle handle-x"
-                          aria-hidden="true"
-                          onPointerDown={(e) => startResize(e, 'x')}
+                  ) : (
+                    <div
+                      className="frame-holder"
+                      style={{ width: outerW * scale, height: outerH * scale }}
+                    >
+                      <div
+                        className={`device device-${kind}`}
+                        style={{
+                          width: outerW,
+                          height: outerH,
+                          transform: `scale(${scale})`,
+                        }}
+                      >
+                        {kind === 'browser' && (
+                          <div className="browser-bar" aria-hidden="true">
+                            <i />
+                            <i />
+                            <i />
+                            <span>gutt.app</span>
+                          </div>
+                        )}
+                        {kind === 'phone' && (
+                          <span className="device-island" aria-hidden="true" />
+                        )}
+                        <iframe
+                          ref={iframe}
+                          style={{ filter: visionFilter(vision) }}
+                          title="Aperçu responsive"
+                          src={`/?preview=1&scenario=${scenario}`}
+                          width={dev.width}
+                          height={dev.height}
                         />
-                        <span
-                          className="resize-handle handle-y"
-                          aria-hidden="true"
-                          onPointerDown={(e) => startResize(e, 'y')}
-                        />
-                        <span
-                          className="resize-handle handle-xy"
-                          aria-hidden="true"
-                          onPointerDown={(e) => startResize(e, 'xy')}
-                        />
-                      </>
-                    )}
+                      </div>
+                      {isFree && (
+                        <>
+                          <span
+                            className="resize-handle handle-x"
+                            aria-hidden="true"
+                            onPointerDown={(e) => startResize(e, 'x')}
+                          />
+                          <span
+                            className="resize-handle handle-y"
+                            aria-hidden="true"
+                            onPointerDown={(e) => startResize(e, 'y')}
+                          />
+                          <span
+                            className="resize-handle handle-xy"
+                            aria-hidden="true"
+                            onPointerDown={(e) => startResize(e, 'xy')}
+                          />
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+                {!compare && (
+                  <div className="zoom-float">
+                    <ZoomControl
+                      label="Zoom"
+                      fit={layout.fit}
+                      shown={scale}
+                      onFit={() => setLayout({ ...layout, fit: true })}
+                      onZoom={(z) =>
+                        setLayout({ ...layout, fit: false, zoom: z })
+                      }
+                    />
                   </div>
                 )}
               </div>

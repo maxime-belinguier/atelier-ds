@@ -147,11 +147,12 @@ export function ZoomControl({
       title={title}
     >
       <button
+        className="zoom-fit"
         aria-pressed={fit}
-        title="Fit : tout tient dans le panneau"
+        title="Ajuster : tout l’écran tient dans le panneau"
         onClick={onFit}
       >
-        Fit
+        Ajuster
       </button>
       <button
         className="zoom-step"
@@ -162,15 +163,10 @@ export function ZoomControl({
       >
         −
       </button>
-      <button
-        className="zoom-value"
-        aria-pressed={!fit && pct === 100}
-        aria-label={`${pct} %, revenir à 100 %`}
-        title="Revenir à 100 % (taille réelle)"
-        onClick={() => onZoom(1)}
-      >
+      {/* Niveau affiché seulement : un bouton caché derrière le % n'était pas compris. */}
+      <span className="zoom-value" aria-live="polite">
         {pct} %
-      </button>
+      </span>
       <button
         className="zoom-step"
         aria-label="Zoomer"

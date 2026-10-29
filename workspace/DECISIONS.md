@@ -876,3 +876,18 @@ captures relues.
 Limite : un token de base ajouté ne se supprime pas ; les projets « zéro »
 créés avant (ex. « tets gut ») gardent les gris neutres : les supprimer et
 recréer. Les composants Figma lus s’affichent ; aucun composant codé.
+
+## 29/10/2026 · Zoom de l’aperçu : barre flottante
+
+Problème : « Fit » et le pourcentage en haut de l’aperçu n’étaient pas
+compris ; il fallait deviner que cliquer sur le % remettait à 100 %.
+Décision : barre de zoom flottante en bas à droite de l’aperçu, comme dans
+Figma : « Ajuster » (surligné quand actif), −, niveau en %, +. Le % n’est plus
+un bouton. Même barre pour la planche des composants. Glisser pour se
+déplacer et Ctrl/Cmd + molette ou pincement restent en place.
+Écarté : pourcentage cliquable (action cachée).
+Preuves : suite navigateur (33 tests, zoom par + / − jusqu’à 100 %, Ajuster,
+glisser) ; audit de mise en page et visite guidée sans anomalie ; captures
+relues.
+Limite : plus de raccourci direct vers 100 % (passer par + ou −) ; barre
+masquée en mode Comparer (les deux aperçus restent ajustés).
