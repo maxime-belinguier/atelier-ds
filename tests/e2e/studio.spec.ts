@@ -126,10 +126,16 @@ test('largeurs réelles, ajustement visuel, interactions et formulaire', async (
   // « Fit » réduit l'affichage sans changer la largeur CSS réelle.
   const holder = page.locator('.frame-holder');
   expect(await holder.evaluate((el) => el.clientWidth)).toBeLessThan(1280);
-  await page.getByRole('button', { name: '100 %', exact: true }).click();
+  const zoom = page.getByRole('group', { name: 'Zoom', exact: true });
+  await zoom.getByRole('button', { name: /revenir à 100 %/ }).click();
   expect(await holder.evaluate((el) => el.clientWidth)).toBeGreaterThanOrEqual(
     1280,
   );
+  // − / + : zoom libre par paliers, la largeur CSS ne change pas.
+  await expect(zoom.locator('.zoom-value')).toHaveText('100 %');
+  await zoom.getByRole('button', { name: 'Dézoomer' }).click();
+  await expect(zoom.locator('.zoom-value')).toHaveText('75 %');
+  expect(await holder.evaluate((el) => el.clientWidth)).toBeLessThan(1280);
   await expect(page.locator('iframe')).toHaveAttribute('width', '1280');
   await page.getByRole('button', { name: 'Fit', exact: true }).click();
   await page
@@ -1257,9 +1263,13 @@ test('composant : planche à gauche, écran cohérent et contour à droite', asy
   await expect(sheet).toBeInViewport();
   await expect(sheet).toContainText('texte 20 px');
   await page.getByLabel('Taille du texte', { exact: true }).fill('16');
-  // Fit / 100 % : la planche passe à la taille réelle.
-  await sheet.getByRole('button', { name: '100 %' }).click();
+  // Fit / 100 % : la planche passe à la taille réelle, puis zoom + / −.
+  const sheetZoom = sheet.getByRole('group', { name: 'Zoom de la planche' });
+  await sheetZoom.getByRole('button', { name: /revenir à 100 %/ }).click();
   await expect(sheet).toContainText('taille réelle');
+  await sheetZoom.getByRole('button', { name: 'Zoomer', exact: true }).click();
+  await expect(sheetZoom.locator('.zoom-value')).toHaveText('125 %');
+  await sheetZoom.getByRole('button', { name: /revenir à 100 %/ }).click();
   // Le contour suit le composant ouvert.
   await expect(frame.locator('html')).toHaveAttribute('data-focus', 'buttons');
   await expect(page.getByText(/Boutons · \d+ sur cet écran/)).toBeVisible();

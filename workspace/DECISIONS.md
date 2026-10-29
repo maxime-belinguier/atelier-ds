@@ -671,3 +671,19 @@ unitaires, 33 navigateur) ; audit de mise en page sans anomalie ; visite
 guidée 1:1 ; captures relues.
 Limite : testé avec le Figma simulé ; le vrai envoi prend 20 à 60 s via
 Claude Code.
+
+## 29/10/2026 · Zoom libre sur la planche et l’aperçu
+
+Problème : seulement Fit ou 100 % ; impossible de zoomer ou dézoomer.
+Décision : un même contrôle « Fit | − NN % + » sur la planche des composants
+et sur l’aperçu. − / + par paliers (25 à 200 %), clic sur le pourcentage =
+retour à 100 %. Pincement du pavé tactile ou Cmd / Ctrl + molette, y compris
+au-dessus de l’écran de l’aperçu (le geste est transmis par l’iframe). Le zoom
+de l’aperçu est retenu ; la largeur CSS de l’écran ne change jamais.
+Écarté : un curseur de zoom (plus large, moins précis) ; zoomer toute la page.
+Preuves : tests navigateur (aperçu 100 % puis 75 %, largeur CSS 1280 gardée ;
+planche 100 % puis 125 %) ; pincement vérifié sur l’écran et sur le fond ;
+suite complète (68 unitaires, 33 navigateur) ; audit de mise en page sans
+anomalie (outils de l’aperçu qui passent à la ligne à 1100 px) ; visite
+guidée 1:1 ; captures relues.
+Limite : en mode Comparer, le zoom reste automatique.

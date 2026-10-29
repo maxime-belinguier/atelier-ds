@@ -4635,3 +4635,26 @@ html[data-focus='nav'] [data-ds='nav'] {
   font-size: 13px;
   font-weight: 550;
 }
+/* Zoom : Fit | − NN % + (planche et aperçu). */
+.zoom-control .zoom-step {
+  min-width: 28px;
+  padding: 0 6px;
+  font-size: 15px;
+}
+.zoom-control .zoom-value {
+  min-width: 52px;
+  justify-content: center;
+  font-variant-numeric: tabular-nums;
+}
+.zoom-control button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+/* Panneau étroit : les outils de l'aperçu passent à la ligne au lieu de
+   déborder (zoom − / + plus large que l'ancien Fit / 100 %). */
+.preview-tools {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  row-gap: 8px;
+  min-width: 0;
+}

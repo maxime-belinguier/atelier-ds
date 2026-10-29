@@ -11,7 +11,7 @@ import {
 } from 'react';
 import { DSProvider, Scenario, components, screens } from './DesignSystem.js';
 import ProjectBrief from './ProjectBrief.js';
-import FitBox from './FitBox.js';
+import FitBox, { ZoomControl, clampZoom, usePinchZoom } from './FitBox.js';
 import ScreenPicker from './ScreenPicker.js';
 import ProjectMenu, { newProjectKey } from './ProjectMenu.js';
 import ColorPicker from './ColorPicker.js';
@@ -185,8 +185,21 @@ export function Preview() {
       if (parsed.success) setOverride(parsed.data);
     };
     addEventListener('message', onMessage);
+    // Pincement au-dessus de l'écran : transmis à l'atelier, qui zoome.
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      window.parent.postMessage(
+        { type: 'ds-pinch', deltaY: e.deltaY },
+        location.origin,
+      );
+    };
+    addEventListener('wheel', onWheel, { passive: false });
     window.parent.postMessage({ type: 'ds-preview-ready' }, location.origin);
-    return () => removeEventListener('message', onMessage);
+    return () => {
+      removeEventListener('message', onMessage);
+      removeEventListener('wheel', onWheel);
+    };
   }, []);
   const scenario =
     new URLSearchParams(location.search).get('scenario') ?? 'cards';
@@ -407,11 +420,19 @@ function readLayout() {
           ? saved.split
           : 50,
       fit: saved.fit !== false,
+      zoom:
+        typeof saved.zoom === 'number' ? clampZoom(saved.zoom) : (1 as number),
       frame: saved.frame !== false,
       free: clampSize(saved.free?.w ?? 600, saved.free?.h ?? 900),
     };
   } catch {
-    return { split: 50, fit: true, frame: true, free: clampSize(600, 900) };
+    return {
+      split: 50,
+      fit: true,
+      zoom: 1,
+      frame: true,
+      free: clampSize(600, 900),
+    };
   }
 }
 
@@ -481,6 +502,16 @@ export default function App() {
   // Planche du composant (colonne de gauche) : ajustée à la largeur ou 100 %.
   const [sheetFit, setSheetFit] = useState(true);
   const [sheetScale, setSheetScale] = useState(1);
+  const [sheetZoom, setSheetZoom] = useState(1);
+  const sheetStage = useRef<HTMLDivElement>(null);
+  usePinchZoom(
+    sheetStage,
+    () => sheetScale,
+    (z) => {
+      setSheetFit(false);
+      setSheetZoom(z);
+    },
+  );
   // Comparer deux formats, ou l'avant (enregistré) et l'après (modifs en cours).
   const [compareMode, setCompareMode] = useState<'formats' | 'before'>(
     'formats',
@@ -1057,6 +1088,34 @@ export default function App() {
   }, []);
   const chatOpenRef = useRef(chatOpen);
   chatOpenRef.current = chatOpen;
+  // Pincement ou Cmd + molette sur l'aperçu ; 0 = comparaison, sans zoom.
+  const previewScale = useRef(1);
+  usePinchZoom(
+    stage,
+    () => previewScale.current,
+    (z) =>
+      previewScale.current > 0 &&
+      setLayout((l) => ({ ...l, fit: false, zoom: z })),
+  );
+  useEffect(() => {
+    const onMessage = (e: MessageEvent) => {
+      const cur = previewScale.current;
+      if (
+        e.origin !== location.origin ||
+        e.data?.type !== 'ds-pinch' ||
+        typeof e.data.deltaY !== 'number' ||
+        !cur ||
+        ![...(stage.current?.querySelectorAll('iframe') ?? [])].some(
+          (f) => f.contentWindow === e.source,
+        )
+      )
+        return;
+      const zoom = clampZoom(cur * Math.exp(-e.data.deltaY * 0.01));
+      setLayout((l) => ({ ...l, fit: false, zoom }));
+    };
+    addEventListener('message', onMessage);
+    return () => removeEventListener('message', onMessage);
+  }, []);
 
   if (!state || !drafts.preview)
     return (
@@ -1095,10 +1154,12 @@ export default function App() {
   // « Fit » fait tenir tout l'appareil (largeur et hauteur) dans le panneau.
   const availableW = Math.max(0, stageWidth - 64);
   const availableH = Math.max(0, stageHeight - 64);
-  const scale =
-    layout.fit && availableW > 0 && availableH > 0
+  const fitScale =
+    availableW > 0 && availableH > 0
       ? Math.min(1, availableW / outerW, availableH / outerH)
       : 1;
+  const scale = layout.fit ? fitScale : layout.zoom;
+  previewScale.current = compare ? 0 : scale;
   // Comparer : chaque appareil tient dans la moitié du panneau.
   const pairDevices = (beforeAfter ? [pair[0], pair[0]] : pair).map(
     (id) => devices.find((d) => d.id === id) ?? devices[1],
@@ -2243,6 +2304,7 @@ export default function App() {
               </div>
               {demo && (
                 <div
+                  ref={sheetStage}
                   className="component-stage"
                   role="region"
                   aria-label={`Planche : ${title}`}
@@ -2252,34 +2314,26 @@ export default function App() {
                       {demo.sheet
                         ? 'Tous les états'
                         : 'Rendu · planche des états à venir'}
-                      {sheetScale < 1 && sheetFit
-                        ? ` · ${Math.round(sheetScale * 100)} %`
-                        : ' · taille réelle'}
+                      {sheetScale === 1 ? ' · taille réelle' : ''}
                     </span>
-                    <div
-                      className="segmented"
-                      role="group"
-                      aria-label="Zoom de la planche"
-                    >
-                      <button
-                        aria-pressed={sheetFit}
-                        title="Fit : la planche tient dans la largeur"
-                        onClick={() => setSheetFit(true)}
-                      >
-                        Fit
-                      </button>
-                      <button
-                        aria-pressed={!sheetFit}
-                        title="100 % : taille réelle, défilement si besoin"
-                        onClick={() => setSheetFit(false)}
-                      >
-                        100 %
-                      </button>
-                    </div>
+                    <ZoomControl
+                      label="Zoom de la planche"
+                      fit={sheetFit}
+                      shown={sheetScale}
+                      onFit={() => setSheetFit(true)}
+                      onZoom={(z) => {
+                        setSheetFit(false);
+                        setSheetZoom(z);
+                      }}
+                    />
                   </div>
                   <DSProvider tokens={preview}>
                     <div className="stage-inner">
-                      <FitBox fit={sheetFit} onScale={setSheetScale}>
+                      <FitBox
+                        fit={sheetFit}
+                        zoom={sheetZoom}
+                        onScale={setSheetScale}
+                      >
                         {demo.sheet ? demo.sheet() : demo.render()}
                       </FitBox>
                     </div>
@@ -2396,31 +2450,19 @@ export default function App() {
                 }}
               />
               <div className="preview-tools">
-                <div
-                  className={`segmented${compare ? ' is-disabled' : ''}`}
-                  role="group"
-                  aria-label="Zoom"
+                <ZoomControl
+                  label="Zoom"
+                  fit={layout.fit}
+                  shown={scale}
+                  disabled={compare}
                   title={
                     compare
                       ? 'Comparer ajuste toujours les deux aperçus'
                       : undefined
                   }
-                >
-                  <button
-                    aria-pressed={layout.fit}
-                    title="Fit : l’aperçu tient entièrement dans le panneau"
-                    onClick={() => setLayout({ ...layout, fit: true })}
-                  >
-                    Fit
-                  </button>
-                  <button
-                    aria-pressed={!layout.fit}
-                    title="100 % : taille réelle, défilement si besoin"
-                    onClick={() => setLayout({ ...layout, fit: false })}
-                  >
-                    100 %
-                  </button>
-                </div>
+                  onFit={() => setLayout({ ...layout, fit: true })}
+                  onZoom={(z) => setLayout({ ...layout, fit: false, zoom: z })}
+                />
                 <label
                   className={`toggle${isFree && !compare ? ' is-disabled' : ''}`}
                   title={
@@ -2839,7 +2881,7 @@ export default function App() {
               <>
                 {dev.title} · {dev.width} × {dev.height} px CSS
                 {kind !== 'none' ? ` · mockup ${frameLabel[kind]}` : ''} ·{' '}
-                {scale < 1
+                {scale !== 1
                   ? `affiché à ${Math.round(scale * 100)} %`
                   : 'taille réelle'}
                 {previewTokens
