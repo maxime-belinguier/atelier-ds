@@ -4584,3 +4584,54 @@ html[data-focus='nav'] [data-ds='nav'] {
   height: 38px;
   padding: 0 14px;
 }
+/* Envoi à Figma après « Enregistrer » : pastille à côté de l'état. */
+.save-status p.figma-sync {
+  color: var(--text-2);
+  background: var(--surface-2);
+  border-color: var(--border);
+}
+.save-status p.figma-sync.is-ok {
+  color: var(--ok-text);
+  background: var(--ok-bg);
+}
+.save-status p.figma-sync.is-warn {
+  color: var(--warn-text);
+  background: var(--warn-bg);
+}
+.figma-sync-text {
+  max-width: 340px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.save-status .figma-sync .save-dot {
+  background: var(--accent-strong);
+  animation: figma-pulse 1s ease-in-out infinite alternate;
+}
+@keyframes figma-pulse {
+  to {
+    opacity: 0.3;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .save-status .figma-sync .save-dot {
+    animation: none;
+  }
+}
+.save-status .figma-sync .figma-sync-open {
+  height: auto;
+  min-height: 0;
+  padding: 0 0 0 4px;
+  border: 0;
+  background: none;
+  color: inherit;
+  text-decoration: underline;
+  font-weight: 600;
+}
+.diff-figma {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 13px;
+  font-weight: 550;
+}

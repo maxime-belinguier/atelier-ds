@@ -159,6 +159,8 @@ function announceChange() {
   c.close();
 }
 
+const figmaAutoKey = 'ds-studio-figma-auto';
+
 // L'iframe affiche les valeurs enregistrées, ou l'aperçu des modifications
 // envoyé par l'atelier (même origine uniquement, valeurs revalidées).
 export function Preview() {
@@ -581,6 +583,66 @@ export default function App() {
       live = false;
     };
   }, [settingsOpen, briefOpen]);
+  // Envoi à Figma juste après « Enregistrer » (case du diff, retenue ici).
+  const [figmaAuto, setFigmaAuto] = useState(() => {
+    try {
+      return localStorage.getItem(figmaAutoKey) !== '0';
+    } catch {
+      return true;
+    }
+  });
+  const [figmaSync, setFigmaSync] = useState<{
+    tone: 'sending' | 'ok' | 'warn';
+    text: string;
+  } | null>(null);
+  useEffect(() => {
+    if (figmaSync?.tone !== 'ok') return;
+    const t = setTimeout(() => setFigmaSync(null), 6000);
+    return () => clearTimeout(t);
+  }, [figmaSync]);
+  // N'envoie que ce qui vient d'être validé : si Figma a d'autres écarts
+  // (modifiés dans Figma par exemple), rien n'est écrasé sans les montrer.
+  async function pushToFigma(revision: number, keys: string[]) {
+    setFigmaSync({ tone: 'sending', text: 'Envoi vers Figma…' });
+    try {
+      const plan = await request<{
+        approvalId: string | null;
+        patches: { key: string }[];
+      }>('figma/preview', { revision });
+      if (!plan.approvalId)
+        return setFigmaSync({ tone: 'ok', text: 'Figma déjà à jour ✓' });
+      const others = plan.patches.filter((p) => !keys.includes(p.key));
+      if (others.length)
+        return setFigmaSync({
+          tone: 'warn',
+          text: `Rien envoyé : Figma a d’autres écarts (${others
+            .slice(0, 3)
+            .map((p) => p.key)
+            .join(', ')}${others.length > 3 ? '…' : ''}).`,
+        });
+      const r = await request<{
+        written: number;
+        verified: boolean;
+        mismatches: string[];
+      }>('figma/apply', { approvalId: plan.approvalId });
+      setFigmaSync(
+        r.verified
+          ? {
+              tone: 'ok',
+              text: `Envoyé à Figma ✓ · ${r.written} variable${r.written > 1 ? 's' : ''}`,
+            }
+          : {
+              tone: 'warn',
+              text: `Envoyé, mais Figma relit autre chose pour : ${r.mismatches.join(', ')}.`,
+            },
+      );
+    } catch (e) {
+      setFigmaSync({
+        tone: 'warn',
+        text: `Figma non mis à jour : ${(e as Error).message}`,
+      });
+    }
+  }
   const [theme, setTheme] = useState<Theme>(readTheme);
   useEffect(() => {
     applyTheme(theme);
@@ -901,6 +963,12 @@ export default function App() {
       setProposal(undefined);
       announceChange();
       setNotice(`Changement n°${next.revision} enregistré sur ta machine.`);
+      // Valeurs lues dans Figma : rien à lui renvoyer.
+      if (figmaAuto && figmaState === 'ok' && proposal.source !== 'figma')
+        void pushToFigma(
+          next.revision,
+          proposal.patches.map((p) => p.key),
+        );
     });
     setSaving(false);
   }
@@ -1639,6 +1707,28 @@ export default function App() {
                   ? `${errorCount} valeur${errorCount > 1 ? 's' : ''} à corriger`
                   : `${drafts.changes.length} modif${drafts.changes.length > 1 ? 's' : ''} non enregistrée${drafts.changes.length > 1 ? 's' : ''}`}
           </p>
+          {figmaSync && (
+            <p className={`figma-sync is-${figmaSync.tone}`} role="status">
+              {figmaSync.tone === 'sending' && (
+                <span className="save-dot" aria-hidden="true" />
+              )}
+              <span className="figma-sync-text" title={figmaSync.text}>
+                {figmaSync.text}
+              </span>
+              {figmaSync.tone === 'warn' && (
+                <button
+                  className="figma-sync-open"
+                  onClick={() => {
+                    setFigmaSync(null);
+                    setSettingsTab('figma');
+                    setSettingsOpen(true);
+                  }}
+                >
+                  Voir
+                </button>
+              )}
+            </p>
+          )}
           {pendingCount > 0 && (
             <>
               <button
@@ -3401,6 +3491,27 @@ export default function App() {
           <p role="alert" className="error">
             {error}
           </p>
+        )}
+        {figmaState === 'ok' && proposal?.source !== 'figma' && (
+          <label className="diff-figma">
+            <input
+              type="checkbox"
+              checked={figmaAuto}
+              disabled={saving}
+              onChange={(e) => {
+                setFigmaAuto(e.target.checked);
+                try {
+                  localStorage.setItem(
+                    figmaAutoKey,
+                    e.target.checked ? '1' : '0',
+                  );
+                } catch {
+                  /* préférence pour cette session seulement */
+                }
+              }}
+            />
+            Envoyer aussi vers Figma
+          </label>
         )}
         <div className="dialog-actions">
           <button

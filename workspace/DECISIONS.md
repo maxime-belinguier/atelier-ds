@@ -650,3 +650,24 @@ gardés pour ce lancement.
 à chaque push (oubli facile).
 Preuves : fichier relu ; les tests locaux restent faits avant chaque push.
 Limite : sans lancement manuel, aucune preuve Windows / macOS n’est produite.
+
+## 29/10/2026 · Enregistrer envoie aussi vers Figma
+
+Problème : pour mettre Figma à jour après une modif, il fallait enregistrer,
+ouvrir Paramètres › Figma, Envoyer, puis valider un second aperçu.
+Décision : le diff « Valider les changements » a une case « Envoyer aussi
+vers Figma » (cochée par défaut, choix retenu, visible seulement si Figma est
+connecté et lié). Après l’enregistrement, l’envoi part tout seul et une
+pastille à côté de « Enregistré » dit « Envoi vers Figma… » puis « Envoyé à
+Figma ✓ · n variable(s) » (disparaît après 6 s). Sécurité : on n’envoie que
+les tokens qui viennent d’être validés ; si Figma a d’autres écarts (modifiés
+dans Figma), rien n’est écrit et la pastille propose « Voir ». Pas d’envoi
+quand les valeurs viennent d’être lues dans Figma.
+Écarté : un menu dans la bulle Figma (encore un clic de plus) ; un envoi sans
+case (pas de choix possible).
+Preuves : test navigateur (case cochée dans le diff, « Envoyé à Figma ✓ ·
+1 variable », Figma ensuite identique à l’atelier) ; suite complète (68
+unitaires, 33 navigateur) ; audit de mise en page sans anomalie ; visite
+guidée 1:1 ; captures relues.
+Limite : testé avec le Figma simulé ; le vrai envoi prend 20 à 60 s via
+Claude Code.

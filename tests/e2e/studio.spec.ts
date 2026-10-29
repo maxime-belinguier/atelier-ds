@@ -1038,6 +1038,23 @@ test('Figma (simulé) : lire en diff, puis envoyer avec aperçu et validation', 
       'Figma a déjà toutes les valeurs enregistrées de l’atelier.',
     ),
   ).toBeVisible();
+  await settings.getByRole('button', { name: 'Fermer les paramètres' }).click();
+  // Enregistrer envoie aussi vers Figma (case cochée), avec un message.
+  await page.getByRole('button', { name: /^Couleurs/ }).click();
+  await page.getByLabel('Couleur de marque', { exact: true }).fill('#2244AA');
+  await page.getByRole('button', { name: /^Enregistrer/ }).click();
+  await expect(diff(page).getByLabel('Envoyer aussi vers Figma')).toBeChecked();
+  await diff(page)
+    .getByRole('button', { name: /Valider|Enregistrer/ })
+    .click();
+  await expect(page.getByText(/Envoyé à Figma ✓ · 1 variable/)).toBeVisible();
+  await page.getByRole('button', { name: 'Figma', exact: true }).click();
+  await settings.getByRole('button', { name: 'Envoyer vers Figma' }).click();
+  await expect(
+    settings.getByText(
+      'Figma a déjà toutes les valeurs enregistrées de l’atelier.',
+    ),
+  ).toBeVisible();
 });
 
 test('assistant : historique gardé, nouvelle conversation, réouverture', async ({
