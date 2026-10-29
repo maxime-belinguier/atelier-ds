@@ -12,12 +12,6 @@ import {
 import { DSProvider, Scenario, components, screens } from './DesignSystem.js';
 import ProjectBrief from './ProjectBrief.js';
 import { FigmaSheet, figmaTokenKeys } from './FigmaComponentView';
-import {
-  MyComponentEditor,
-  MyComponentView,
-  myComponentKeys,
-} from './MyComponents';
-import { kindLabels, type MyComponent } from '../shared/myComponents';
 import type { FigmaComponent } from '../shared/figmaComponents';
 import FitBox, {
   ZoomControl,
@@ -497,8 +491,7 @@ type Selection =
   | { kind: 'component'; id: string }
   | { kind: 'screen'; id: string }
   | { kind: 'audit'; id: string }
-  | { kind: 'figma'; id: string }
-  | { kind: 'mine'; id: string };
+  | { kind: 'figma'; id: string };
 
 export default function App() {
   const { state, setState, error: stateError } = useDesignState();
@@ -740,21 +733,6 @@ export default function App() {
   useEffect(() => {
     void loadFigmaComps();
   }, []);
-  // Composants créés dans l'atelier (sans Claude), propres au projet.
-  const [myComps, setMyComps] = useState<MyComponent[]>([]);
-  const [editing, setEditing] = useState<MyComponent | 'new' | null>(null);
-  const [confirmDrop, setConfirmDrop] = useState(false);
-  useEffect(() => {
-    request<{ components: MyComponent[] }>('my-components')
-      .then((r) => setMyComps(r.components))
-      .catch(() => undefined);
-  }, []);
-  async function saveMyComps(next: MyComponent[]) {
-    const r = await request<{ components: MyComponent[] }>('my-components', {
-      components: next,
-    });
-    setMyComps(r.components);
-  }
   const [figmaReading, setFigmaReading] = useState(false);
   // Dernière lecture réussie, affichée « il y a 3 min » (mise à jour 30 s).
   const [figmaReadAt, setFigmaReadAt] = useState<number | null>(null);
@@ -1386,10 +1364,6 @@ export default function App() {
   let description = '';
   let keys: TokenKey[] = [];
   let demo: (typeof components)[number] | undefined;
-  const myComp =
-    selection.kind === 'mine'
-      ? myComps.find((c) => c.id === selection.id)
-      : undefined;
   const figmaComp =
     selection.kind === 'figma'
       ? figmaComps.components.find((c) => c.id === selection.id)
@@ -1409,18 +1383,6 @@ export default function App() {
     description = c.description;
     keys = c.tokens;
     demo = c;
-  } else if (selection.kind === 'mine' && myComp) {
-    title = myComp.name;
-    description = `Composant créé dans l’atelier (${kindLabels[myComp.kind].toLowerCase()}) : il suit tes tokens. Il n’est pas envoyé vers Figma.`;
-    keys = myComponentKeys(myComp).filter((k) => k in state.tokens);
-    demo = {
-      id: myComp.id,
-      label: myComp.name,
-      description,
-      tokens: keys,
-      usedIn: [],
-      render: () => <MyComponentView c={myComp} />,
-    };
   } else if (selection.kind === 'figma' && figmaComp) {
     title = figmaComp.name;
     description = `${figmaComp.desc ? figmaComp.desc + ' ' : ''}Lu dans Figma : rendu approximatif, qui suit tes tokens.`;
@@ -1446,7 +1408,6 @@ export default function App() {
 
   function select(next: Selection) {
     setSearch('');
-    setConfirmDrop(false);
     setSelection(next);
     if (next.kind === 'screen') setScenario(next.id);
     // Composant : l'Aperçu montre un écran qui le contient.
@@ -1499,8 +1460,7 @@ export default function App() {
     component: 'components',
     screen: 'screens',
     audit: 'quality',
-    figma: 'figma',
-    mine: 'mine',
+    figma: 'components',
   };
   const groupHead = (id: string, label: string, count: number) => {
     const open = !collapsed.includes(id);
@@ -1652,7 +1612,7 @@ export default function App() {
     {
       target: 'figma',
       title: 'Relie Figma',
-      text: 'Colle le lien de ton fichier Figma ici. « Lire Figma » récupère tes variables (dans le diff, à valider) et tes composants (groupe « Depuis Figma » du menu).',
+      text: 'Colle le lien de ton fichier Figma ici. « Lire Figma » récupère tes variables (dans le diff, à valider) et tes composants (rangés dans Composants, marqués « Figma »).',
       before: () => {
         setCompare(false);
         setChatOpen(false);
@@ -2444,25 +2404,12 @@ export default function App() {
                       {c.label}
                     </option>
                   ))}
+                  {figmaComps.components.map((c) => (
+                    <option key={c.id} value={`figma:${c.id}`}>
+                      {c.name} · Figma
+                    </option>
+                  ))}
                 </optgroup>
-                {myComps.length > 0 && (
-                  <optgroup label="Mes composants">
-                    {myComps.map((c) => (
-                      <option key={c.id} value={`mine:${c.id}`}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </optgroup>
-                )}
-                {figmaComps.components.length > 0 && (
-                  <optgroup label="Depuis Figma">
-                    {figmaComps.components.map((c) => (
-                      <option key={c.id} value={`figma:${c.id}`}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </optgroup>
-                )}
                 <optgroup label="Écrans">
                   {screens.map((sc) => (
                     <option key={sc.id} value={`screen:${sc.id}`}>
@@ -2506,7 +2453,11 @@ export default function App() {
                     </button>
                   );
                 })}
-              {groupHead('components', 'Composants', components.length)}
+              {groupHead(
+                'components',
+                'Composants',
+                components.length + figmaComps.components.length,
+              )}
               {components
                 .filter((c) =>
                   show(
@@ -2530,44 +2481,13 @@ export default function App() {
                     {c.label}
                   </button>
                 ))}
-              {groupHead('mine', 'Mes composants', myComps.length)}
-              {show('mine', selection.kind === 'mine') && (
-                <>
-                  {myComps.map((c) => (
-                    <button
-                      key={c.id}
-                      className="side-item"
-                      aria-current={
-                        !query &&
-                        selection.kind === 'mine' &&
-                        selection.id === c.id
-                          ? 'page'
-                          : undefined
-                      }
-                      onClick={() => select({ kind: 'mine', id: c.id })}
-                    >
-                      {c.name}
-                    </button>
-                  ))}
-                  <button
-                    className="side-item side-add"
-                    onClick={() => setEditing('new')}
-                  >
-                    + Créer un composant
-                  </button>
-                </>
-              )}
+              {/* Composants lus dans Figma : même groupe, marqués « Figma ». */}
               {figmaComps.components.length > 0 && (
                 <>
-                  {groupHead(
-                    'figma',
-                    'Depuis Figma',
-                    figmaComps.components.length,
-                  )}
                   {figmaComps.components
                     .filter((c) =>
                       show(
-                        'figma',
+                        'components',
                         selection.kind === 'figma' && selection.id === c.id,
                       ),
                     )
@@ -2586,6 +2506,7 @@ export default function App() {
                         onClick={() => select({ kind: 'figma', id: c.id })}
                       >
                         {c.name}
+                        <span className="side-count side-source">Figma</span>
                       </button>
                     ))}
                 </>
@@ -2644,48 +2565,6 @@ export default function App() {
               <div className="content-head">
                 <h3>{title}</h3>
                 <p role={query ? 'status' : undefined}>{description}</p>
-                {selection.kind === 'mine' && myComp && !query && (
-                  <div className="my-actions">
-                    <button
-                      className="save-cancel"
-                      onClick={() => setEditing(myComp)}
-                    >
-                      Modifier
-                    </button>
-                    {confirmDrop ? (
-                      <>
-                        <button
-                          className="save-cancel danger"
-                          onClick={() => {
-                            setConfirmDrop(false);
-                            void saveMyComps(
-                              myComps.filter((c) => c.id !== myComp.id),
-                            )
-                              .then(() =>
-                                select({ kind: 'tokens', id: 'colors' }),
-                              )
-                              .catch((e) => setError((e as Error).message));
-                          }}
-                        >
-                          Oui, supprimer
-                        </button>
-                        <button
-                          className="save-cancel"
-                          onClick={() => setConfirmDrop(false)}
-                        >
-                          Annuler
-                        </button>
-                      </>
-                    ) : (
-                      <button
-                        className="save-cancel"
-                        onClick={() => setConfirmDrop(true)}
-                      >
-                        Supprimer
-                      </button>
-                    )}
-                  </div>
-                )}
               </div>
               {demo && (
                 <div
@@ -2696,13 +2575,11 @@ export default function App() {
                 >
                   <div className="stage-bar">
                     <span>
-                      {selection.kind === 'mine'
-                        ? 'Rendu avec tes tokens'
-                        : selection.kind === 'figma'
-                          ? 'Variantes lues dans Figma'
-                          : demo.sheet
-                            ? 'Tous les états'
-                            : 'Rendu · planche des états à venir'}
+                      {selection.kind === 'figma'
+                        ? 'Variantes lues dans Figma'
+                        : demo.sheet
+                          ? 'Tous les états'
+                          : 'Rendu · planche des états à venir'}
                       {sheetScale === 1 ? ' · taille réelle' : ''}
                     </span>
                     <ZoomControl
@@ -3286,23 +3163,6 @@ export default function App() {
         </section>
       </main>
 
-      {editing && state && (
-        <MyComponentEditor
-          initial={editing === 'new' ? undefined : editing}
-          tokens={preview}
-          labelOf={labelOf}
-          onSave={async (c) => {
-            await saveMyComps(
-              editing === 'new'
-                ? [...myComps, c]
-                : myComps.map((x) => (x.id === c.id ? c : x)),
-            );
-            setEditing(null);
-            select({ kind: 'mine', id: c.id });
-          }}
-          onClose={() => setEditing(null)}
-        />
-      )}
       {settingsOpen && (
         <Settings
           onClose={() => setSettingsOpen(false)}

@@ -579,37 +579,3 @@ test('projets : créer pendant une demande Claude attend sa fin', async (t) => {
   const boot = await (await fetch(origin + '/api/bootstrap')).json();
   assert.equal(boot.project, 'pendant');
 });
-
-test('composants créés : enregistrés par projet, valeurs contrôlées', async (t) => {
-  const { origin, post } = await fixture(t);
-  const get = async () =>
-    (await (await fetch(origin + '/api/my-components')).json()).components;
-  assert.deepEqual(await get(), []);
-  const badge = {
-    id: 'badge-1',
-    name: 'Badge',
-    kind: 'tag',
-    text: 'Vérifié',
-    bg: 'color.success',
-    fg: 'color.onBrand',
-  };
-  const saved = await post('my-components', { components: [badge] });
-  assert.equal(saved.status, 200);
-  assert.equal((await get())[0].shape, 'control');
-  // Couleur hors tokens ou CSS injecté : refusé.
-  for (const bg of ['#FF0000', 'color.x;}body{']) {
-    const r = await post('my-components', {
-      components: [{ ...badge, bg }],
-    });
-    assert.equal(r.status, 400);
-  }
-  assert.equal(
-    (await post('my-components', { components: [badge, badge] })).status,
-    400,
-  );
-  // Chaque projet a sa liste.
-  await post('projects/create', { name: 'Autre', from: 'neutre' });
-  assert.deepEqual(await get(), []);
-  await post('projects/open', { id: 'gutt' });
-  assert.equal((await get()).length, 1);
-});

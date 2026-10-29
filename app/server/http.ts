@@ -30,8 +30,6 @@ import {
 } from '../../connectors/agents/types.js';
 import { ClaudeFigmaConnector } from '../../connectors/figma/claudeFigma.js';
 import { FigmaSync, type FigmaConnector } from './figma.js';
-import { MyComponentsStore } from './myComponents.js';
-import { myComponentsSchema } from '../shared/myComponents.js';
 import type { RecordInfo } from '../../scripts/runtime.mjs';
 
 export async function createStudioServer(options: {
@@ -63,7 +61,6 @@ export async function createStudioServer(options: {
   let projectId = (await projects.read()).current;
   let project = new ProjectStore(store.directory);
   let figma = new FigmaSync(store, project, figmaConnector, store.directory);
-  let mine = new MyComponentsStore(store.directory);
   // Une demande Claude ou une lecture Figma en cours (souvent la lecture
   // auto, 15 s environ) : on attend sa fin plutôt que de refuser.
   async function idle(ms = 90_000) {
@@ -88,7 +85,6 @@ export async function createStudioServer(options: {
     store = next;
     project = new ProjectStore(directory);
     figma = new FigmaSync(store, project, figmaConnector, directory);
-    mine = new MyComponentsStore(directory);
     projectId = id;
   }
   // Aperçu visuel d'un jeu de tokens : quelques couleurs et l'arrondi.
@@ -217,8 +213,6 @@ export async function createStudioServer(options: {
             return send(200, await figma.status());
           if (url.pathname === '/api/figma/components')
             return send(200, await figma.components());
-          if (url.pathname === '/api/my-components')
-            return send(200, { components: await mine.read() });
           if (url.pathname === '/api/agents')
             return send(
               200,
@@ -330,13 +324,6 @@ export async function createStudioServer(options: {
             'Projet changé dans un autre onglet. Recharge la page.',
             409,
           );
-        if (url.pathname === '/api/my-components') {
-          const b = z
-            .object({ components: myComponentsSchema })
-            .strict()
-            .parse(body);
-          return send(200, { components: await mine.save(b.components) });
-        }
         if (url.pathname === '/api/project') {
           const b = z
             .object({ base: z.string().max(64), project: projectSchema })

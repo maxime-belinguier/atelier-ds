@@ -1448,53 +1448,6 @@ test('composants : planche des états pour chaque composant', async ({
   await expect(nav).toContainText('onglet min. 44 px');
 });
 
-test('composants : créer sans Claude, suivre les tokens, modifier, supprimer', async ({
-  page,
-}) => {
-  await page.goto('/');
-  await page.getByRole('button', { name: '+ Créer un composant' }).click();
-  const d = page.getByRole('dialog', { name: 'Créer un composant' });
-  await d.getByLabel('Nom du composant').fill('Badge statut');
-  await d.getByRole('button', { name: 'Étiquette' }).click();
-  await d.getByLabel('Texte', { exact: true }).fill('Vérifié');
-  await d.getByLabel('Fond', { exact: true }).selectOption('color.brand');
-  await d
-    .getByLabel('Couleur du texte', { exact: true })
-    .selectOption('color.brand');
-  // Même couleur pour le texte et le fond : contraste signalé.
-  await expect(d.getByText(/sous le minimum de 4,5:1/)).toBeVisible();
-  await d
-    .getByLabel('Couleur du texte', { exact: true })
-    .selectOption('color.onBrand');
-  await d.getByRole('button', { name: 'Créer', exact: true }).click();
-  await expect(d).toHaveCount(0);
-  await expect(
-    page.getByRole('heading', { name: 'Badge statut' }),
-  ).toBeVisible();
-  const planche = page.getByRole('region', { name: 'Planche : Badge statut' });
-  const tag = planche.getByText('Vérifié');
-  await expect(tag).toBeVisible();
-  // Suit les tokens : la marque modifiée change le composant tout de suite.
-  await page.getByLabel('Couleur de marque', { exact: true }).fill('#118855');
-  await expect(tag).toHaveCSS('background-color', 'rgb(17, 136, 85)');
-  await page
-    .getByRole('button', { name: 'Annuler les modifications non enregistrées' })
-    .click();
-  // Gardé après rechargement, puis modifié et supprimé.
-  await page.reload();
-  await page.getByRole('button', { name: 'Badge statut' }).click();
-  await page.getByRole('button', { name: 'Modifier', exact: true }).click();
-  const edit = page.getByRole('dialog', { name: 'Modifier le composant' });
-  await edit.getByLabel('Texte', { exact: true }).fill('Validé');
-  await edit.getByRole('button', { name: 'Enregistrer', exact: true }).click();
-  await expect(planche.getByText('Validé')).toBeVisible();
-  await page.getByRole('button', { name: 'Supprimer', exact: true }).click();
-  await page.getByRole('button', { name: 'Oui, supprimer' }).click();
-  await expect(page.getByRole('button', { name: 'Badge statut' })).toHaveCount(
-    0,
-  );
-});
-
 test('survol : proposé quand la marque change, suppression assombrie', async ({
   page,
 }) => {

@@ -818,24 +818,17 @@ la fenêtre) ; suite complète (71 unitaires, 33 navigateur) ; audit de mise
 en page sans anomalie.
 Limite : la création peut prendre jusqu’à 15 s si une lecture Figma tourne.
 
-## 29/10/2026 · Créer un composant dans l’atelier, sans Claude
+## 29/10/2026 · Création de composant dans l’atelier : retirée
 
-Problème : impossible de créer un composant dans l’app ; l’option avait été
-écartée plus haut (Figma suffisait), le porteur du projet la veut.
-Décision : groupe « Mes composants » avec « + Créer un composant ». Fenêtre
-avec aperçu en direct : nom, modèle (bouton, carte, étiquette), texte,
-fond, couleur du texte et bordure choisis parmi les tokens couleur, forme
-(arrondi du DS, pilule, carré). Contraste texte / fond sous 4,5:1 signalé.
-Le rendu utilise var(--token) : il suit chaque modif en cours. Modifier et
-supprimer depuis la page du composant. Stocké par projet
-(components.json), valeurs contrôlées par schéma (clés de tokens seulement,
-40 composants au plus).
-Écarté : éditeur libre de mise en page (trop gros, doublon de Figma) ;
-envoi vers Figma (pas fiable).
-Preuves : tests serveur (enregistrement, couleur hors tokens et doublon
-refusés, une liste par projet) ; test navigateur (création, contraste
-signalé, suit la marque modifiée, modification, suppression) ; suite
-complète (72 unitaires, 34 navigateur) ; audit de mise en page sans
-anomalie ; visite guidée 1:1.
-Limite : trois modèles simples, sans états (survol, désactivé) ; pas envoyés
-vers Figma.
+Problème : une création de composant sans Claude avait été ajoutée (trois
+modèles : bouton, carte, étiquette). À l’usage, trop limitée pour créer un
+vrai composant, et rangée dans un groupe à part au lieu de Composants.
+Décision : feature retirée (code, données d’API, tests). Les composants se
+créent dans Figma. Un seul groupe « Composants » dans le menu : ceux de
+l’atelier puis ceux lus dans Figma, marqués « Figma » (plus de groupe
+« Depuis Figma » à part).
+Écarté : un éditeur libre (calques, mise en page, états, variantes) :
+revient à refaire Figma, pas faisable proprement avant la soutenance.
+Preuves : suite complète et audit de mise en page après retrait ; test
+navigateur du Tag Figma dans le groupe Composants.
+Limite : aucune création de composant dans l’app.

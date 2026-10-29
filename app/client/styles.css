@@ -4801,90 +4801,9 @@ html[data-focus='nav'] [data-ds='nav'] {
   margin: 0 0 12px;
 }
 
-/* Composants créés dans l'atelier. */
-.my-button,
-.my-tag {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 44px;
+/* Composant venu de Figma, dans le groupe Composants. */
+.side-count.side-source {
+  font-size: 10px;
   font-weight: 600;
-  line-height: 1.2;
-}
-.my-tag {
-  min-height: 0;
-  font-weight: 500;
-}
-.my-card {
-  display: grid;
-  gap: 6px;
-  line-height: 1.35;
-}
-.my-card p {
-  margin: 0;
-  opacity: 0.8;
-}
-.my-preview {
-  display: grid;
-  place-items: center;
-  min-height: 120px;
-  padding: 20px;
-  border-radius: 14px;
-  background: var(--surface-2, #f3f2f8);
-  border: 1px solid var(--border);
-}
-.my-preview .ds {
-  display: contents;
-}
-.my-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px 16px;
-}
-.my-field {
-  display: grid;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  min-width: 0;
-}
-.my-field input,
-.my-field select {
-  width: 100%;
-  min-width: 0;
-}
-.my-field .segmented {
-  justify-self: start;
-}
-.my-color {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.my-swatch {
-  flex: none;
-  width: 22px;
-  height: 22px;
-  border-radius: 6px;
-  border: 1px solid var(--border-strong);
-}
-.my-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 10px;
-}
-.my-actions .danger {
-  color: var(--danger, #b4233e);
-}
-.side-item.side-add {
-  color: var(--accent-text);
-  font-weight: 600;
-}
-@media (max-width: 640px) {
-  .my-grid {
-    grid-template-columns: 1fr;
-  }
-}
-.new-project.my-editor {
-  width: min(640px, 100%);
+  letter-spacing: 0.02em;
 }
