@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { request } from './api.js';
 import { labelOf } from './tokenMeta.js';
 import type { Proposal } from '../shared/model.js';
+import type { ProjectSnapshot } from '../shared/project.js';
 
 // Onglet Figma des Paramètres : connexion (Claude Code + serveur MCP officiel
 // de Figma), lecture vers l'atelier et envoi vers Figma avec validation.
@@ -65,6 +66,30 @@ export default function FigmaPanel({
   const [error, setError] = useState('');
   const [preview, setPreview] = useState<Preview>();
   const [login, setLogin] = useState<{ opened: boolean; command: string }>();
+  // Lien du fichier : rangé dans le projet, modifié ici seulement.
+  const [link, setLink] = useState('');
+  const [linkNote, setLinkNote] = useState('');
+  useEffect(() => {
+    request<ProjectSnapshot>('project')
+      // Sans écraser ce qui a déjà été tapé pendant le chargement.
+      .then((s) => setLink((cur) => cur || s.project.figmaUrl))
+      .catch(() => {});
+  }, []);
+  const saveLink = async () => {
+    setLinkNote('');
+    setError('');
+    try {
+      const snap = await request<ProjectSnapshot>('project');
+      await request('project', {
+        ...snap,
+        project: { ...snap.project, figmaUrl: link.trim() },
+      });
+      setLinkNote(link.trim() ? 'Lien enregistré.' : 'Lien retiré.');
+      void check();
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
 
   async function check() {
     setChecking(true);
@@ -153,7 +178,34 @@ export default function FigmaPanel({
       </p>
 
       <h4>Ton fichier</h4>
-      {status?.fileUrl ? (
+      <form
+        className="settings-row settings-field figma-link"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void saveLink();
+        }}
+      >
+        <label>
+          Lien du fichier Figma
+          <input
+            type="url"
+            maxLength={500}
+            placeholder="https://www.figma.com/design/…"
+            value={link}
+            onChange={(e) => {
+              setLink(e.target.value);
+              setLinkNote('');
+            }}
+          />
+        </label>
+        <button type="submit">Enregistrer le lien</button>
+      </form>
+      {linkNote && (
+        <p className="settings-hint" role="status">
+          {linkNote}
+        </p>
+      )}
+      {status?.fileUrl && (
         <p className="settings-file">
           <a href={status.fileUrl} target="_blank" rel="noreferrer">
             Ouvrir le fichier dans Figma ↗
@@ -161,10 +213,6 @@ export default function FigmaPanel({
           {!status.fileKey && (
             <span className="settings-hint"> Lien non reconnu.</span>
           )}
-        </p>
-      ) : (
-        <p className="settings-hint">
-          Aucun lien : colle le lien de ton fichier dans le Brief du projet.
         </p>
       )}
       {status?.snapshot && (

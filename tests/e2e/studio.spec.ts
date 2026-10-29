@@ -254,9 +254,10 @@ test('brief privé dans son panneau, persistant, sans compte IA', async ({
   await page.goto('/');
   await page.getByRole('button', { name: 'Brief', exact: true }).click();
   const brief = page.getByRole('dialog', { name: 'Brief du projet' });
-  await brief
-    .getByLabel('Nom du projet', { exact: true })
-    .fill('Mon atelier accessible');
+  // Le nom vient du projet, plus de champ en double.
+  await expect(brief.getByText('Projet : Gutt (PFE)')).toBeVisible();
+  await expect(brief.getByLabel('Nom du projet')).toHaveCount(0);
+  await expect(brief.getByLabel(/Lien Figma/)).toHaveCount(0);
   await brief
     .getByLabel('Public concerné', { exact: true })
     .fill('Étudiants en mobilité');
@@ -269,9 +270,9 @@ test('brief privé dans son panneau, persistant, sans compte IA', async ({
   await expect(brief).not.toBeVisible();
   await page.reload();
   await page.getByRole('button', { name: 'Brief', exact: true }).click();
-  await expect(brief.getByLabel('Nom du projet', { exact: true })).toHaveValue(
-    'Mon atelier accessible',
-  );
+  await expect(
+    brief.getByRole('textbox', { name: 'Public concerné' }),
+  ).toHaveValue('Étudiants en mobilité');
 });
 
 test('recherche, modifications reprises après recharge et « Tout annuler » sans écriture', async ({
@@ -341,7 +342,7 @@ test('capacité de session périmée simulée sans rejeu ambigu', async ({
         status: 403,
         contentType: 'application/json',
         body: JSON.stringify({
-          error: 'Validation de session manquante. Rechargez la page.',
+          error: 'Validation de session manquante. Recharge la page.',
         }),
       });
     expect(route.request().headers()['x-ds-studio']).toBe(boot.csrf);
@@ -399,7 +400,7 @@ test('historique : panneau latéral modal, fermeture Échap et fond', async ({
   await page.getByRole('button', { name: /Historique/ }).click();
   const drawer = page.getByRole('dialog', { name: 'Historique' });
   await expect(drawer).toBeVisible();
-  await expect(drawer).toContainText('Vous pouvez revenir en arrière');
+  await expect(drawer).toContainText('Tu peux revenir en arrière');
   await page.keyboard.press('Escape');
   await expect(drawer).not.toBeVisible();
   await page.getByRole('button', { name: /Historique/ }).click();
@@ -442,7 +443,7 @@ test('panneaux redimensionnables au clavier, plein écran et assistant flottant'
   await page.getByRole('button', { name: 'Ouvrir l’assistant' }).click();
   const assistant = page.getByRole('complementary', { name: 'Assistant' });
   await expect(assistant).toBeVisible();
-  await expect(page.getByLabel('Votre demande')).toBeFocused();
+  await expect(page.getByLabel('Ta demande')).toBeFocused();
   await page.keyboard.press('Escape');
   await expect(assistant).toBeHidden();
 });
@@ -488,7 +489,7 @@ test('assistant : modèle, effort, tokens et jauge des crédits', async ({
   await page.getByRole('button', { name: 'Ouvrir l’assistant' }).click();
   await page.getByLabel('Modèle').selectOption('opus');
   await page.getByLabel('Effort').selectOption('high');
-  await page.getByLabel('Votre demande').fill('Bonjour');
+  await page.getByLabel('Ta demande').fill('Bonjour');
   await page.keyboard.press('Enter');
   await expect(
     page.getByText('Opus · effort élevé · 12 345 tokens envoyés · 210 générés'),
@@ -936,7 +937,7 @@ test('paramètres : onglets, apparence appliquée et mémorisée, Échap', async
   expect((await state(page)).tokens['color.brand'].$value).not.toBe('#3B6FF5');
   await page.getByRole('button', { name: 'Paramètres' }).click();
   await page.getByRole('tab', { name: 'Figma' }).click();
-  // Figma simulé dans les tests : connecté, mais aucun lien dans le Brief.
+  // Figma simulé dans les tests : connecté, mais aucun lien de fichier.
   await expect(page.getByText('Connecté', { exact: true })).toBeVisible();
   await expect(
     page.getByRole('button', { name: 'Lire depuis Figma' }),
@@ -987,24 +988,27 @@ test('Figma (simulé) : lire en diff, puis envoyer avec aperçu et validation', 
   // Pastille : orange tant qu'aucun fichier n'est lié, verte ensuite.
   await expect(pill).toHaveAttribute('data-figma', 'off');
   await expect(pill).toHaveAttribute('title', 'Figma à connecter');
-  await page.getByRole('button', { name: 'Brief', exact: true }).click();
-  const brief = page.getByRole('dialog', { name: 'Brief du projet' });
-  await brief
-    .getByLabel('Lien Figma (facultatif)')
-    .fill(
-      'https://www.figma.com/design/A7nqzQVmFo6pLvDMB7aWHg/Gutt?node-id=1-7',
-    );
-  await brief.getByRole('button', { name: 'Enregistrer le brief' }).click();
-  await expect(brief.getByText('Brief enregistré sur ce poste.')).toBeVisible();
-  await page.keyboard.press('Escape');
-  await expect(pill).toHaveAttribute('data-figma', 'ok');
-  await expect(pill).toHaveAttribute('title', 'Figma connecté');
+  // Le lien se règle dans Paramètres › Figma (la bulle y mène).
   await pill.click();
   const settings = page.getByRole('dialog', { name: 'Paramètres' });
   await expect(settings.getByRole('tab', { name: 'Figma' })).toHaveAttribute(
     'aria-selected',
     'true',
   );
+  await settings
+    .getByLabel('Lien du fichier Figma')
+    .fill(
+      'https://www.figma.com/design/A7nqzQVmFo6pLvDMB7aWHg/Gutt?node-id=1-7',
+    );
+  await settings.getByRole('button', { name: 'Enregistrer le lien' }).click();
+  await expect(settings.getByText('Lien enregistré.')).toBeVisible();
+  await expect(
+    settings.getByRole('link', { name: /Ouvrir le fichier dans Figma/ }),
+  ).toBeVisible();
+  await settings.getByRole('button', { name: 'Fermer les paramètres' }).click();
+  await expect(pill).toHaveAttribute('data-figma', 'ok');
+  await expect(pill).toHaveAttribute('title', 'Figma connecté');
+  await pill.click();
   await settings.getByRole('button', { name: 'Lire depuis Figma' }).click();
   // Le diff habituel s'ouvre : rien n'est écrit avant validation.
   await expect(diff(page)).toBeVisible();
@@ -1059,7 +1063,7 @@ test('assistant : historique gardé, nouvelle conversation, réouverture', async
   });
   await page.goto('/');
   await page.getByRole('button', { name: 'Ouvrir l’assistant' }).click();
-  await page.getByLabel('Votre demande').fill('Première question');
+  await page.getByLabel('Ta demande').fill('Première question');
   await page.keyboard.press('Enter');
   await expect(page.getByText('Réponse simulée.')).toBeVisible();
   // Après rechargement, la conversation est toujours là.
@@ -1069,7 +1073,7 @@ test('assistant : historique gardé, nouvelle conversation, réouverture', async
   // Nouvelle conversation : vide, et rien de l'ancienne n'est renvoyé.
   await page.getByRole('button', { name: /Nouvelle conversation/ }).click();
   await expect(page.getByText('Première question')).toHaveCount(0);
-  await page.getByLabel('Votre demande').fill('Deuxième');
+  await page.getByLabel('Ta demande').fill('Deuxième');
   await page.keyboard.press('Enter');
   await expect(page.getByText('Réponse simulée.')).toBeVisible();
   expect(sent.at(-1)?.history).toEqual([]);
@@ -1287,4 +1291,37 @@ test('composants : planche des états pour chaque composant', async ({
   await expect(nav.locator('.ds-nav button')).toHaveCount(3);
   await expect(nav.locator('[aria-current="page"]')).toHaveCount(1);
   await expect(nav).toContainText('onglet min. 44 px');
+});
+
+test('survol : proposé quand la marque change, suppression assombrie', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Boutons', exact: true }).click();
+  const sheet = page.getByRole('region', { name: 'Planche : Boutons' });
+  // Suppression : le survol se distingue du normal.
+  const danger = sheet.locator('.ds-button.danger');
+  const normal = await danger
+    .first()
+    .evaluate((el) => getComputedStyle(el).backgroundColor);
+  await expect(sheet.locator('.ds-button.danger.is-hover')).not.toHaveCSS(
+    'background-color',
+    normal,
+  );
+  // Marque changée : le survol est proposé, rien n'est appliqué seul.
+  await page.getByRole('button', { name: /^Couleurs/ }).click();
+  await page.getByLabel('Couleur de marque', { exact: true }).fill('#8A3B20');
+  const hover = page.locator('#row-color-brandHover');
+  await expect(hover).toContainText('La marque a changé, pas son survol.');
+  await expect(
+    page.getByLabel('Marque au survol', { exact: true }),
+  ).toHaveValue('#243F99');
+  await hover.getByRole('button', { name: /^Appliquer/ }).click();
+  await expect(
+    page.getByLabel('Marque au survol', { exact: true }),
+  ).not.toHaveValue('#243F99');
+  await expect(hover).not.toContainText('La marque a changé');
+  await page
+    .getByRole('button', { name: 'Annuler les modifications non enregistrées' })
+    .click();
 });

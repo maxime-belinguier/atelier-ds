@@ -83,7 +83,7 @@ export class ClaudeAdapter implements AgentAdapter {
       return {
         available: false,
         detail:
-          'CLI Claude absent ou inaccessible. Lancez DS-Studio depuis un terminal où « claude » fonctionne. Mode manuel disponible.',
+          'CLI Claude absent ou inaccessible. Lance DS-Studio depuis un terminal où « claude » fonctionne. Mode manuel disponible.',
       };
     }
   }
@@ -238,7 +238,7 @@ export function parseClaudeOutput(raw: string) {
     typeof event.result !== 'string'
   )
     throw new Error(
-      'Échec Claude. Vérifiez votre connexion et votre quota. Aucune écriture appliquée.',
+      'Échec Claude. Vérifie ta connexion et ton quota. Aucune écriture appliquée.',
     );
   // Un seul tour attendu : un tour supplémentaire signalerait un appel d'outil.
   if (event.num_turns !== 1 || (event.permission_denials?.length ?? 0) > 0)
@@ -264,7 +264,7 @@ export function parseClaudeOutput(raw: string) {
     };
   } catch {
     throw new Error(
-      'Échec Claude : réponse hors format. Reformulez la demande. Aucune écriture appliquée.',
+      'Échec Claude : réponse hors format. Reformule la demande. Aucune écriture appliquée.',
     );
   }
 }

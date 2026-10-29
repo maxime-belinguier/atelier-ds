@@ -9,7 +9,7 @@ export const unvalidatedAdapter = (id: 'claude' | 'gemini'): AgentAdapter => ({
   },
   async reply() {
     throw new Error(
-      `${id} non implémenté. Utilisez le mode manuel ou Codex qualifié.`,
+      `${id} non implémenté. Utilise le mode manuel ou Codex qualifié.`,
     );
   },
 });

@@ -355,10 +355,13 @@ test('Figma : lien requis, lecture en diff, écriture validée une seule fois', 
     undefined,
     fake.connector,
   );
-  // Sans lien Figma dans le Brief : refus clair, aucun appel.
+  // Sans lien Figma : refus clair, aucun appel.
   const none = await post('figma/pull', { revision: 0 });
   assert.equal(none.status, 400);
-  assert.match((await none.json()).error, /lien de ton fichier Figma/);
+  assert.match(
+    (await none.json()).error,
+    /lien de ton fichier dans Paramètres › Figma/,
+  );
   assert.equal(fake.calls.length, 0);
   const brief = await (await fetch(origin + '/api/project')).json();
   await post('project', {

@@ -616,3 +616,25 @@ toujours visible, mesure « texte 20 px ») ; suite complète (32 navigateur) ;
 audit de mise en page sans anomalie ; visite guidée 1:1 ; captures relues en
 clair et sombre.
 Limite : sur un petit écran, la planche occupe près de la moitié du panneau.
+
+## 29/10/2026 · Audit : tutoiement, doublons Brief / Paramètres, survols
+
+Problème : l’app mélangeait « tu » et « vous » ; le nom du projet et le lien
+Figma se réglaient à deux endroits ; le survol de la marque ne suivait pas
+une nouvelle couleur de marque, et Suppression n’avait pas de survol.
+Décision :
+- tous les textes passent au « tu » (atelier, messages du serveur, assistants) ;
+- le Brief affiche le nom du projet sans le modifier (Paramètres › Projets)
+  et n’a plus de lien Figma : il se règle dans Paramètres › Figma ;
+- marque modifiée : la ligne « Marque au survol » propose une valeur qui garde
+  le même écart qu’avant, avec « Appliquer ». Rien n’est appliqué seul, la
+  modification passe par le diff habituel ;
+- Suppression : survol qui assombrit la couleur d’alerte (sans nouveau token).
+Écarté : faire suivre le survol automatiquement (modification de token non
+validée) ; un token dédié au survol de Suppression (alourdit le DS).
+Preuves : tests navigateur (Brief sans doublon, lien Figma enregistré dans
+Paramètres, proposition de survol puis Appliquer, survol Suppression distinct) ;
+suite complète (68 unitaires, 33 navigateur, 2 passages) ; audit de mise en
+page sans anomalie ; visite guidée 1:1 ; captures relues.
+Limite : le lanceur (scripts/launcher.mjs) garde le « vous » ; le survol
+proposé est un calcul simple (même rapport de luminosité), à juger à l’œil.

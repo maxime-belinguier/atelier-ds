@@ -162,7 +162,7 @@ export async function createStudioServer(options: {
     try {
       if (req.headers.host !== `127.0.0.1:${port}`)
         throw new StudioError(
-          'Hôte refusé. Utilisez l’adresse 127.0.0.1 affichée au démarrage.',
+          'Hôte refusé. Utilise l’adresse 127.0.0.1 affichée au démarrage.',
           403,
         );
       if (req.headers.origin && req.headers.origin !== origin)
@@ -226,7 +226,7 @@ export async function createStudioServer(options: {
           throw new StudioError('Méthode non autorisée.', 405);
         if (req.headers['x-ds-studio'] !== csrf)
           throw new StudioError(
-            'Validation de session manquante. Rechargez la page.',
+            'Validation de session manquante. Recharge la page.',
             403,
           );
         if (!req.headers['content-type']?.startsWith('application/json'))
@@ -300,7 +300,7 @@ export async function createStudioServer(options: {
         const sentProject = req.headers['x-ds-project'];
         if (typeof sentProject === 'string' && sentProject !== projectId)
           throw new StudioError(
-            'Projet changé dans un autre onglet. Rechargez la page.',
+            'Projet changé dans un autre onglet. Recharge la page.',
             409,
           );
         if (url.pathname === '/api/project') {
@@ -370,7 +370,7 @@ export async function createStudioServer(options: {
             .parse(body);
           if (b.revision !== store.snapshot().revision)
             throw new StudioError(
-              'DS modifié depuis votre dernier affichage. Réessayez.',
+              'DS modifié depuis ton dernier affichage. Réessaie.',
               409,
             );
           const result = await exclusive(res, async (signal) => {
@@ -514,7 +514,7 @@ export async function createStudioServer(options: {
         return send(error.status, { error: error.message });
       if ((error as NodeJS.ErrnoException).code === 'ENOENT')
         return send(404, {
-          error: 'Fichier introuvable. Exécutez npm run build avant npm start.',
+          error: 'Fichier introuvable. Lance npm run build avant npm start.',
         });
       return send(500, { error: urlSafeMessage(error) });
     }
@@ -542,5 +542,5 @@ function urlSafeMessage(error: unknown) {
     )
   )
     return message;
-  return 'Opération impossible. Aucune validation automatique. Vérifiez les données et relancez si nécessaire.';
+  return 'Opération impossible. Aucune validation automatique. Vérifie les données et relance si nécessaire.';
 }

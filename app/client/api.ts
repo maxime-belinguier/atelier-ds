@@ -31,7 +31,7 @@ export async function request<T>(
   } catch (e) {
     if (signal?.aborted) throw e;
     throw new Error(
-      'Serveur local inaccessible. Relancez DS-Studio depuis son panneau. Votre dernière validation reste sur disque.',
+      'Serveur local inaccessible. Relance DS-Studio depuis son panneau. Ta dernière validation reste sur disque.',
     );
   }
   const result = await response.json();

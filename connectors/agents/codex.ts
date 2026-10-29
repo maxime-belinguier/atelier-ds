@@ -99,7 +99,7 @@ export function runCli(
     const timer = setTimeout(() => {
       terminate(
         new Error(
-          'Délai CLI dépassé. Vérifiez votre connexion, compte et quota.',
+          'Délai CLI dépassé. Vérifie ta connexion, ton compte et ton quota.',
         ),
       );
     }, timeout);
@@ -131,8 +131,8 @@ export function runCli(
             ? undefined
             : new Error(
                 label === 'Codex'
-                  ? 'Codex indisponible : vérifiez « codex login status », Internet et le quota. Aucune écriture appliquée.'
-                  : 'Claude indisponible : lancez « claude » dans un terminal pour vérifier la connexion, Internet et le quota. Aucune écriture appliquée.',
+                  ? 'Codex indisponible : vérifie « codex login status », Internet et le quota. Aucune écriture appliquée.'
+                  : 'Claude indisponible : lance « claude » dans un terminal pour vérifier la connexion, Internet et le quota. Aucune écriture appliquée.',
               )),
       ),
     );
@@ -218,7 +218,7 @@ export class CodexAdapter implements AgentAdapter {
         }
         if (event.type === 'error' || event.type === 'turn.failed')
           throw new Error(
-            'Échec Codex. Vérifiez votre authentification et votre quota.',
+            'Échec Codex. Vérifie ton authentification et ton quota.',
           );
       }
       return agentReplySchema.parse(

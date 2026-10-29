@@ -1,15 +1,24 @@
 import { useEffect, useState } from 'react';
 import type { ProjectSnapshot } from '../shared/project.js';
-import { downloadText, request } from './api.js';
+import { downloadText, listProjects, request } from './api.js';
 
 export default function ProjectBrief() {
   const [snapshot, setSnapshot] = useState<ProjectSnapshot>();
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
+  // Le nom vient du projet (Paramètres › Projets) : une seule source.
+  const [projectName, setProjectName] = useState('');
   async function load() {
     try {
-      setSnapshot(await request('project'));
+      const [snap, list] = await Promise.all([
+        request<ProjectSnapshot>('project'),
+        listProjects(),
+      ]);
+      setSnapshot(snap);
+      setProjectName(
+        list.projects.find((p) => p.id === list.current)?.name ?? '',
+      );
       setError('');
     } catch (e) {
       setError((e as Error).message);
@@ -21,9 +30,14 @@ export default function ProjectBrief() {
   return (
     <div className="project-brief">
       <p>
-        Définissez votre contexte. Stocké sur ce poste, hors Git. Le lien Figma
-        sert à la synchro (Paramètres › Figma).
+        Ton contexte de travail, stocké sur ce poste, hors Git. Le nom se change
+        dans Paramètres › Projets, le lien Figma dans Paramètres › Figma.
       </p>
+      {projectName && (
+        <p className="brief-project">
+          Projet : <strong>{projectName}</strong>
+        </p>
+      )}
       {error && (
         <p role="alert" className="error">
           {error}
@@ -38,7 +52,15 @@ export default function ProjectBrief() {
             setError('');
             setNotice('');
             try {
-              setSnapshot(await request('project', snapshot));
+              setSnapshot(
+                await request('project', {
+                  ...snapshot,
+                  project: {
+                    ...snapshot.project,
+                    name: projectName || snapshot.project.name,
+                  },
+                }),
+              );
               setNotice('Brief enregistré sur ce poste.');
             } catch (e) {
               setError((e as Error).message);
@@ -49,40 +71,23 @@ export default function ProjectBrief() {
         >
           {(
             [
-              ['name', 'Nom du projet', 100],
               ['audience', 'Public concerné', 1000],
               ['goal', 'Objectif et critères de réussite', 2000],
-              ['figmaUrl', 'Lien Figma (facultatif)', 500],
             ] as const
           ).map(([key, label, max]) => (
             <label className="field" key={key}>
               {label}
-              {key === 'goal' || key === 'audience' ? (
-                <textarea
-                  maxLength={max}
-                  value={snapshot.project[key]}
-                  disabled={busy}
-                  onChange={(e) =>
-                    setSnapshot({
-                      ...snapshot,
-                      project: { ...snapshot.project, [key]: e.target.value },
-                    })
-                  }
-                />
-              ) : (
-                <input
-                  type={key === 'figmaUrl' ? 'url' : 'text'}
-                  maxLength={max}
-                  value={snapshot.project[key]}
-                  disabled={busy}
-                  onChange={(e) =>
-                    setSnapshot({
-                      ...snapshot,
-                      project: { ...snapshot.project, [key]: e.target.value },
-                    })
-                  }
-                />
-              )}
+              <textarea
+                maxLength={max}
+                value={snapshot.project[key]}
+                disabled={busy}
+                onChange={(e) =>
+                  setSnapshot({
+                    ...snapshot,
+                    project: { ...snapshot.project, [key]: e.target.value },
+                  })
+                }
+              />
             </label>
           ))}
           <button className="studio-primary" disabled={busy}>
@@ -101,7 +106,7 @@ export default function ProjectBrief() {
             .then(({ project: p }) => {
               downloadText(
                 'brief.md',
-                `# ${p.name || 'Mon projet'}\n\n## Public\n\n${p.audience}\n\n## Objectif\n\n${p.goal}\n\n## Fichier Figma\n\n${p.figmaUrl}\n`,
+                `# ${projectName || p.name || 'Mon projet'}\n\n## Public\n\n${p.audience}\n\n## Objectif\n\n${p.goal}\n\n## Fichier Figma\n\n${p.figmaUrl}\n`,
               );
             })
             .catch((e) => setError(e.message));
@@ -110,9 +115,9 @@ export default function ProjectBrief() {
         Exporter le brief enregistré (.md)
       </button>
       <p className="privacy-note">
-        Si vous utilisez l’assistant (Claude ou Codex), ce brief rejoint le
-        contexte envoyé au fournisseur. Ne saisissez pas de données sensibles.
-        Pour votre agent externe, exportez vos choix dans workspace/PFE.md après
+        Si tu utilises l’assistant (Claude ou Codex), ce brief rejoint le
+        contexte envoyé au fournisseur. Ne saisis pas de données sensibles. Pour
+        ton agent externe, exporte tes choix dans workspace/PFE.md après
         relecture.
       </p>
     </div>

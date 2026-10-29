@@ -124,7 +124,7 @@ try {
         .getByRole('combobox', { name: 'Mode de travail', exact: true })
         .selectOption('codex');
       await page
-        .getByLabel('Votre demande', { exact: true })
+        .getByLabel('Ta demande', { exact: true })
         .fill(
           'Propose exactement color.brand = #8A3B20. Ne change aucun autre token.',
         );

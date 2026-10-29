@@ -4576,3 +4576,11 @@ html[data-focus='nav'] [data-ds='nav'] {
   overflow: auto;
   flex-shrink: 1;
 }
+/* Lien Figma : bouton aligné sur le champ, à sa hauteur. */
+.settings .figma-link {
+  align-items: flex-end;
+}
+.settings .figma-link button {
+  height: 38px;
+  padding: 0 14px;
+}

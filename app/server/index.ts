@@ -89,7 +89,7 @@ try {
   console.error(
     'DS-Studio : ' +
       ((e as NodeJS.ErrnoException).code === 'EADDRINUSE'
-        ? 'port occupé. Fermez l’autre serveur ou définissez PORT.'
+        ? 'port occupé. Ferme l’autre serveur ou définis PORT.'
         : (e as Error).message),
   );
   process.exit(1);

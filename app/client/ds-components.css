@@ -55,6 +55,11 @@
   background: var(--color-danger);
   color: var(--color-onBrand);
 }
+/* Pas de token dédié : le survol assombrit la couleur d'alerte, il la suit. */
+.ds-button.danger:hover,
+.ds-button.danger.is-hover {
+  background: color-mix(in srgb, var(--color-danger) 82%, black);
+}
 .ds-button:disabled {
   opacity: 0.45;
   cursor: not-allowed;

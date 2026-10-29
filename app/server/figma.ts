@@ -63,7 +63,7 @@ export class FigmaSync {
     const { key } = await this.fileKey();
     if (!key)
       throw new StudioError(
-        'Figma : ajoute le lien de ton fichier Figma dans le Brief du projet.',
+        'Figma : ajoute le lien de ton fichier dans Paramètres › Figma.',
       );
     return key;
   }
@@ -142,7 +142,7 @@ export class FigmaSync {
   async preview(revision: number, signal?: AbortSignal) {
     if (revision !== this.store.snapshot().revision)
       throw new StudioError(
-        'Le Design System a changé. Rechargez puis recommencez.',
+        'Le Design System a changé. Recharge puis recommence.',
         409,
       );
     const key = await this.requireKey();
@@ -189,7 +189,7 @@ export class FigmaSync {
       );
     if (approval.fileKey !== (await this.fileKey()).key)
       throw new StudioError(
-        'Le fichier Figma du Brief a changé depuis l’aperçu. Refais l’aperçu.',
+        'Le lien Figma a changé depuis l’aperçu. Refais l’aperçu.',
         409,
       );
     const result = await this.connector.write(

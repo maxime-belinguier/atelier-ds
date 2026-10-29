@@ -48,7 +48,7 @@ export class Store {
     } catch (e) {
       if ((e as NodeJS.ErrnoException).code !== 'ENOENT')
         throw new StudioError(
-          'state.json invalide ou inaccessible : original préservé. Sauvegardez-le avant toute réparation.',
+          'state.json invalide ou inaccessible : original préservé. Sauvegarde-le avant toute réparation.',
           500,
         );
       this.state = {
@@ -73,7 +73,7 @@ export class Store {
   ): Proposal {
     if (revision !== this.state.revision)
       throw new StudioError(
-        'Le Design System a changé. Rechargez et refaites la proposition.',
+        'Le Design System a changé. Recharge et refais la proposition.',
         409,
       );
     let next: Tokens;
@@ -147,7 +147,7 @@ export class Store {
       const raw = await readPrivate(this.file);
       if (this.hash(raw) !== this.digest)
         throw new StudioError(
-          'Données modifiées hors application. Redémarrez pour les relire.',
+          'Données modifiées hors application. Redémarre pour les relire.',
           409,
         );
       const next: State = {
@@ -184,7 +184,7 @@ export class Store {
     const raw = JSON.stringify(state, null, 2) + '\n';
     if (Buffer.byteLength(raw) > 10_000_000)
       throw new StudioError(
-        'Historique trop volumineux : exportez et archivez avant de continuer.',
+        'Historique trop volumineux : exporte et archive avant de continuer.',
         507,
       );
     await atomicWrite(this.file, raw);

@@ -564,7 +564,7 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<SettingsTab>('look');
   // Pastille de la bulle Figma : revérifiée à la fermeture des Paramètres
-  // ou du Brief (lien Figma). « claude mcp get » ne consomme aucun quota.
+  // (lien Figma). « claude mcp get » ne consomme aucun quota.
   const [figmaState, setFigmaState] = useState<'checking' | 'ok' | 'off'>(
     'checking',
   );
@@ -900,7 +900,7 @@ export default function App() {
       setState(next);
       setProposal(undefined);
       announceChange();
-      setNotice(`Changement n°${next.revision} enregistré sur votre machine.`);
+      setNotice(`Changement n°${next.revision} enregistré sur ta machine.`);
     });
     setSaving(false);
   }
@@ -995,7 +995,7 @@ export default function App() {
       <main className="loading">
         <h1>DS-Studio</h1>
         <p role="alert">{stateError || 'Ouverture du Design System…'}</p>
-        <p>Lancez le serveur local puis rechargez cette page.</p>
+        <p>Lance le serveur local puis recharge cette page.</p>
       </main>
     );
 
@@ -1092,7 +1092,7 @@ export default function App() {
   } else if (selection.kind === 'tokens') {
     const g = groups.find((x) => x.id === selection.id) ?? groups[0];
     title = g.label;
-    description = `${g.keys.length} token${g.keys.length > 1 ? 's' : ''}. Modifiez autant de valeurs que vous voulez : l’aperçu suit, puis un seul « Enregistrer » valide tout.`;
+    description = `${g.keys.length} token${g.keys.length > 1 ? 's' : ''}. Modifie autant de valeurs que tu veux : l’aperçu suit, puis un seul « Enregistrer » valide tout.`;
     keys = g.keys;
   } else if (selection.kind === 'component') {
     const c = components.find((x) => x.id === selection.id) ?? components[0];
@@ -1324,6 +1324,35 @@ export default function App() {
     },
   ];
   const colorKeys = groups[0].keys;
+  // Le survol est un token à part : si la marque change, on propose (sans
+  // l'appliquer) un survol qui garde le même écart que les valeurs enregistrées.
+  const hoverHint = (() => {
+    const brand = preview['color.brand'].$value;
+    const oldBrand = String(state.tokens['color.brand'].$value);
+    const oldHover = String(state.tokens['color.brandHover'].$value);
+    if (
+      !('color.brand' in drafts.drafts) ||
+      'color.brandHover' in drafts.drafts ||
+      drafts.errors['color.brand'] ||
+      !/^#[0-9a-f]{6}$/i.test(String(brand))
+    )
+      return null;
+    const rgb = (h: string) =>
+      [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+    const sum = (c: number[]) => c.reduce((a, b) => a + b, 0) || 1;
+    const ratio = sum(rgb(oldHover)) / sum(rgb(oldBrand));
+    return (
+      '#' +
+      rgb(String(brand))
+        .map((c) =>
+          Math.min(255, Math.round(c * ratio))
+            .toString(16)
+            .padStart(2, '0'),
+        )
+        .join('')
+        .toUpperCase()
+    );
+  })();
   const renderRow = (k: TokenKey) => {
     const saved = state.tokens[k].$value;
     const raw = drafts.drafts[k] ?? String(saved);
@@ -1471,6 +1500,31 @@ export default function App() {
             ✓ {profileLabel} : {checks.length} vérification
             {checks.length > 1 ? 's' : ''} OK
           </p>
+        )}
+        {k === 'color.brandHover' && hoverHint && (
+          <div className="row-fix is-tip">
+            <p>
+              <strong>Conseil</strong> · La marque a changé, pas son survol.
+            </p>
+            <p className="row-fix-proposal">
+              <span>
+                Proposition{' '}
+                <span
+                  className="audit-chip"
+                  style={{ background: hoverHint }}
+                  aria-hidden="true"
+                />
+                <code>{hoverHint}</code>
+              </span>
+              <button
+                className="audit-apply"
+                onClick={() => drafts.set(k, hoverHint)}
+                aria-label={`Appliquer ${hoverHint} à ${label}`}
+              >
+                Appliquer
+              </button>
+            </p>
+          </div>
         )}
         {issues.map((c) => (
           <div key={c.id} className={`row-fix is-${c.status}`}>
@@ -2207,7 +2261,7 @@ export default function App() {
                 </>
               ) : (
                 <p className="empty">
-                  Aucun token ne correspond. Essayez « couleur », « space » ou «
+                  Aucun token ne correspond. Essaie « couleur », « space » ou «
                   police ».
                 </p>
               )}
@@ -2472,7 +2526,7 @@ export default function App() {
                         })
                       }
                     />
-                    <span className="free-hint">px · ou étirez l’aperçu</span>
+                    <span className="free-hint">px · ou étire l’aperçu</span>
                   </div>
                 )}
                 <button
@@ -3092,7 +3146,7 @@ export default function App() {
           )}
           {chat.map((c, i) => (
             <article className={`chat-message ${c.role}`} key={i}>
-              <strong>{c.role === 'user' ? 'Vous' : agentName}</strong>
+              <strong>{c.role === 'user' ? 'Toi' : agentName}</strong>
               {c.role === 'assistant' ? (
                 <>
                   <RichText text={c.text} />
@@ -3138,7 +3192,7 @@ export default function App() {
         >
           <textarea
             ref={chatInput}
-            aria-label="Votre demande"
+            aria-label="Ta demande"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={(e) => {
@@ -3227,8 +3281,8 @@ export default function App() {
           </header>
           <p className="drawer-intro">
             Chaque changement validé apparaît ici, du plus récent au plus
-            ancien. Vous pouvez revenir en arrière sur un seul changement : tous
-            les autres restent en place, et rien n’est effacé.
+            ancien. Tu peux revenir en arrière sur un seul changement : tous les
+            autres restent en place, et rien n’est effacé.
           </p>
           {!state.history.length && (
             <p className="drawer-empty">Aucun changement pour l’instant.</p>
@@ -3302,12 +3356,12 @@ export default function App() {
           {proposal?.revision
             ? `basé sur le changement n°${proposal.revision}`
             : 'basé sur la version initiale'}
-          . Ces valeurs seront enregistrées sur votre machine.
+          . Ces valeurs seront enregistrées sur ta machine.
         </p>
         {staleProposal && (
           <p role="alert" className="error">
-            Une autre validation a modifié le DS. Fermez ce diff et refaites
-            votre proposition ; aucun écrasement n’est permis.
+            Une autre validation a modifié le DS. Ferme ce diff et refais ta
+            proposition ; aucun écrasement n’est permis.
           </p>
         )}
         <div className="diff-scroll">
