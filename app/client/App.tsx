@@ -631,10 +631,16 @@ export default function App() {
   useEffect(() => {
     if (settingsOpen || briefOpen) return;
     let live = true;
-    request<{ state: string; fileKey: string | null }>('figma/status')
+    request<{
+      state: string;
+      fileKey: string | null;
+      snapshot: { readAt: string; sameFile: boolean } | null;
+    }>('figma/status')
       .then((s) => {
-        if (live)
-          setFigmaState(s.state === 'connected' && s.fileKey ? 'ok' : 'off');
+        if (!live) return;
+        setFigmaState(s.state === 'connected' && s.fileKey ? 'ok' : 'off');
+        if (s.snapshot?.sameFile)
+          setFigmaReadAt((at) => at ?? Date.parse(s.snapshot!.readAt));
       })
       .catch(() => live && setFigmaState('off'));
     return () => {
@@ -727,6 +733,21 @@ export default function App() {
     void loadFigmaComps();
   }, []);
   const [figmaReading, setFigmaReading] = useState(false);
+  // Dernière lecture réussie, affichée « il y a 3 min » (mise à jour 30 s).
+  const [figmaReadAt, setFigmaReadAt] = useState<number | null>(null);
+  const [clock, setClock] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setClock(Date.now()), 30_000);
+    return () => clearInterval(t);
+  }, []);
+  const figmaAge = (() => {
+    if (figmaReadAt === null) return null;
+    const min = Math.max(0, Math.floor((clock - figmaReadAt) / 60_000));
+    if (min < 1) return 'à l’instant';
+    if (min < 60) return `il y a ${min} min`;
+    if (min < 48 * 60) return `il y a ${Math.floor(min / 60)} h`;
+    return `il y a ${Math.floor(min / 1440)} j`;
+  })();
   const figmaReadingRef = useRef(false);
   figmaReadingRef.current = figmaReading;
   const lastFigmaRead = useRef(0);
@@ -741,6 +762,8 @@ export default function App() {
         { revision: state.revision },
       );
       setFigmaNews(r.proposal);
+      setFigmaReadAt(Date.now());
+      setClock(Date.now());
       const before = JSON.stringify(figmaComps.components);
       const comps = await loadFigmaComps();
       const compsChanged =
@@ -773,6 +796,7 @@ export default function App() {
     const auto = () => {
       if (
         document.visibilityState === 'visible' &&
+        !thinkingRef.current &&
         Date.now() - lastFigmaRead.current > 5 * 60_000
       )
         void readFigmaRef.current(true);
@@ -877,6 +901,9 @@ export default function App() {
     return () => removeEventListener('mousedown', close);
   }, [creditsOpen]);
   const [thinking, setThinking] = useState(false);
+  const thinkingRef = useRef(false);
+  thinkingRef.current = thinking;
+  const [chatWaitsFigma, setChatWaitsFigma] = useState(false);
   const controller = useRef<AbortController | null>(null);
   const historyDialog = useRef<HTMLDialogElement>(null);
   const briefDialog = useRef<HTMLDialogElement>(null);
@@ -1128,6 +1155,15 @@ export default function App() {
     const abort = new AbortController();
     controller.current = abort;
     try {
+      // Une lecture Figma occupe Claude Code : on attend sa fin (15 s environ)
+      // au lieu de répondre « déjà en cours ».
+      if (figmaReadingRef.current) {
+        setChatWaitsFigma(true);
+        while (figmaReadingRef.current && !abort.signal.aborted)
+          await new Promise((r) => setTimeout(r, 300));
+        setChatWaitsFigma(false);
+        if (abort.signal.aborted) throw new DOMException('', 'AbortError');
+      }
       const result = await request<{
         message: string;
         proposal: Proposal | null;
@@ -1999,7 +2035,7 @@ export default function App() {
                   ? 'Lire Figma : lecture en cours'
                   : `Lire Figma${figmaNews ? `, ${figmaNews.patches.length} nouveauté${figmaNews.patches.length > 1 ? 's' : ''}` : ''}`
               }
-              title="Lire les variables de Figma (diff à valider)"
+              title={`Lire les variables et composants de Figma${figmaAge ? ` · dernière lecture ${figmaAge}` : ''}`}
               disabled={figmaReading}
               onClick={() =>
                 figmaNews && figmaNews.revision === state.revision
@@ -2023,6 +2059,9 @@ export default function App() {
               <span className="figma-read-label">
                 {figmaReading ? 'Lecture…' : 'Lire Figma'}
               </span>
+              {figmaAge && !figmaReading && (
+                <span className="figma-read-age">{figmaAge}</span>
+              )}
               {figmaNews && !figmaReading && (
                 <span className="figma-badge" aria-hidden="true">
                   {figmaNews.patches.length}
@@ -3547,7 +3586,13 @@ export default function App() {
               )}
             </article>
           ))}
-          {thinking && <p className="chat-thinking">Réflexion en cours…</p>}
+          {thinking && (
+            <p className="chat-thinking">
+              {chatWaitsFigma
+                ? 'Lecture Figma en cours, ta demande part juste après…'
+                : 'Réflexion en cours…'}
+            </p>
+          )}
         </div>
         <form
           className="chat-form"

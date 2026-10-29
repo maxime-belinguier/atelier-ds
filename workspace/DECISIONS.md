@@ -764,3 +764,21 @@ navigateur) ; audit de mise en page sans anomalie ; visite guidée 1:1 aux
 trois tailles.
 Limite : les composants et écrans de l’aperçu restent ceux de Gutt pour
 tout projet.
+
+## 29/10/2026 · Âge de la lecture Figma, chat qui attend Figma
+
+Problème : rien ne disait si les données Figma de l’app étaient fraîches ;
+une lecture Figma en cours faisait répondre au chat « déjà en cours ».
+Décision : « Lire Figma » affiche la dernière lecture réussie (« à
+l’instant », « il y a 3 min »), reprise du dernier instantané au chargement
+et mise à jour toutes les 30 s ; masquée sous 1280 px avec le libellé (gardée
+dans l’infobulle). Le chat attend la fin d’une lecture Figma puis envoie la
+demande, avec « Lecture Figma en cours, ta demande part juste après… » ; la
+lecture auto ne démarre pas pendant une réponse de Claude.
+Écarté : file d’attente côté serveur (plus lourd, même résultat ici).
+Preuves : test navigateur (« à l’instant » après lecture ; demande envoyée
+pendant une lecture ralentie, message d’attente puis réponse) ; suite
+complète (70 unitaires, 33 navigateur) ; audit de mise en page sans
+anomalie ; en-tête sur une ligne à 1280 px.
+Limite : un clic manuel sur « Lire Figma » pendant une réponse de Claude
+reçoit toujours « déjà en cours ».

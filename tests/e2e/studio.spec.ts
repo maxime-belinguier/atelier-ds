@@ -1092,6 +1092,7 @@ test('Figma (simulé) : lire en diff, puis envoyer avec aperçu et validation', 
   const read = page.getByRole('button', { name: /^Lire Figma/ });
   await read.click();
   await expect(page.getByText('Figma : rien de nouveau ✓')).toBeVisible();
+  await expect(read.locator('.figma-read-age')).toHaveText('à l’instant');
   // Enregistré sans envoi : à l'ouverture, l'app voit l'écart toute seule.
   await page.getByLabel('Couleur de marque', { exact: true }).fill('#225522');
   await page.getByRole('button', { name: /^Enregistrer/ }).click();
@@ -1105,6 +1106,36 @@ test('Figma (simulé) : lire en diff, puis envoyer avec aperçu et validation', 
   await expect(diff(page).getByText('Lu dans Figma')).toBeVisible();
   await expect(diff(page).getByText('color.brand')).toBeVisible();
   await diff(page).getByRole('button', { name: 'Ne pas appliquer' }).click();
+  // Le chat attend la fin d'une lecture Figma au lieu de « déjà en cours ».
+  await page.route('**/api/agents', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify([
+        { id: 'claude', available: true, detail: 'Claude simulé.' },
+      ]),
+    }),
+  );
+  await page.route('**/api/agent', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ message: 'Réponse simulée.', proposal: null }),
+    }),
+  );
+  await page.route('**/api/figma/pull', async (route) => {
+    await new Promise((r) => setTimeout(r, 2000));
+    await route.continue();
+  });
+  await page.reload();
+  await expect(read).toHaveAccessibleName('Lire Figma : lecture en cours');
+  await page.getByRole('button', { name: 'Ouvrir l’assistant' }).click();
+  await page.getByLabel('Ta demande').fill('Une question');
+  await page.keyboard.press('Enter');
+  await expect(
+    page.getByText('Lecture Figma en cours, ta demande part juste après…'),
+  ).toBeVisible();
+  await expect(page.getByText('Réponse simulée.')).toBeVisible();
   await page.evaluate(() => localStorage.setItem('ds-studio-figma-auto', '1'));
 });
 

@@ -4717,6 +4717,7 @@ html[data-focus='nav'] [data-ds='nav'] {
 /* Écran moyen : « Lire Figma » devient une icône (nom gardé en aria-label). */
 @media (max-width: 1279px) {
   .figma-read .figma-read-label,
+  .figma-read .figma-read-age,
   .figma-pill .figma-pill-label,
   .brief-pill .brief-pill-label {
     display: none;
@@ -4782,4 +4783,12 @@ html[data-focus='nav'] [data-ds='nav'] {
 }
 .settings-block h4 + h5 {
   margin-top: 0;
+}
+
+/* « il y a 3 min » à côté de Lire Figma. */
+.figma-read-age {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-2);
+  white-space: nowrap;
 }
