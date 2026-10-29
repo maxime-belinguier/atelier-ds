@@ -55,8 +55,10 @@ export const isCustomKey = (key: string) =>
 export const customType = (key: string): 'color' | 'dimension' =>
   key.startsWith('color.') ? 'color' : 'dimension';
 const anyToken = z.union([color, dimension, font]);
+// Base facultative : un projet libre (« Partir de zéro ») commence sans token.
 export const tokensSchema = z
   .object(coreShape)
+  .partial()
   .catchall(anyToken)
   .superRefine((tokens, ctx) => {
     const extra = Object.keys(tokens).filter((k) => !isCoreKey(k));
@@ -90,7 +92,7 @@ export const tokenKeys = coreKeys;
 // Tous les tokens présents : base dans l'ordre du schéma, puis ajoutés triés.
 export function allKeys(tokens: Tokens): string[] {
   return [
-    ...coreKeys,
+    ...coreKeys.filter((k) => tokens[k]),
     ...Object.keys(tokens)
       .filter((k) => !isCoreKey(k))
       .sort(),
@@ -199,7 +201,8 @@ export function applyChanges(
         throw new Error(`Le token de base ${key} ne peut pas être supprimé.`);
       delete next[key];
     } else if (Object.hasOwn(next, key)) next[key].$value = value as never;
-    else if (isCustomKey(key))
+    // Token de base absent (projet libre) ou token ajouté : création.
+    else if (isCustomKey(key) || isCoreKey(key))
       next[key] = { $type: customType(key), $value: value } as AnyToken;
     else throw new Error(`Token inconnu : ${key}`);
   }

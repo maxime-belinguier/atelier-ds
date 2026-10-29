@@ -493,7 +493,7 @@ export const components: {
     ),
     sheet: () => <ButtonSheet />,
     measures: (t) =>
-      `hauteur min. 44 px · arrondi ${t['radius.control'].$value} px · marges ${t['space.sm'].$value} × ${t['space.md'].$value} px · texte ${t['font.body'].$value} px`,
+      `hauteur min. 44 px · arrondi ${t['radius.control']?.$value} px · marges ${t['space.sm']?.$value} × ${t['space.md']?.$value} px · texte ${t['font.body']?.$value} px`,
   },
   {
     id: 'logement',
@@ -518,7 +518,7 @@ export const components: {
     render: () => <LogementCard />,
     sheet: () => <LogementSheet />,
     measures: (t) =>
-      `marge interne ${t['space.lg'].$value} px · arrondi ${t['radius.control'].$value} px · bordure 1 px · texte ${Math.round(Number(t['font.body'].$value) * 0.875)} px`,
+      `marge interne ${t['space.lg']?.$value} px · arrondi ${t['radius.control']?.$value} px · bordure 1 px · texte ${Math.round(Number(t['font.body']?.$value) * 0.875)} px`,
   },
   {
     id: 'verification',
@@ -541,7 +541,7 @@ export const components: {
     render: () => <VerificationCard />,
     sheet: () => <VerificationSheet />,
     measures: (t) =>
-      `barre 8 px · ligne min. 44 px · case 18 px · écart ${t['space.sm'].$value} px`,
+      `barre 8 px · ligne min. 44 px · case 18 px · écart ${t['space.sm']?.$value} px`,
   },
   {
     id: 'form',
@@ -565,7 +565,7 @@ export const components: {
     render: () => <AjoutLogementForm />,
     sheet: () => <FormSheet />,
     measures: (t) =>
-      `champ min. 44 px · arrondi ${t['radius.control'].$value} px · marges ${t['space.sm'].$value} × ${t['space.md'].$value} px · écart entre champs ${t['space.md'].$value} px`,
+      `champ min. 44 px · arrondi ${t['radius.control']?.$value} px · marges ${t['space.sm']?.$value} × ${t['space.md']?.$value} px · écart entre champs ${t['space.md']?.$value} px`,
   },
   {
     id: 'nav',
@@ -584,7 +584,7 @@ export const components: {
     render: () => <Navigation />,
     sheet: () => <NavSheet />,
     measures: (t) =>
-      `onglet min. 44 px · arrondi ${t['radius.control'].$value} px · marge ${t['space.sm'].$value} px · texte ${Math.round(Number(t['font.body'].$value) * 0.8)} px`,
+      `onglet min. 44 px · arrondi ${t['radius.control']?.$value} px · marge ${t['space.sm']?.$value} px · texte ${Math.round(Number(t['font.body']?.$value) * 0.8)} px`,
   },
 ];
 

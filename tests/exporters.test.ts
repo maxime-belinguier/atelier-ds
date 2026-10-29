@@ -43,10 +43,10 @@ test('Tailwind v3 : objet de configuration valide', () => {
     v3.lastIndexOf('}') + 1,
   );
   const config = JSON.parse(json);
-  assert.equal(config.theme.extend.colors.brand, tokens['color.brand'].$value);
+  assert.equal(config.theme.extend.colors.brand, tokens['color.brand']!.$value);
   assert.equal(
     config.theme.extend.spacing.md,
-    `${tokens['space.md'].$value}px`,
+    `${tokens['space.md']!.$value}px`,
   );
   assert(Array.isArray(config.theme.extend.fontFamily.sans));
 });

@@ -232,7 +232,12 @@ function nearest(h: string, ok: (c: string) => boolean) {
 }
 
 export function auditTokens(tokens: Tokens, profile: Profile = 'aa'): Check[] {
-  const v = (k: TokenKey) => tokens[k].$value;
+  // Projet libre : un token absent donne une valeur bidon, et les contrôles
+  // qui en dépendent sont retirés à la fin (jamais affichés comme réussis).
+  const v = (k: TokenKey) =>
+    tokens[k]?.$value ?? (k.startsWith('color.') ? '#000000' : 0);
+  const present = (list: Check[]) =>
+    list.filter((c) => c.keys.every((k) => tokens[k]));
   const s = (k: TokenKey) => String(v(k));
   if (isColorProfile(profile)) {
     const checks: Check[] = meaningPairs.map(([a, b, label]) => {
@@ -275,7 +280,7 @@ export function auditTokens(tokens: Tokens, profile: Profile = 'aa'): Check[] {
       status: 'ok',
       keys: ['color.danger', 'color.success'],
     });
-    return checks;
+    return present(checks);
   }
   const textMin = profile === 'aaa' ? 7 : 4.5;
   const checks: Check[] = pairs.map(([fg, bg, kind, label, adjust]) => {
@@ -327,7 +332,7 @@ export function auditTokens(tokens: Tokens, profile: Profile = 'aa'): Check[] {
           : { key: 'font.heading', value: String(Math.ceil(body * 1.25)) },
     },
   );
-  return checks;
+  return present(checks);
 }
 
 // Mesure des zones cliquables dans l'écran affiché (iframe d'aperçu).

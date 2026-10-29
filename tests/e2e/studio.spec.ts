@@ -1235,31 +1235,17 @@ test('projets : créer, changer, verrou si modifs en cours', async ({
   await dialog.getByRole('button', { name: 'Créer le projet' }).click();
   await expect(page.getByRole('button', { name: /Projet test/ })).toBeVisible();
   expect((await state(page)).revision).toBe(0);
-  // Départ neutre (pas les couleurs de Gutt), nom du projet dans l'aperçu.
-  expect((await state(page)).tokens['color.brand'].$value).toBe('#3A3A3A');
+  // Partir de zéro : projet libre, sans token, composant ni écran de Gutt.
+  expect((await state(page)).tokens).toEqual({});
+  await expect(page.getByText('Pas encore d’écran')).toBeVisible();
   await expect(
-    page
-      .frameLocator('iframe[title="Aperçu responsive"]')
-      .locator('.scenario-head strong'),
-  ).toHaveText('Projet test');
+    page.getByRole('button', { name: /Fiche logement/ }),
+  ).toHaveCount(0);
   await expect(page.getByText('Projet « Projet test » créé.')).toBeVisible();
   await page.getByRole('button', { name: 'Remplir le brief' }).click();
   await expect(page.getByText('Projet « Projet test » créé.')).toBeHidden();
   await page.keyboard.press('Escape');
-  // Modif en cours : changer de projet est bloqué, avec la raison.
-  await page.getByLabel('Couleur de marque', { exact: true }).fill('#8A3B20');
-  await page.getByRole('button', { name: /Projet test/ }).click();
-  await expect(
-    page.getByText('Enregistre ou annule tes modifications'),
-  ).toBeVisible();
-  await expect(
-    page.getByRole('button', { name: /^Gutt \(PFE\)/ }),
-  ).toBeDisabled();
-  await page.keyboard.press('Escape');
-  await page
-    .getByRole('button', { name: 'Annuler les modifications non enregistrées' })
-    .click();
-  // Retour sur Gutt.
+  // Retour sur Gutt : ses tokens et composants sont intacts.
   await page.getByRole('button', { name: /Projet test/ }).click();
   await page.getByRole('button', { name: /^Gutt \(PFE\)/ }).click();
   await expect(
@@ -1272,6 +1258,22 @@ test('projets : créer, changer, verrou si modifs en cours', async ({
         (await (await page.request.get('/api/projects')).json()).current,
     )
     .toBe('gutt');
+  await expect(
+    page.getByLabel('Couleur de marque', { exact: true }),
+  ).toBeVisible();
+  // Modif en cours : changer de projet est bloqué, avec la raison.
+  await page.getByLabel('Couleur de marque', { exact: true }).fill('#8A3B20');
+  await page.getByRole('button', { name: /Gutt \(PFE\)/ }).click();
+  await expect(
+    page.getByText('Enregistre ou annule tes modifications'),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: /^Projet test/ }),
+  ).toBeDisabled();
+  await page.keyboard.press('Escape');
+  await page
+    .getByRole('button', { name: 'Annuler les modifications non enregistrées' })
+    .click();
   const list = await (await page.request.get('/api/projects')).json();
   expect(list.projects).toHaveLength(2);
 });

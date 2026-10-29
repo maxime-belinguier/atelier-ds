@@ -82,7 +82,7 @@ test('Figma : plan d’écriture limité aux différences, valeurs attendues', (
       {
         name: 'color/brand',
         type: 'COLOR',
-        value: String(seed['color.brand'].$value).toLowerCase(),
+        value: String(seed['color.brand']!.$value).toLowerCase(),
       },
       { name: 'space/md', type: 'FLOAT', value: 99 },
     ],

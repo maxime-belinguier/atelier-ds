@@ -748,8 +748,9 @@ suppression de projet introuvable (cachée dans Paramètres, impossible pour
 le projet ouvert) ; visite guidée muette sur Figma, le zoom et les projets.
 Décision : « Au choix » pour la couleur du logo, avec le sélecteur de
 couleur de l’atelier ; Apparence en trois cartes (Identité, Thème, Police).
-Nouveau projet « zéro » : gris neutres contrastés (AA vérifié par test),
-arrondi 8 ; le nom du projet remplace « gutt » dans l’en-tête de l’aperçu.
+Nouveau projet « zéro » : projet libre, vide (voir l’entrée « Partir de
+zéro = projet libre ») ; le nom du projet remplace « gutt » dans l’en-tête
+de l’aperçu.
 Menu de projet : lien « Renommer ou supprimer… » vers Paramètres › Projets ;
 le projet ouvert se supprime aussi (Gutt est rouvert, dossier gardé dans
 projets-supprimes). Visite guidée : 7 étapes, avec « Relie Figma », la case
@@ -810,7 +811,7 @@ plus) avant de créer ou changer de projet, au lieu de refuser ; au-delà,
 « Claude ou Figma travaille encore. Réessaie dans une minute. ». Les erreurs
 de création s’affichent dans la fenêtre « Nouveau projet ». Bouton
 « + Nouveau projet » dans Paramètres › Projets (même fenêtre que le menu).
-« Partir de zéro » décrit les gris neutres.
+« Partir de zéro » décrit un projet vide.
 Écarté : couper la lecture Figma en cours (perdrait la lecture).
 Preuves : test serveur (création lancée pendant une réponse de Claude,
 créée après) ; test navigateur (création depuis les Paramètres, erreur dans
@@ -852,3 +853,26 @@ Preuves : lecture réelle du fichier (6 composants) ; test navigateur
 (71 unitaires, 33 navigateur) ; audit de mise en page sans anomalie.
 Limite : le rapprochement se fait par le nom ; le rendu Figma reste
 approximatif ; le statut ne compare pas le détail (couleurs, marges).
+
+## 29/10/2026 · Partir de zéro = projet libre
+
+Problème : un projet « Partir de zéro » gardait les 18 tokens, les 5
+composants et les écrans de Gutt (seules les valeurs changeaient). On
+croyait avoir encore le projet d’avant : parcours sans sens.
+Décision : « Partir de zéro » crée un projet libre et vide : aucun token,
+aucun composant ni écran de Gutt, brief et lien Figma vides. Les 18 tokens
+de base deviennent facultatifs ; « + Ajouter un token » crée n’importe quel
+token, y compris un de base (ex. color.brand). Aperçu : « Pas encore
+d’écran ». Accessibilité : contrôles sans token retirés, jamais affichés
+comme réussis (« – » dans le menu, « Rien à contrôler »). L’accueil propose
+« Ajouter ta première couleur ». « Copier » garde tokens et nature du
+projet copié. Gutt et ses données ne changent pas.
+Écarté : gris neutres préremplis (pas un vrai départ de zéro).
+Preuves : tests serveur (projet vide, premier token de base créé, copie non
+libre) ; test navigateur (tokens vides, pas d’écran ni de composant Gutt,
+retour sur Gutt intact, verrou si modif) ; suite complète (70 unitaires, 33
+navigateur) ; audit de mise en page et visite guidée sans anomalie ;
+captures relues.
+Limite : un token de base ajouté ne se supprime pas ; les projets « zéro »
+créés avant (ex. « tets gut ») gardent les gris neutres : les supprimer et
+recréer. Les composants Figma lus s’affichent ; aucun composant codé.

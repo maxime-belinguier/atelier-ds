@@ -84,7 +84,6 @@ export default function ProjectsPane({
           sourceName={
             list.projects.find((p) => p.id === current)?.name ?? 'ce projet'
           }
-          base={list.base}
           copy={paletteOf(tokens)}
           onClose={() => setCreating(false)}
         />

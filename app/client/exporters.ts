@@ -62,7 +62,7 @@ export function toTailwindV3(tokens: Tokens) {
     const [group] = k.split('.');
     const name = short(k);
     if (group === 'color') colors[name] = cssValue(tokens, k);
-    else if (k === 'font.family') sans = String(tokens[k].$value);
+    else if (k === 'font.family') sans = String(tokens[k]?.$value);
     else if (group === 'font') fontSize[name] = cssValue(tokens, k);
     else if (group === 'space' || group === 'size')
       spacing[name] = cssValue(tokens, k);

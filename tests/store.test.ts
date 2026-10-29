@@ -37,14 +37,14 @@ test('proposition sans écriture, commit, redémarrage réel du store et annulat
   await store.commit(r.id);
   const reopened = new Store(dir, seed);
   await reopened.init();
-  assert.equal(reopened.snapshot().tokens['color.brand'].$value, '#AA2255');
+  assert.equal(reopened.snapshot().tokens['color.brand']!.$value, '#AA2255');
   const undo = reopened.proposeUndo(2, p.id);
   await reopened.commit(undo.id);
   assert.equal(
-    reopened.snapshot().tokens['color.brand'].$value,
-    seed['color.brand'].$value,
+    reopened.snapshot().tokens['color.brand']!.$value,
+    seed['color.brand']!.$value,
   );
-  assert.equal(reopened.snapshot().tokens['space.md'].$value, 22);
+  assert.equal(reopened.snapshot().tokens['space.md']!.$value, 22);
   assert.equal(reopened.snapshot().history.length, 3);
 });
 test('concurrence : une seule proposition de la même révision peut être acceptée', async (t) => {
@@ -97,8 +97,8 @@ test('entrées, imports et types invalides sont rejetés sans effet disque', asy
 test('import local passe par le même diff et la validation', async (t) => {
   const { store } = await fixture(t);
   const tokens = structuredClone(seed);
-  tokens['color.brand'].$value = '#774422';
-  tokens['space.md'].$value = 20;
+  tokens['color.brand']!.$value = '#774422';
+  tokens['space.md']!.$value = 20;
   const p = store.proposeImport(0, tokens);
   assert.equal(p.source, 'import');
   assert.equal(p.patches.length, 2);
@@ -176,8 +176,8 @@ test('copie précédente complète, restauration explicite et original corrompu 
   });
   await reopened.init();
   assert.equal(
-    reopened.snapshot().tokens['color.brand'].$value,
-    seed['color.brand'].$value,
+    reopened.snapshot().tokens['color.brand']!.$value,
+    seed['color.brand']!.$value,
     'Une mise à jour du seed ne réinitialise jamais un état existant',
   );
 });

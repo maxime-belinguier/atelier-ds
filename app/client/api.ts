@@ -2,6 +2,7 @@ import type { State, Proposal, Tokens } from '../shared/model.js';
 export interface Bootstrap {
   csrf: string;
   project: string;
+  libre: boolean;
   figma: { label: string; connected: boolean };
   agents: { id: string; available: boolean; detail: string }[];
 }
@@ -60,6 +61,8 @@ export interface ProjectEntry {
   opened: number;
   /** Couleur de marque du projet, pour le reconnaître dans le menu. */
   brand: string;
+  /** Projet libre : sans token, composant ni écran de Gutt. */
+  libre?: boolean;
 }
 export interface Palette {
   colors: string[];
@@ -68,8 +71,6 @@ export interface Palette {
 export interface ProjectList {
   current: string;
   projects: ProjectEntry[];
-  /** Aperçu des tokens de base (« Partir de zéro »). */
-  base: Palette;
 }
 export const listProjects = () => request<ProjectList>('projects');
 export const openProject = (id: string) =>

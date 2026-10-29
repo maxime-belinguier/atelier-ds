@@ -88,7 +88,7 @@ export function groupsFor(tokens: Tokens) {
   return tokenGroups.map((g) => ({
     ...g,
     keys: [
-      ...g.keys,
+      ...g.keys.filter((k) => tokens[k]),
       ...extra.filter((k) => groupOfPrefix[k.split('.')[0]] === g.id),
     ],
   }));

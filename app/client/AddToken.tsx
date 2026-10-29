@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { customKeyPattern, isCoreKey, type Tokens } from '../shared/model.js';
+import { customKeyPattern, type Tokens } from '../shared/model.js';
 
 // Ajout d'un token à la main. Rien n'est écrit ici : le formulaire prépare
 // une proposition, le diff habituel s'ouvre et c'est toi qui valides.
@@ -26,8 +26,10 @@ export default function AddToken({
       return setError(
         'Nom en camelCase, sans espace ni accent : warning, cardHover…',
       );
-    if (isCoreKey(key) || Object.hasOwn(tokens, key))
-      return setError('Ce token existe déjà.');
+    if (Object.hasOwn(tokens, key)) return setError('Ce token existe déjà.');
+    // La police se choisit dans une liste, pas comme un nombre.
+    if (key === 'font.family')
+      return setError('Nom réservé : choisis un autre nom.');
     let v: string | number;
     if (isColor) {
       if (!/^#[0-9a-fA-F]{6}$/.test(value.trim()))

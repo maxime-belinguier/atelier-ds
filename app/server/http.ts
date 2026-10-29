@@ -6,12 +6,7 @@ import { z } from 'zod';
 import { proposeSchema } from '../shared/model.js';
 import { Store, StudioError } from './store.js';
 import { ProjectStore } from './project.js';
-import {
-  Projects,
-  defaultProjectId,
-  neutralTokens,
-  newProjectSchema,
-} from './projects.js';
+import { Projects, defaultProjectId, newProjectSchema } from './projects.js';
 import { readPrivate } from './files.js';
 import { projectSchema } from '../shared/project.js';
 import { CodexAdapter } from '../../connectors/agents/codex.js';
@@ -87,13 +82,6 @@ export async function createStudioServer(options: {
     figma = new FigmaSync(store, project, figmaConnector, directory);
     projectId = id;
   }
-  // Aperçu visuel d'un jeu de tokens : quelques couleurs et l'arrondi.
-  const palette = (tokens: Record<string, { $value: unknown }>) => ({
-    colors: ['color.brand', 'color.canvas', 'color.text', 'color.border']
-      .map((k) => tokens[k]?.$value)
-      .filter((v): v is string => typeof v === 'string'),
-    radius: Number(tokens['radius.control']?.$value ?? 8),
-  });
   const brandOf = async (id: string) => {
     if (id === projectId)
       return String(store.snapshot().tokens['color.brand']?.$value ?? '');
@@ -114,7 +102,6 @@ export async function createStudioServer(options: {
       projects: await Promise.all(
         r.projects.map(async (p) => ({ ...p, brand: await brandOf(p.id) })),
       ),
-      base: palette(neutralTokens(options.store.seed)),
     };
   };
   const csrf = randomBytes(32).toString('hex');
@@ -206,6 +193,9 @@ export async function createStudioServer(options: {
             return send(200, {
               csrf,
               project: projectId,
+              libre: !!(await projects.read()).projects.find(
+                (p) => p.id === projectId,
+              )?.libre,
               figma: { connected: false, label: 'Figma' },
               agents: [],
             });
@@ -274,11 +264,13 @@ export async function createStudioServer(options: {
         if (url.pathname === '/api/projects/create') {
           const b = newProjectSchema.parse(body);
           await idle();
-          const seed =
-            b.from === 'copie'
-              ? store.snapshot().tokens
-              : neutralTokens(options.store.seed);
-          const id = await projects.create(b.name);
+          // Copie : reprend tokens et nature (libre ou Gutt) du projet ouvert.
+          const libre =
+            b.from === 'neutre' ||
+            !!(await projects.read()).projects.find((p) => p.id === projectId)
+              ?.libre;
+          const seed = b.from === 'copie' ? store.snapshot().tokens : {};
+          const id = await projects.create(b.name, libre);
           await openProject(id, seed);
           await project.save('', {
             name: b.name,

@@ -110,8 +110,8 @@ test('API manuelle complète sans IA ni Figma, export égal au disque', async (t
   const undo = await (await post('undo', { revision: 1, id: p.id })).json();
   assert.equal((await post('commit', { id: undo.id })).status, 200);
   assert.equal(
-    store.snapshot().tokens['color.brand'].$value,
-    seed['color.brand'].$value,
+    store.snapshot().tokens['color.brand']!.$value,
+    seed['color.brand']!.$value,
   );
 });
 test('CSRF, origine étrangère, rebinding Host et périmètre refusés', async (t) => {
@@ -209,7 +209,7 @@ test('Claude simulé : proposition sourcée claude, jamais appliquée sans valid
       };
     },
   });
-  const before = store.snapshot().tokens['color.brand'].$value;
+  const before = store.snapshot().tokens['color.brand']!.$value;
   const response = await post('agent', {
     agent: 'claude',
     revision: 0,
@@ -220,7 +220,7 @@ test('Claude simulé : proposition sourcée claude, jamais appliquée sans valid
   const result = await response.json();
   assert.equal(result.proposal.source, 'claude');
   assert.equal(store.snapshot().revision, 0);
-  assert.equal(store.snapshot().tokens['color.brand'].$value, before);
+  assert.equal(store.snapshot().tokens['color.brand']!.$value, before);
 });
 
 test('Claude simulé : modèle et effort transmis, valeur libre refusée', async (t) => {
@@ -395,7 +395,7 @@ test('Figma : lien requis, lecture en diff, écriture validée une seule fois', 
   assert.equal(comps.components[0].variants[0].root.f.v, 'color/danger');
   assert.equal(store.snapshot().revision, 0);
   assert.equal((await post('commit', { id: pulled.proposal.id })).status, 200);
-  assert.equal(store.snapshot().tokens['color.warning'].$value, '#9A5B00');
+  assert.equal(store.snapshot().tokens['color.warning']!.$value, '#9A5B00');
   // Écriture : aperçu, validation unique, révision contrôlée.
   const preview = await (await post('figma/preview', { revision: 1 })).json();
   assert.ok(preview.approvalId);
@@ -464,8 +464,19 @@ test('projets : créer, isoler les tokens et le brief, rouvrir, onglet périmé 
   assert.equal(created.projects.length, 2);
   const state = await get('state');
   assert.equal(state.revision, 0);
-  // Départ neutre : pas la couleur de Gutt.
-  assert.equal(state.tokens['color.brand'].$value, '#3A3A3A');
+  // Partir de zéro : projet libre, aucun token.
+  assert.deepEqual(state.tokens, {});
+  assert.equal((await get('bootstrap')).libre, true);
+  // Premier token : un token de base peut être créé.
+  const firstToken = await (
+    await post('proposals', {
+      revision: 0,
+      changes: [{ key: 'color.brand', value: '#0F766E' }],
+    })
+  ).json();
+  assert.deepEqual(firstToken.patches, [
+    { key: 'color.brand', before: null, after: '#0F766E' },
+  ]);
   assert.equal((await get('project')).project.name, 'Betclic Poker');
   assert.equal((await get('bootstrap')).project, 'betclic-poker');
   // Un onglet resté sur Gutt ne peut pas écrire dans le nouveau projet.
@@ -481,12 +492,13 @@ test('projets : créer, isoler les tokens et le brief, rouvrir, onglet périmé 
   );
   // Copie : reprend les tokens du projet ouvert.
   await post('projects/open', { id: 'gutt' });
-  assert.equal((await get('state')).tokens['color.brand'].$value, '#112233');
+  assert.equal((await get('state')).tokens['color.brand']!.$value, '#112233');
   const copy = await (
     await post('projects/create', { name: 'Gutt', from: 'copie' })
   ).json();
   assert.equal(copy.current, 'gutt-2');
-  assert.equal((await get('state')).tokens['color.brand'].$value, '#112233');
+  assert.equal((await get('bootstrap')).libre, false);
+  assert.equal((await get('state')).tokens['color.brand']!.$value, '#112233');
   assert.equal((await post('projects/open', { id: 'inconnu' })).status, 404);
   const registry = JSON.parse(
     await readFile(path.join(directory, 'projets.json'), 'utf8'),
@@ -535,18 +547,6 @@ test('projets : renommer, supprimer vers projets-supprimes, dossier des données
   assert.match(info.version, /^\d+\.\d+\.\d+/);
   const open = await (await post('open-data-folder', {})).json();
   assert.deepEqual(open, { opened: false, dir: directory });
-});
-
-test('projets : le départ neutre respecte les contrastes AA', async () => {
-  const { neutralTokens } = await import('../app/server/projects.js');
-  const { contrast } = await import('../app/shared/model.js');
-  const t = neutralTokens(seed);
-  const c = (k: string) => String(t[k as keyof typeof t].$value);
-  assert.ok(contrast(c('color.onBrand'), c('color.brand')) >= 4.5);
-  assert.ok(contrast(c('color.text'), c('color.canvas')) >= 4.5);
-  assert.ok(contrast(c('color.muted'), c('color.surface')) >= 4.5);
-  assert.ok(contrast(c('color.border'), c('color.surface')) >= 3);
-  assert.ok(contrast(c('color.danger'), c('color.surface')) >= 4.5);
 });
 
 test('projets : créer pendant une demande Claude attend sa fin', async (t) => {

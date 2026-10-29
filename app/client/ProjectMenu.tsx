@@ -35,7 +35,14 @@ export const paletteOf = (tokens: Tokens | undefined): Palette => ({
 });
 
 // Mini écran qui montre ce qu'on obtient : fond, texte, bouton de marque.
-function Preview({ palette }: { palette: Palette }) {
+// Sans palette : projet vide.
+function Preview({ palette }: { palette: Palette | null }) {
+  if (!palette)
+    return (
+      <span className="start-preview is-empty" aria-hidden="true">
+        Vide
+      </span>
+    );
   const [brand, canvas, text, border] = palette.colors;
   const r = Math.min(palette.radius, 10);
   return (
@@ -61,12 +68,10 @@ function Preview({ palette }: { palette: Palette }) {
 // Paramètres › Projets. Les erreurs s'affichent dans la fenêtre.
 export function NewProject({
   sourceName,
-  base,
   copy,
   onClose,
 }: {
   sourceName: string;
-  base: Palette;
   copy: Palette;
   onClose: () => void;
 }) {
@@ -79,8 +84,8 @@ export function NewProject({
     {
       id: 'neutre' as const,
       title: 'Partir de zéro',
-      text: 'Des gris neutres, à personnaliser.',
-      palette: base,
+      text: 'Projet vide : aucun token, composant ni écran. Tu ajoutes tout ou tu lis ton Figma.',
+      palette: null,
     },
     {
       id: 'copie' as const,
@@ -415,7 +420,6 @@ export default function ProjectMenu({
       {creating && list && (
         <NewProject
           sourceName={active?.name ?? 'ce projet'}
-          base={list.base}
           copy={paletteOf(tokens)}
           onClose={() => {
             setCreating(false);

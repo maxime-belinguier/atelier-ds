@@ -22,7 +22,7 @@ test('audit : 12 contrastes et 2 conseils de texte', () => {
 test('audit : texte gris clair sur blanc échoue en 4,5:1', () => {
   const bad = auditTokens({
     ...withValue('color.text', '#BBBBBB'),
-    'color.surface': { ...tokens['color.surface'], $value: '#FFFFFF' },
+    'color.surface': { ...tokens['color.surface']!, $value: '#FFFFFF' },
   }).find((c) => c.id === 'color.text|color.surface')!;
   assert.equal(bad.status, 'fail');
   assert.equal(bad.value, '1,92:1');
@@ -41,7 +41,7 @@ test('score : les conseils ne baissent pas le score', () => {
   const worse = score(
     auditTokens({
       ...withValue('color.muted', '#EEEEEE'),
-      'color.surface': { ...tokens['color.surface'], $value: '#FFFFFF' },
+      'color.surface': { ...tokens['color.surface']!, $value: '#FFFFFF' },
     }),
   );
   assert.ok(worse < base || base < 100);
@@ -62,8 +62,8 @@ test('profils : une correction proposée passe vraiment le seuil', async () => {
   const { contrast } = await import('../app/shared/model.js');
   const bad = auditTokens({
     ...tokens,
-    'color.border': { ...tokens['color.border'], $value: '#EEEEEE' },
-    'color.surface': { ...tokens['color.surface'], $value: '#FFFFFF' },
+    'color.border': { ...tokens['color.border']!, $value: '#EEEEEE' },
+    'color.surface': { ...tokens['color.surface']!, $value: '#FFFFFF' },
   }).find((c) => c.id === 'color.border|color.surface')!;
   assert.equal(bad.status, 'fail');
   assert.equal(bad.fix?.key, 'color.border');
@@ -75,8 +75,8 @@ test('daltonisme : rouge et vert proches sont signalés et corrigés', async () 
     await import('../app/client/a11yAudit.js');
   const t = {
     ...tokens,
-    'color.danger': { ...tokens['color.danger'], $value: '#C0392B' },
-    'color.success': { ...tokens['color.success'], $value: '#4A7A2A' },
+    'color.danger': { ...tokens['color.danger']!, $value: '#C0392B' },
+    'color.success': { ...tokens['color.success']!, $value: '#4A7A2A' },
   };
   const c = auditTokens(t, 'deuteranopia').find(
     (x) => x.id === 'color.danger~color.success',
