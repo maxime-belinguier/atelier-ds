@@ -1136,6 +1136,21 @@ test('Figma (simulé) : lire en diff, puis envoyer avec aperçu et validation', 
     page.getByText('Lecture Figma en cours, ta demande part juste après…'),
   ).toBeVisible();
   await expect(page.getByText('Réponse simulée.')).toBeVisible();
+  // Retour sur l'app : nouvelle lecture seule, pas avant 20 s.
+  await expect(read).toHaveAccessibleName(/^Lire Figma(,|$)/);
+  const pulls: string[] = [];
+  page.on('request', (r) => {
+    if (r.url().endsWith('/api/figma/pull')) pulls.push(r.url());
+  });
+  await page.evaluate(() => dispatchEvent(new Event('focus')));
+  await page.waitForTimeout(300);
+  expect(pulls).toHaveLength(0);
+  await page.evaluate(() => {
+    const now = Date.now();
+    Date.now = () => now + 21_000;
+    dispatchEvent(new Event('focus'));
+  });
+  await expect.poll(() => pulls.length).toBe(1);
   await page.evaluate(() => localStorage.setItem('ds-studio-figma-auto', '1'));
 });
 

@@ -711,9 +711,10 @@ export default function App() {
     }
   }
   // Figma → atelier : lecture en un clic depuis l'en-tête. L'app vérifie
-  // aussi seule (ouverture, retour sur la fenêtre, 5 min minimum entre deux
-  // lectures : chaque lecture passe par Claude Code). Rien n'est appliqué :
-  // la pastille annonce les nouveautés, le clic ouvre le diff.
+  // aussi seule à l'ouverture et à chaque retour sur la fenêtre (20 s minimum
+  // entre deux lectures, soit 3 par minute au plus : limite Figma de 10).
+  // Les composants s'affichent seuls ; les variables restent à valider : la
+  // pastille annonce les nouveautés, le clic ouvre le diff.
   const [figmaNews, setFigmaNews] = useState<Proposal | null>(null);
   // Composants lus dans Figma (lecture seule), rafraîchis à chaque lecture.
   const [figmaComps, setFigmaComps] = useState<{
@@ -797,7 +798,7 @@ export default function App() {
       if (
         document.visibilityState === 'visible' &&
         !thinkingRef.current &&
-        Date.now() - lastFigmaRead.current > 5 * 60_000
+        Date.now() - lastFigmaRead.current > 20_000
       )
         void readFigmaRef.current(true);
     };

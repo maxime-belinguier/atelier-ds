@@ -737,8 +737,8 @@ variables, Bouton, Fiche logement, Tag, 14 s) ; test unitaire du nettoyage
 des données ; tests serveur (lecture, conservation après envoi) et
 navigateur (Tag affiché, tokens liés) ; suite complète (69 unitaires, 33
 navigateur) ; audit de mise en page sans anomalie ; visite guidée 1:1.
-Limite : rendu approximatif (pas d’images ni d’ombres) ; lecture auto au plus
-toutes les 5 min, sinon clic sur « Lire Figma ».
+Limite : rendu approximatif (pas d’images ni d’ombres) ; une lecture prend
+environ 15 s.
 
 ## 29/10/2026 · Paramètres, projets et visite guidée remis à jour
 
@@ -782,3 +782,19 @@ complète (70 unitaires, 33 navigateur) ; audit de mise en page sans
 anomalie ; en-tête sur une ligne à 1280 px.
 Limite : un clic manuel sur « Lire Figma » pendant une réponse de Claude
 reçoit toujours « déjà en cours ».
+
+## 29/10/2026 · Figma relu à chaque retour sur l’app
+
+Problème : après un changement dans Figma, il fallait attendre jusqu’à 5 min
+ou cliquer sur « Lire Figma » : trop lent pour un aller-retour constant.
+Décision : l’app relit Figma à chaque retour sur sa fenêtre (focus ou onglet
+visible), avec 20 s minimum entre deux lectures (3 par minute au plus, sous
+la limite Figma de 10). Les composants s’affichent sans clic ; les variables
+restent à valider dans le diff (règle du diff validé).
+Écarté : plugin Figma pour une synchro instantanée (plus fluide, mais environ
+un jour de travail avant la soutenance) ; lecture en continu (quota).
+Preuves : test navigateur (pas de relecture avant 20 s, relecture seule
+après) ; suite complète (70 unitaires, 33 navigateur).
+Limite : environ 15 s entre le retour sur l’app et l’affichage ; plus de
+lectures, donc plus de quota Figma (200 appels par jour sur le plan
+Éducation).
