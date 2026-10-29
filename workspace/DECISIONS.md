@@ -798,3 +798,44 @@ après) ; suite complète (70 unitaires, 33 navigateur).
 Limite : environ 15 s entre le retour sur l’app et l’affichage ; plus de
 lectures, donc plus de quota Figma (200 appels par jour sur le plan
 Éducation).
+
+## 29/10/2026 · Nouveau projet : plus de refus pendant Figma, erreur visible
+
+Problème : créer un projet pendant une lecture Figma (souvent la lecture
+auto) répondait « Attends la fin de la demande Claude ou Figma… », peu
+compréhensible et affiché sous la fenêtre ; pas de création depuis
+Paramètres › Projets.
+Décision : le serveur attend la fin de la demande Claude ou Figma (90 s au
+plus) avant de créer ou changer de projet, au lieu de refuser ; au-delà,
+« Claude ou Figma travaille encore. Réessaie dans une minute. ». Les erreurs
+de création s’affichent dans la fenêtre « Nouveau projet ». Bouton
+« + Nouveau projet » dans Paramètres › Projets (même fenêtre que le menu).
+« Partir de zéro » décrit les gris neutres.
+Écarté : couper la lecture Figma en cours (perdrait la lecture).
+Preuves : test serveur (création lancée pendant une réponse de Claude,
+créée après) ; test navigateur (création depuis les Paramètres, erreur dans
+la fenêtre) ; suite complète (71 unitaires, 33 navigateur) ; audit de mise
+en page sans anomalie.
+Limite : la création peut prendre jusqu’à 15 s si une lecture Figma tourne.
+
+## 29/10/2026 · Créer un composant dans l’atelier, sans Claude
+
+Problème : impossible de créer un composant dans l’app ; l’option avait été
+écartée plus haut (Figma suffisait), le porteur du projet la veut.
+Décision : groupe « Mes composants » avec « + Créer un composant ». Fenêtre
+avec aperçu en direct : nom, modèle (bouton, carte, étiquette), texte,
+fond, couleur du texte et bordure choisis parmi les tokens couleur, forme
+(arrondi du DS, pilule, carré). Contraste texte / fond sous 4,5:1 signalé.
+Le rendu utilise var(--token) : il suit chaque modif en cours. Modifier et
+supprimer depuis la page du composant. Stocké par projet
+(components.json), valeurs contrôlées par schéma (clés de tokens seulement,
+40 composants au plus).
+Écarté : éditeur libre de mise en page (trop gros, doublon de Figma) ;
+envoi vers Figma (pas fiable).
+Preuves : tests serveur (enregistrement, couleur hors tokens et doublon
+refusés, une liste par projet) ; test navigateur (création, contraste
+signalé, suit la marque modifiée, modification, suppression) ; suite
+complète (72 unitaires, 34 navigateur) ; audit de mise en page sans
+anomalie ; visite guidée 1:1.
+Limite : trois modèles simples, sans états (survol, désactivé) ; pas envoyés
+vers Figma.

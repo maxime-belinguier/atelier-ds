@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   deleteProject,
+  getState,
   listProjects,
   projectsChanged,
   renameProject,
@@ -8,6 +9,8 @@ import {
   type ProjectList,
 } from './api.js';
 import { dropChats, projectKey } from './chatHistory.js';
+import { NewProject, paletteOf } from './ProjectMenu.js';
+import type { Tokens } from '../shared/model.js';
 
 // Onglet Projets des Paramètres : renommer, supprimer, et où sont les données.
 // Supprimer ne vide rien : le dossier part dans projets-supprimes/.
@@ -25,6 +28,8 @@ export default function ProjectsPane({
   const [error, setError] = useState('');
   const [info, setInfo] = useState<{ dir: string }>();
   const [folder, setFolder] = useState<{ opened: boolean } | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [tokens, setTokens] = useState<Tokens>();
 
   const apply = (next: ProjectList) => {
     setList(next);
@@ -40,6 +45,9 @@ export default function ProjectsPane({
       .catch(() =>
         setError('Projets indisponibles : ferme DS-Studio puis relance-le.'),
       );
+    getState()
+      .then((s) => setTokens(s.tokens))
+      .catch(() => undefined);
     request<{ dir: string }>('data-info')
       .then(setInfo)
       .catch(() => undefined);
@@ -60,9 +68,27 @@ export default function ProjectsPane({
     <>
       <h3>Projets</h3>
       <p className="settings-lead">
-        Renomme ou supprime un projet. Pour en créer un ou changer de projet,
-        utilise le menu sous le nom de l’app.
+        Crée, renomme ou supprime un projet. Pour changer de projet, utilise le
+        menu sous le nom de l’app.
       </p>
+      <button
+        className="studio-primary projects-new"
+        disabled={!list || !!locked}
+        title={locked ?? undefined}
+        onClick={() => setCreating(true)}
+      >
+        + Nouveau projet
+      </button>
+      {creating && list && (
+        <NewProject
+          sourceName={
+            list.projects.find((p) => p.id === current)?.name ?? 'ce projet'
+          }
+          base={list.base}
+          copy={paletteOf(tokens)}
+          onClose={() => setCreating(false)}
+        />
+      )}
       {error && (
         <p className="settings-warn" role="alert">
           {error}

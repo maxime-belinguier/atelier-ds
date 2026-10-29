@@ -27,7 +27,7 @@ function since(t: number) {
     month: 'short',
   });
 }
-const paletteOf = (tokens: Tokens | undefined): Palette => ({
+export const paletteOf = (tokens: Tokens | undefined): Palette => ({
   colors: ['color.brand', 'color.canvas', 'color.text', 'color.border']
     .map((k) => tokens?.[k as keyof Tokens]?.$value)
     .filter((v): v is string => typeof v === 'string'),
@@ -57,19 +57,20 @@ function Preview({ palette }: { palette: Palette }) {
   );
 }
 
-function NewProject({
+// Fenêtre « Nouveau projet », ouverte depuis le menu de projet ou depuis
+// Paramètres › Projets. Les erreurs s'affichent dans la fenêtre.
+export function NewProject({
   sourceName,
   base,
   copy,
   onClose,
-  onError,
 }: {
   sourceName: string;
   base: Palette;
   copy: Palette;
   onClose: () => void;
-  onError: (message: string) => void;
 }) {
+  const [error, setError] = useState('');
   const [name, setName] = useState('');
   const [from, setFrom] = useState<'neutre' | 'copie'>('neutre');
   const [working, setWorking] = useState(false);
@@ -78,7 +79,7 @@ function NewProject({
     {
       id: 'neutre' as const,
       title: 'Partir de zéro',
-      text: 'Le style par défaut de l’atelier, à personnaliser.',
+      text: 'Des gris neutres, à personnaliser.',
       palette: base,
     },
     {
@@ -92,6 +93,7 @@ function NewProject({
   async function submit() {
     if (!name.trim() || working) return;
     setWorking(true);
+    setError('');
     try {
       const next = await createProject(name.trim(), from);
       try {
@@ -103,7 +105,7 @@ function NewProject({
       location.reload();
     } catch (e) {
       setWorking(false);
-      onError((e as Error).message);
+      setError((e as Error).message);
     }
   }
 
@@ -193,6 +195,11 @@ function NewProject({
             </label>
           ))}
         </fieldset>
+        {error && (
+          <p className="settings-warn" role="alert">
+            {error}
+          </p>
+        )}
         <footer className="new-project-foot">
           <button type="button" className="save-cancel" onClick={onClose}>
             Annuler
@@ -410,7 +417,6 @@ export default function ProjectMenu({
           sourceName={active?.name ?? 'ce projet'}
           base={list.base}
           copy={paletteOf(tokens)}
-          onError={onError}
           onClose={() => {
             setCreating(false);
             trigger.current?.focus();
