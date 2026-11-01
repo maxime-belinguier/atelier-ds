@@ -31,7 +31,7 @@ const tokens = tokensSchema.parse(
     ),
   ),
 );
-const key = 'A7nqzQVmFo6pLvDMB7aWHg';
+const key = 'AAAAAAAAAAAAAAAAAAAAAA';
 const read = await connector.read(key);
 console.log(
   'lecture :',

@@ -33,18 +33,18 @@ const seed = tokensSchema.parse(
 test('Figma : clé du fichier depuis le lien de partage', () => {
   assert.equal(
     fileKeyFromUrl(
-      'https://www.figma.com/design/A7nqzQVmFo6pLvDMB7aWHg/Gutt-App---PFE?node-id=1-7',
+      'https://www.figma.com/design/AAAAAAAAAAAAAAAAAAAAAA/Gutt-App---PFE?node-id=1-7',
     ),
-    'A7nqzQVmFo6pLvDMB7aWHg',
+    'AAAAAAAAAAAAAAAAAAAAAA',
   );
   assert.equal(
     fileKeyFromUrl(
-      'https://www.figma.com/design/A7nqzQVmFo6pLvDMB7aWHg/branch/BBBBBBBBBBBBBBBBBBBBBB/x',
+      'https://www.figma.com/design/AAAAAAAAAAAAAAAAAAAAAA/branch/BBBBBBBBBBBBBBBBBBBBBB/x',
     ),
     'BBBBBBBBBBBBBBBBBBBBBB',
   );
   assert.equal(
-    fileKeyFromUrl('https://evil.invalid/design/A7nqzQVmFo6pLvDMB7aWHg'),
+    fileKeyFromUrl('https://evil.invalid/design/AAAAAAAAAAAAAAAAAAAAAA'),
     null,
   );
   assert.equal(fileKeyFromUrl('pas un lien'), null);
@@ -232,7 +232,7 @@ test('Figma : la garde ne laisse passer qu’un appel, au script exact', async (
   const code = 'return 1;';
   const env = {
     ...process.env,
-    DS_FIGMA_FILE: 'A7nqzQVmFo6pLvDMB7aWHg',
+    DS_FIGMA_FILE: 'AAAAAAAAAAAAAAAAAAAAAA',
     DS_FIGMA_EXPECT: createHash('sha256').update(code).digest('hex'),
     DS_FIGMA_ONCE: path.join(dir, 'once'),
   };

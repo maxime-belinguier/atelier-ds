@@ -4,14 +4,13 @@ Objectif : démarrer vite, faire petit quand c'est petit, livrer sans casser.
 
 ## 1. Récupérer l'app (1 à 2 min)
 
-Le dossier est sur le Mac de Maxime, relié à la conversation :
-`~/Desktop/ECV/M2/Cours M2/IA/DS-Studio-codex-v2`
-(dans le shell relié : `$HOME/mnt/DS-Studio-codex-v2`).
+Le dossier du projet est sur l'ordinateur de l'auteur, relié à la conversation
+(dans le shell relié : `$HOME/mnt/<dossier-du-projet>`).
 
-1. Shell relié au Mac : créer une archive des fichiers suivis par Git
+1. Shell relié à l'ordinateur : créer une archive des fichiers suivis par Git
    (`test-results/` est ignoré par Git, on peut y écrire sans rien polluer) :
-   `cd "$HOME/mnt/DS-Studio-codex-v2" && git ls-files -z | tar --null -czf test-results/source.tgz -T -`
-2. Copier cette archive dans le conteneur (outil de copie depuis le Mac), puis :
+   `cd "$HOME/mnt/<dossier-du-projet>" && git ls-files -z | tar --null -czf test-results/source.tgz -T -`
+2. Copier cette archive dans le conteneur (outil de copie depuis l'ordinateur), puis :
    `mkdir -p ~/ds && tar xzf <archive> -C ~/ds && cd ~/ds && npm ci`
 3. Navigateur des tests : déjà installé dans le conteneur. Si Playwright cherche
    une autre version de Chromium, créer un lien symbolique vers celle présente
@@ -42,18 +41,18 @@ de la zone touchée. Rien d'autre.
 
 ## 3. Livrer
 
-1. Copier vers le Mac uniquement les fichiers modifiés, plus `dist/` (les
+1. Copier vers l'ordinateur uniquement les fichiers modifiés, plus `dist/` (les
    fichiers de `dist/assets` changent de nom à chaque build).
 2. Ajouter ou mettre à jour l'entrée de `workspace/DECISIONS.md` (Problème,
    Décision, Écarté, Preuves, Limite). Mettre à jour l'entrée existante plutôt
    qu'en ajouter une nouvelle sur le même sujet.
-3. Si le serveur a changé (`app/server`, `connectors`), dire à Maxime de fermer
+3. Si le serveur a changé (`app/server`, `connectors`), dire à l'auteur de fermer
    et relancer l'app ; sinon un rechargement suffit.
-4. Donner le texte du « Summary » GitHub (Maxime pousse lui-même).
+4. Donner le texte du « Summary » GitHub (l'auteur pousse lui-même).
 
 ## Pièges connus
 
-- Ne jamais toucher à `.ds-studio/` (état et historique de Maxime).
+- Ne jamais toucher à `.ds-studio/` (état et historique personnels).
 - `git` ne peut pas supprimer de fichiers dans le dossier relié sans autorisation :
   ne pas lancer de commit, pull ou reset depuis le shell relié.
 - La visite guidée s'ouvre au premier lancement : dans les scripts Playwright,

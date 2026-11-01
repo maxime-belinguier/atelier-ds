@@ -70,7 +70,8 @@ contenant des espaces est accepté. N’utilisez ni `sudo` ni installation de se
 ## Ce qui change en V2
 
 - **Projets** : sous « DS-Studio », menu pour changer de projet ou en créer un
-  (tokens de base ou copie du projet ouvert). Chaque projet a ses tokens, son
+  (copie du projet ouvert, ou « Partir de zéro » : projet libre et vide, sans
+  tokens, composants ni écrans de Gutt). Chaque projet a ses tokens, son
   historique, son brief et ses conversations. L'app rouvre le dernier projet.
 - **Brief** : brief privé éditable et exportable en Markdown ; aucun compte nécessaire.
 - Recherche de tokens, sélecteur de couleur, valeurs numériques bornées et brouillon
@@ -97,18 +98,25 @@ contenant des espaces est accepté. N’utilisez ni `sudo` ni installation de se
   navigateur (30 conversations max), sans coût en tokens.
 - **Figma** : bouton Figma de l'en-tête ou Paramètres › Figma. « Lire depuis Figma »
   ouvre un diff ; « Envoyer vers Figma » montre les variables à écrire, puis met à jour
-  la collection `DS-Studio` et relit. Voir [FIGMA](docs/FIGMA.md).
+  la collection `DS-Studio` et relit. Le diff d'enregistrement propose aussi
+  « Envoyer aussi vers Figma » (coché par défaut, seulement les tokens validés).
+  L'app relit Figma à chaque retour sur sa fenêtre (20 s minimum entre deux lectures) ;
+  les variables lues restent à valider dans le diff. Voir [FIGMA](docs/FIGMA.md).
+- **Composants reliés à Figma** : chaque composant de l'app est relié au composant
+  Figma du même nom. Menu : « ✓ » s'il existe dans Figma, « Hors Figma » sinon,
+  « À coder » s'il n'existe que dans Figma. Sous la planche, le rendu Figma lu
+  (approximatif) ou « Absent de Figma ».
 - **Tokens ajoutés** : « + Ajouter un token » dans chaque famille (couleurs, typo,
   espacements, formes), badge « Ajouté », suppression par diff. Inclus dans les exports.
 - **Interface** : deux panneaux redimensionnables (Design System et Aperçu), menu du
   Design System par catégories repliables (Tokens, Composants, Écrans, Contrôle qualité),
   sélecteur de couleur HEX/RGB/HSL, enregistrement manuel groupé (Ctrl/Cmd + S).
-- **Bibliothèque** : mode « Éditer | Bibliothèque » du Design System. La Bibliothèque
-  montre la doc en lecture seule (spécimens, rendu, bonnes pratiques, tokens, écrans, Figma).
+- **Bibliothèque** : mode « Éditer | Bibliothèque » pour Tokens et Composants
+  (pas pour Écrans ni Contrôle qualité). La Bibliothèque montre la doc en lecture seule (spécimens, rendu, bonnes pratiques, tokens, écrans, Figma).
 - **Aperçu** : formats 320 à 1440 px ou libre, mockups téléphone, tablette et
-  navigateur, zoom en bas à droite (Ajuster, − %, +, glisser pour se déplacer), et mode Comparer (deux formats côte à côte, ou
+  navigateur, zoom en barre flottante (Ajuster, −, %, +, pincement, glisser pour se déplacer), et mode Comparer (deux formats côte à côte, ou
   avant / après des modifications en cours).
-- **Visite guidée** : au premier lancement, puis avec le bouton « ? » de l'en-tête.
+- **Visite guidée** (7 étapes) : au premier lancement, puis avec le bouton « ? » de l'en-tête.
 - **Paramètres** (roue crantée) : apparence (nom et logo de l'app, mode clair, sombre ou auto,
   fond, accent, police), assistant IA, connexion et synchro Figma, projets (renommer, supprimer
   vers `projets-supprimes/`, dossier des données), préférences de démarrage, conversations,
@@ -190,20 +198,20 @@ Inspirez-vous des deux skills fournis, sans copier vos identifiants ou vos conve
 
 ## État réel de V2
 
-| Fonction                                                            | État et portée                                                                                     |
-| ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| Édition manuelle, diff, commit, persistance et annulation sélective | **TESTED**, Linux, API + navigateur + redémarrage processus                                        |
-| Catalogue et viewport responsive, formulaire et navigation          | **TESTED**, Chromium sous Linux                                                                    |
-| Import/export JSON local                                            | **TESTED**, API + navigateur                                                                       |
-| Exports CSS, Tailwind et Documentation                              | **TESTED**, tests unitaires + téléchargements navigateur                                           |
-| Test d'accessibilité et simulation de la vision des couleurs        | **TESTED**, Chromium ; contrôle sur les tokens, pas un audit WCAG complet de l'app                 |
-| Chat Codex, JSON proposé avant acceptation                          | **TESTED**, CLI 0.164.0, compte enseignant disponible pendant la qualification ; quota non garanti |
-| Claude Code dans l’application (dont création de tokens)            | **TESTED**, Linux, CLI 2.1.312, sans outils ; essai réel : nouveau token proposé en diff           |
-| Gemini dans l’application                                           | **NOT IMPLEMENTED**, adaptateur indisponible et contrat documenté                                  |
-| Synchro Figma (MCP officiel via Claude Code)                        | **PARTIAL** : scripts testés sur le vrai fichier, CLI + garde testés ; OAuth sur le Mac à faire    |
-| Skills et harness personnalisable                                   | **IMPLEMENTED**, structure et liens vérifiés ; pas une validation des choix d’un étudiant          |
-| Qualification automatisée Windows / macOS                           | **TESTED en CI** pour API, navigateur et contrôleur ; **PARTIAL** pour Finder/WSH natifs           |
-| Application desktop installable                                     | **NOT IMPLEMENTED**, application web locale uniquement                                             |
+| Fonction                                                            | État et portée                                                                                            |
+| ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Édition manuelle, diff, commit, persistance et annulation sélective | **TESTED**, Linux, API + navigateur + redémarrage processus                                               |
+| Catalogue et viewport responsive, formulaire et navigation          | **TESTED**, Chromium sous Linux                                                                           |
+| Import/export JSON local                                            | **TESTED**, API + navigateur                                                                              |
+| Exports CSS, Tailwind et Documentation                              | **TESTED**, tests unitaires + téléchargements navigateur                                                  |
+| Test d'accessibilité et simulation de la vision des couleurs        | **TESTED**, Chromium ; contrôle sur les tokens, pas un audit WCAG complet de l'app                        |
+| Chat Codex, JSON proposé avant acceptation                          | **TESTED**, CLI 0.164.0, compte enseignant disponible pendant la qualification ; quota non garanti        |
+| Claude Code dans l’application (dont création de tokens)            | **TESTED**, Linux, CLI 2.1.312, sans outils ; essai réel : nouveau token proposé en diff                  |
+| Gemini dans l’application                                           | **NOT IMPLEMENTED**, adaptateur indisponible et contrat documenté                                         |
+| Synchro Figma (MCP officiel via Claude Code)                        | **PARTIAL** : lecture réelle du fichier Gutt (variables et composants) ; envoi testé avec un Figma simulé |
+| Skills et harness personnalisable                                   | **IMPLEMENTED**, structure et liens vérifiés ; pas une validation des choix d’un étudiant                 |
+| Qualification automatisée Windows / macOS                           | **TESTED en CI** pour API, navigateur et contrôleur ; **PARTIAL** pour Finder/WSH natifs                  |
+| Application desktop installable                                     | **NOT IMPLEMENTED**, application web locale uniquement                                                    |
 
 Preuves précises et réserves : [DELIVERY_REPORT.md](DELIVERY_REPORT.md).
 

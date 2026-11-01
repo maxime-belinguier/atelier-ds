@@ -931,3 +931,18 @@ Preuves : tests navigateur visite, brief, paramètres, projets ; audit de mise
 en page sans anomalie ; capture 768 px relue.
 Limite : non vérifiés ici : menu Figma connecté en capture, vrai chat Claude,
 Terminal macOS.
+
+## 01/11/2026 · Dépôt public sans infos perso, README à jour
+
+Problème : le dépôt est public. L'identifiant du fichier Figma Gutt était
+écrit dans les tests et un script, et `docs/WORKFLOW.md` donnait mon prénom
+et le chemin de mon ordinateur. Le README ne parlait pas des ajouts du 29/10.
+Décision : identifiant Figma remplacé par une fausse valeur dans les tests et
+le script ; WORKFLOW sans prénom ni chemin. README : « Partir de zéro »,
+composants reliés à Figma, relecture Figma automatique, « Envoyer aussi vers
+Figma », Bibliothèque limitée à Tokens et Composants, état réel de la synchro.
+Écarté : réécrire l'historique Git (l'identifiant seul ne donne aucun accès).
+Preuves : recherche d'e-mails, chemins, clés et secrets dans les fichiers
+suivis ; tests unitaires Figma et serveur réussis.
+Limite : l'identifiant reste dans les anciens commits ; l'e-mail des commits
+reste visible tant que l'adresse privée GitHub n'est pas utilisée.

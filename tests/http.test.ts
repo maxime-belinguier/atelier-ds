@@ -375,12 +375,12 @@ test('Figma : lien requis, lecture en diff, écriture validée une seule fois', 
     project: {
       ...brief.project,
       figmaUrl:
-        'https://www.figma.com/design/A7nqzQVmFo6pLvDMB7aWHg/Gutt?node-id=1-7',
+        'https://www.figma.com/design/AAAAAAAAAAAAAAAAAAAAAA/Gutt?node-id=1-7',
     },
   });
   const status = await (await fetch(origin + '/api/figma/status')).json();
   assert.equal(status.state, 'connected');
-  assert.equal(status.fileKey, 'A7nqzQVmFo6pLvDMB7aWHg');
+  assert.equal(status.fileKey, 'AAAAAAAAAAAAAAAAAAAAAA');
   // Lecture : proposition « figma », rien d'écrit avant validation.
   const pulled = await (await post('figma/pull', { revision: 0 })).json();
   assert.equal(pulled.proposal.source, 'figma');

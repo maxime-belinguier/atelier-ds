@@ -1033,7 +1033,7 @@ test('Figma (simulé) : lire en diff, puis envoyer avec aperçu et validation', 
   await settings
     .getByLabel('Lien du fichier Figma')
     .fill(
-      'https://www.figma.com/design/A7nqzQVmFo6pLvDMB7aWHg/Gutt?node-id=1-7',
+      'https://www.figma.com/design/AAAAAAAAAAAAAAAAAAAAAA/Gutt?node-id=1-7',
     );
   await settings.getByRole('button', { name: 'Enregistrer le lien' }).click();
   await expect(settings.getByText('Lien enregistré.')).toBeVisible();
